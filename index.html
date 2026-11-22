@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -6,54 +7,101 @@
 <meta name="theme-color" content="#08111f">
 <title>Radar FC</title>
 <style>
-:root{color-scheme:dark;--bg:#07101c;--panel:#101d2d;--panel2:#142338;--line:#24364d;--text:#f2f6fc;--muted:#9aabc0;--green:#42d392;--blue:#4d9cff}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#10243a 0,#07101c 48%);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);min-height:100vh}
+:root{color-scheme:dark;--panel:#101d2d;--panel2:#142338;--line:#24364d;--text:#f2f6fc;--muted:#9aabc0;--green:#42d392}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#10243a 0,#07101c 48%);font-family:Arial,system-ui,sans-serif;color:var(--text);min-height:100vh}
 header{padding:25px 18px 18px;max-width:1050px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:11px}.logo{width:43px;height:43px;border-radius:14px;background:linear-gradient(145deg,#43d99a,#17865f);display:grid;place-items:center;color:#052117;font-size:22px;font-weight:900;box-shadow:0 8px 30px #20b87933}
-h1{font-size:22px;margin:0;letter-spacing:.2px}.sub{font-size:12px;color:var(--muted);margin-top:3px}
-button,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+.brand{display:flex;align-items:center;gap:11px}
+.logo{width:43px;height:43px;border-radius:14px;background:linear-gradient(145deg,#43d99a,#17865f);display:grid;place-items:center;color:#052117;font-size:22px;font-weight:900}
+h1{font-size:22px;margin:0}
+.sub{font-size:12px;color:var(--muted);margin-top:3px}
+button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
 main{max-width:1050px;margin:auto;padding:0 18px 40px}
 .hero{background:linear-gradient(115deg,#142b40,#102034 65%,#10352d);border:1px solid #29435a;border-radius:19px;padding:20px;margin:5px 0 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.hero h2{margin:0 0 6px;font-size:20px}.hero p{margin:0;color:#b7c8d9;font-size:13px;line-height:1.5}.livepill{white-space:nowrap;color:#9ff0c9;background:#164b3c;padding:7px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.hero h2{margin:0 0 6px;font-size:20px}
+.hero p{margin:0;color:#b7c8d9;font-size:13px;line-height:1.5}
+.livepill{color:#9ff0c9;background:#164b3c;padding:7px 10px;border-radius:99px;font-size:11px;font-weight:700}
 .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:15px 0}
 .toolbar button.active{background:#174c3c;border-color:#2b9b70;color:#aaffd8}
-.sectionhead{display:flex;justify-content:space-between;align-items:center;margin:22px 0 12px}.sectionhead h3{font-size:16px;margin:0}.muted{color:var(--muted);font-size:12px}
-.leagues{display:flex;gap:8px;overflow:auto;padding:2px 0 12px;scrollbar-width:thin}.league{white-space:nowrap;font-size:12px}
+.sectionhead{display:flex;justify-content:space-between;align-items:center;margin:22px 0 12px}
+.sectionhead h3{font-size:16px;margin:0}
+.muted{color:var(--muted);font-size:12px}
+.leagues{display:flex;gap:8px;overflow:auto;padding:2px 0 12px}
+.league{white-space:nowrap;font-size:12px}
 .matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:11px}
 .match{background:linear-gradient(160deg,#132238,#0e1a2a);border:1px solid var(--line);border-radius:15px;padding:14px;min-width:0}
 .matchtop{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;margin-bottom:13px}
-.status{color:#a8f1ca}.teams{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:14px;font-weight:650}
-.team{display:flex;align-items:center;gap:8px;min-width:0}.team span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.crest{width:24px;height:24px;border-radius:50%;background:#233a52;display:grid;place-items:center;font-size:12px;flex:none}
-.score{font-size:18px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.status{color:#a8f1ca}
+.teams{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:14px;font-weight:650}
+.team{display:flex;align-items:center;gap:8px;min-width:0}
+.team span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crest{width:24px;height:24px;border-radius:50%;background:#233a52;display:grid;place-items:center;font-size:12px}
+.score{font-size:18px;font-weight:800;text-align:right}
 .meta{border-top:1px solid #22344a;margin-top:12px;padding-top:10px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:8px}
-.empty,.loading,.error{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:15px;color:var(--muted);grid-column:1/-1;font-size:13px;line-height:1.5}
+.analysis{margin-top:12px;border-top:1px solid #22344a;padding-top:10px}
+.analysis summary{cursor:pointer;color:#a9c2dc;font-size:12px;font-weight:700;list-style:none}
+.analysis summary:after{content:"＋";float:right;color:var(--green)}
+.analysis[open] summary:after{content:"−"}
+.probgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.prob{background:#0a1726;border:1px solid #22364c;border-radius:10px;padding:9px}
+.prob b{display:block;font-size:17px;color:#9ff0c9}
+.prob span{font-size:10px;color:var(--muted)}
+.modelnote{font-size:10px;color:#8094aa;line-height:1.45;margin-top:9px}
+.analysis-loading,.empty,.loading,.error{padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
 footer{color:#74879d;font-size:11px;line-height:1.6;text-align:center;margin:24px auto 0;max-width:720px}
-@media(max-width:520px){header{padding-top:18px}.hero{align-items:flex-start;flex-direction:column}.hero h2{font-size:18px}.matches{grid-template-columns:1fr}}
+@media(max-width:520px){header{padding-top:18px}.hero{align-items:flex-start;flex-direction:column}.matches{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <header>
- <div class="brand"><div class="logo">⚽</div><div><h1>RADAR FC</h1><div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div></div></div>
+ <div class="brand">
+  <div class="logo">⚽</div>
+  <div>
+   <h1>RADAR FC</h1>
+   <div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div>
+  </div>
+ </div>
  <button id="refresh">↻ Atualizar</button>
 </header>
+
 <main>
  <section class="hero">
-  <div><h2>O futebol em um só lugar.</h2><p>Jogos, placares e competições. Consulte os resultados e acompanhe a rodada.</p></div>
+  <div>
+   <h2>O futebol em um só lugar.</h2>
+   <p>Jogos, placares e estatísticas das principais competições.</p>
+  </div>
   <div class="livepill">● DADOS DE JOGOS</div>
  </section>
+
  <div class="toolbar">
   <button class="active" data-day="today">Hoje</button>
   <button data-day="tomorrow">Amanhã</button>
   <button data-day="yesterday">Ontem</button>
   <span class="muted" id="dateLabel"></span>
  </div>
- <div class="sectionhead"><h3>Competições</h3><span class="muted">Selecione uma liga</span></div>
+
+ <div class="sectionhead">
+  <h3>Competições</h3>
+  <span class="muted">Selecione uma liga</span>
+ </div>
  <div class="leagues" id="leagues"></div>
- <div class="sectionhead"><h3 id="matchesTitle">Partidas</h3><span class="muted" id="count"></span></div>
- <div class="matches" id="matches"><div class="loading">Carregando partidas…</div></div>
- <footer>Radar FC é um projeto independente de consulta esportiva. Os dados dependem da disponibilidade do provedor e podem apresentar atrasos. Estatísticas e resultados não garantem previsões de partidas.</footer>
+
+ <div class="sectionhead">
+  <h3 id="matchesTitle">Partidas</h3>
+  <span class="muted" id="count"></span>
+ </div>
+
+ <div class="matches" id="matches">
+  <div class="loading">Carregando partidas…</div>
+ </div>
+
+ <footer>
+  Radar FC é um projeto independente de consulta esportiva.
+  As probabilidades são estimativas simplificadas baseadas nos últimos jogos disponíveis.
+  Não representam garantia de resultado. Os dados dependem da disponibilidade do provedor.
+ </footer>
 </main>
+
 <script>
 const competitions=[
  {id:"all",name:"Todas",path:null},
@@ -66,17 +114,300 @@ const competitions=[
  {id:"ucl",name:"Champions League",path:"uefa.champions"},
  {id:"uel",name:"Europa League",path:"uefa.europa"}
 ];
+
 const $=s=>document.querySelector(s);
 let selected="all",day="today",allGames=[];
-const dateFor=d=>{let x=new Date();x.setDate(x.getDate()+(d==="tomorrow"?1:d==="yesterday"?-1:0));return x};
-const dateKey=d=>{const x=dateFor(d);return `${x.getFullYear()}${String(x.getMonth()+1).padStart(2,"0")}${String(x.getDate()).padStart(2,"0")}`};
-const fmt=d=>dateFor(d).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
-function renderLeagues(){$("#leagues").innerHTML=competitions.map(c=>`<button class="league ${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`).join("");document.querySelectorAll("[data-league]").forEach(b=>b.onclick=()=>{selected=b.dataset.league;renderLeagues();renderGames()})}
-function parseEvent(e,league){const comp=e.competitions?.[0]||{};const competitors=comp.competitors||[];const home=competitors.find(t=>t.homeAway==="home")||competitors[0]||{};const away=competitors.find(t=>t.homeAway==="away")||competitors[1]||{};const status=comp.status||e.status||{};return {id:e.id,league,home:home.team?.displayName||"Time a definir",away:away.team?.displayName||"Time a definir",hs:home.score??"–",as:away.score??"–",state:status.type?.shortDetail||status.type?.description||"Agendado",completed:status.type?.completed,clock:status.displayClock||"",date:e.date,live:status.type?.state==="in"}}
-async function load(){const box=$("#matches");box.innerHTML='<div class="loading">Buscando partidas…</div>';$("#dateLabel").textContent=fmt(day);const comps=selected==="all"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);try{const results=await Promise.all(comps.map(async c=>{const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?dates=${dateKey(day)}`;const r=await fetch(url);if(!r.ok)throw Error("Falha ao consultar "+c.name);const data=await r.json();return (data.events||[]).map(e=>parseEvent(e,c.name))}));allGames=results.flat().sort((a,b)=>new Date(a.date)-new Date(b.date));renderGames()}catch(err){box.innerHTML='<div class="error">Não foi possível carregar os jogos agora. Verifique sua conexão e tente novamente.<br><br><small>O provedor público pode estar temporariamente indisponível.</small></div>';$("#count").textContent=""}}
-function renderGames(){const box=$("#matches");$("#matchesTitle").textContent=selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name;$("#count").textContent=`${allGames.length} jogo(s)`;if(!allGames.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada para esta data e competição.</div>';return}box.innerHTML=allGames.map(g=>{const time=new Date(g.date).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});const state=g.live?`AO VIVO ${g.clock}`:g.state;return `<article class="match"><div class="matchtop"><span>${g.league}</span><span class="${g.live?"status":""}">${state}</span></div><div class="teams"><div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.home)}</span></div><div class="score">${g.hs}</div><div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.away)}</span></div><div class="score">${g.as}</div></div><div class="meta"><span>${g.completed||g.live?"Placar":"Horário"}: ${g.completed||g.live?state:time}</span><span>${new Date(g.date).toLocaleDateString("pt-BR")}</span></div></article>`}).join("")}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));load()});
-$("#refresh").onclick=load;renderLeagues();load();
+
+const dateFor=d=>{
+ let x=new Date();
+ x.setDate(x.getDate()+(d==="tomorrow"?1:d==="yesterday"?-1:0));
+ return x;
+};
+
+const dateKey=d=>{
+ const x=dateFor(d);
+ return `${x.getFullYear()}${String(x.getMonth()+1).padStart(2,"0")}${String(x.getDate()).padStart(2,"0")}`;
+};
+
+const fmt=d=>dateFor(d).toLocaleDateString("pt-BR",{
+ weekday:"long",day:"2-digit",month:"long"
+});
+
+function renderLeagues(){
+ $("#leagues").innerHTML=competitions.map(c=>
+ `<button class="league ${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`
+ ).join("");
+
+ document.querySelectorAll("[data-league]").forEach(b=>{
+  b.onclick=()=>{
+   selected=b.dataset.league;
+   renderLeagues();
+   load();
+  };
+ });
+}
+
+function parseEvent(e,league){
+ const comp=e.competitions?.[0]||{};
+ const competitors=comp.competitors||[];
+ const home=competitors.find(t=>t.homeAway==="home")||competitors[0]||{};
+ const away=competitors.find(t=>t.homeAway==="away")||competitors[1]||{};
+ const status=comp.status||e.status||{};
+
+ return {
+  id:e.id,
+  league,
+  home:home.team?.displayName||"Time a definir",
+  away:away.team?.displayName||"Time a definir",
+  homeId:home.team?.id,
+  awayId:away.team?.id,
+  hs:home.score??"–",
+  as:away.score??"–",
+  state:status.type?.shortDetail||status.type?.description||"Agendado",
+  completed:status.type?.completed,
+  clock:status.displayClock||"",
+  date:e.date,
+  live:status.type?.state==="in"
+ };
+}
+
+async function load(){
+ const box=$("#matches");
+ box.innerHTML='<div class="loading">Buscando partidas…</div>';
+ $("#dateLabel").textContent=fmt(day);
+
+ const comps=selected==="all"
+  ?competitions.filter(c=>c.path)
+  :competitions.filter(c=>c.id===selected);
+
+ try{
+  const results=await Promise.all(comps.map(async c=>{
+   const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?dates=${dateKey(day)}`;
+   const r=await fetch(url);
+   if(!r.ok)throw Error("Falha ao consultar "+c.name);
+   const data=await r.json();
+   return (data.events||[]).map(e=>parseEvent(e,c.name));
+  }));
+
+  allGames=results.flat().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  renderGames();
+ }catch(err){
+  box.innerHTML='<div class="error">Não foi possível carregar os jogos agora. Verifique sua conexão e tente novamente.</div>';
+  $("#count").textContent="";
+ }
+}
+
+const teamHistoryCache=new Map();
+
+async function teamHistory(leaguePath,teamId,beforeDate){
+ const key=`${leaguePath}:${teamId}`;
+
+ if(!teamHistoryCache.has(key)){
+  const promise=(async()=>{
+   const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leaguePath}/teams/${teamId}/schedule`);
+   if(!r.ok)throw Error("Histórico indisponível");
+
+   const d=await r.json();
+
+   return (d.events||[]).map(ev=>{
+    const c=ev.competitions?.[0]||{};
+    const ts=c.competitors||[];
+    const me=ts.find(x=>String(x.team?.id)===String(teamId));
+    const op=ts.find(x=>String(x.team?.id)!==String(teamId));
+    const st=c.status?.type||ev.status?.type||{};
+    const myScore=Number(me?.score);
+    const opScore=Number(op?.score);
+
+    return {
+     date:ev.date,
+     scored:myScore,
+     conceded:opScore,
+     completed:!!st.completed
+    };
+   }).filter(x=>
+    x.completed&&Number.isFinite(x.scored)&&Number.isFinite(x.conceded)
+   );
+  })();
+
+  teamHistoryCache.set(key,promise);
+ }
+
+ const games=await teamHistoryCache.get(key);
+
+ return games
+  .filter(x=>new Date(x.date)<new Date(beforeDate))
+  .sort((a,b)=>new Date(b.date)-new Date(a.date))
+  .slice(0,6);
+}
+
+function poisson(k,lambda){
+ let p=Math.exp(-lambda),sum=p;
+ for(let i=1;i<=k;i++){
+  p*=lambda/i;
+  sum+=p;
+ }
+ return sum;
+}
+
+function totalOver(lambda,k){
+ return Math.max(0,Math.min(1,1-poisson(k,lambda)));
+}
+
+function pct(v){
+ return `${Math.round(v*100)}%`;
+}
+
+function average(a){
+ return a.reduce((s,x)=>s+x,0)/a.length;
+}
+
+function estimateProbabilities(homeGames,awayGames){
+ if(homeGames.length<3||awayGames.length<3)return null;
+
+ const hAttack=average(homeGames.map(x=>x.scored));
+ const hDef=average(homeGames.map(x=>x.conceded));
+ const aAttack=average(awayGames.map(x=>x.scored));
+ const aDef=average(awayGames.map(x=>x.conceded));
+
+ const lh=Math.max(.15,(hAttack+aDef)/2*1.08);
+ const la=Math.max(.15,(aAttack+hDef)/2*.92);
+ const total=lh+la;
+
+ return {
+  over05:totalOver(total,0),
+  over15:totalOver(total,1),
+  over25:totalOver(total,2),
+  btts:(1-Math.exp(-lh))*(1-Math.exp(-la)),
+  n:Math.min(homeGames.length,awayGames.length),
+  lh,la
+ };
+}
+
+async function loadAnalysis(g,card){
+ const target=card.querySelector(".analysis-body");
+
+ if(!g.homeId||!g.awayId){
+  target.innerHTML='<div class="analysis-loading">Dados históricos não disponíveis para esta partida.</div>';
+  return;
+ }
+
+ try{
+  const path=competitions.find(c=>c.name===g.league)?.path;
+  if(!path)throw Error("Competição não identificada");
+
+  const [hg,ag]=await Promise.all([
+   teamHistory(path,g.homeId,g.date),
+   teamHistory(path,g.awayId,g.date)
+  ]);
+
+  const p=estimateProbabilities(hg,ag);
+
+  if(!p){
+   target.innerHTML='<div class="analysis-loading">Ainda não há jogos anteriores suficientes para estimar as frequências.</div>';
+   return;
+  }
+
+  target.innerHTML=`
+   <div class="probgrid">
+    <div class="prob"><b>${pct(p.over05)}</b><span>Mais de 0,5 gol</span></div>
+    <div class="prob"><b>${pct(p.over15)}</b><span>Mais de 1,5 gols</span></div>
+    <div class="prob"><b>${pct(p.over25)}</b><span>Mais de 2,5 gols</span></div>
+    <div class="prob"><b>${pct(p.btts)}</b><span>Ambas marcam</span></div>
+   </div>
+   <div class="modelnote">
+    Estimativa matemática baseada nos últimos ${p.n} jogos concluídos disponíveis de cada equipe.
+    Médias estimadas: ${escapeHtml(g.home)} ${p.lh.toFixed(2)} gol(s) e
+    ${escapeHtml(g.away)} ${p.la.toFixed(2)} gol(s).
+    Modelo simplificado de Poisson; não é garantia nem previsão certa.
+   </div>`;
+ }catch(e){
+  target.innerHTML='<div class="analysis-loading">Não foi possível obter o histórico desta partida agora. Tente novamente mais tarde.</div>';
+ }
+}
+
+function renderGames(){
+ const box=$("#matches");
+
+ $("#matchesTitle").textContent=selected==="all"
+  ?"Partidas de todas as competições"
+  :competitions.find(c=>c.id===selected)?.name;
+
+ $("#count").textContent=`${allGames.length} jogo(s)`;
+
+ if(!allGames.length){
+  box.innerHTML='<div class="empty">Nenhuma partida encontrada para esta data e competição.</div>';
+  return;
+ }
+
+ box.innerHTML=allGames.map(g=>{
+  const time=new Date(g.date).toLocaleTimeString("pt-BR",{
+   hour:"2-digit",minute:"2-digit"
+  });
+  const state=g.live?`AO VIVO ${g.clock}`:g.state;
+
+  return `
+   <article class="match" data-game="${escapeHtml(g.id)}">
+    <div class="matchtop">
+     <span>${g.league}</span>
+     <span class="${g.live?"status":""}">${state}</span>
+    </div>
+
+    <div class="teams">
+     <div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.home)}</span></div>
+     <div class="score">${g.hs}</div>
+     <div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.away)}</span></div>
+     <div class="score">${g.as}</div>
+    </div>
+
+    <div class="meta">
+     <span>${g.completed||g.live?"Placar":"Horário"}: ${g.completed||g.live?state:time}</span>
+     <span>${new Date(g.date).toLocaleDateString("pt-BR")}</span>
+    </div>
+
+    <details class="analysis">
+     <summary>Probabilidades de gols</summary>
+     <div class="analysis-body">
+      <div class="analysis-loading">Calculando com o histórico recente…</div>
+     </div>
+    </details>
+   </article>`;
+ }).join("");
+
+ box.querySelectorAll(".match").forEach(card=>{
+  const g=allGames.find(x=>String(x.id)===card.dataset.game);
+
+  card.querySelector(".analysis").addEventListener("toggle",e=>{
+   if(e.target.open&&!card.dataset.analysisLoaded){
+    card.dataset.analysisLoaded="1";
+    loadAnalysis(g,card);
+   }
+  });
+ });
+}
+
+function escapeHtml(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+ }[c]));
+}
+
+document.querySelectorAll("[data-day]").forEach(b=>{
+ b.onclick=()=>{
+  day=b.dataset.day;
+  document.querySelectorAll("[data-day]").forEach(x=>
+   x.classList.toggle("active",x===b)
+  );
+  load();
+ };
+});
+
+$("#refresh").onclick=load;
+renderLeagues();
+load();
 </script>
-</body></html>
+</body>
+</html>
