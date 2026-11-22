@@ -1,104 +1,171 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#08111f">
 <title>Radar FC</title>
 <style>
-:root{color-scheme:dark;--panel:#101d2d;--panel2:#142338;--line:#24364d;--text:#f2f6fc;--muted:#9aabc0;--green:#42d392}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(ellipse at top,#10243a 0,#07101c 48%);font-family:Arial,system-ui,sans-serif;color:var(--text);min-height:100vh}
-header{padding:25px 18px 18px;max-width:1050px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:11px}
-.logo{width:43px;height:43px;border-radius:14px;background:linear-gradient(145deg,#43d99a,#17865f);display:grid;place-items:center;color:#052117;font-size:22px;font-weight:900}
-h1{font-size:22px;margin:0}
-.sub{font-size:12px;color:var(--muted);margin-top:3px}
-button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
-main{max-width:1050px;margin:auto;padding:0 18px 40px}
-.hero{background:linear-gradient(115deg,#142b40,#102034 65%,#10352d);border:1px solid #29435a;border-radius:19px;padding:20px;margin:5px 0 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-.hero h2{margin:0 0 6px;font-size:20px}
-.hero p{margin:0;color:#b7c8d9;font-size:13px;line-height:1.5}
-.livepill{color:#9ff0c9;background:#164b3c;padding:7px 10px;border-radius:99px;font-size:11px;font-weight:700}
-.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:15px 0}
-.toolbar button.active,.league.active{background:#174c3c;border-color:#2b9b70;color:#aaffd8}
-.sectionhead{display:flex;justify-content:space-between;align-items:center;margin:22px 0 12px}
-.sectionhead h3{font-size:16px;margin:0}
-.muted{color:var(--muted);font-size:12px}
-.leagues{display:flex;gap:8px;overflow:auto;padding:2px 0 12px}
-.league{white-space:nowrap;font-size:12px}
-.matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:11px}
-.match{background:linear-gradient(160deg,#132238,#0e1a2a);border:1px solid var(--line);border-radius:15px;padding:14px;min-width:0}
-.matchtop{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;margin-bottom:13px}
-.status{color:#a8f1ca}
-.teams{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:14px;font-weight:650}
-.team{display:flex;align-items:center;gap:8px;min-width:0}
-.team span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.crest{width:24px;height:24px;border-radius:50%;background:#233a52;display:grid;place-items:center;font-size:12px}
-.score{font-size:18px;font-weight:800;text-align:right}
-.meta{border-top:1px solid #22344a;margin-top:12px;padding-top:10px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:8px}
-.analysis{margin-top:12px;border-top:1px solid #22344a;padding-top:10px}
-.analysis summary{cursor:pointer;color:#a9c2dc;font-size:12px;font-weight:700;list-style:none}
-.analysis summary:after{content:"＋";float:right;color:var(--green)}
-.analysis[open] summary:after{content:"−"}
-.probgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
-.prob{background:#0a1726;border:1px solid #22364c;border-radius:10px;padding:9px}
-.prob b{display:block;font-size:17px;color:#9ff0c9}
-.prob span{font-size:10px;color:var(--muted)}
-.modelnote{font-size:11px;color:#a9bacd;line-height:1.6;margin-top:12px;background:#0a1726;border:1px solid #22364c;border-radius:10px;padding:12px}
-.analysis-loading,.empty,.loading,.error{padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
-footer{color:#74879d;font-size:11px;line-height:1.6;text-align:center;margin:24px auto 0;max-width:720px}
-@media(max-width:520px){header{padding-top:18px}.hero{align-items:flex-start;flex-direction:column}.matches{grid-template-columns:1fr}}
+body{
+ margin:0;
+ background:#08111f;
+ color:#f2f6fc;
+ font-family:Arial,sans-serif;
+}
+header{
+ max-width:1000px;
+ margin:auto;
+ padding:22px 16px;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+}
+h1{margin:0;font-size:23px}
+.sub{font-size:11px;color:#91a5bc;margin-top:4px}
+button{
+ background:#14263b;
+ color:white;
+ border:1px solid #29415c;
+ border-radius:10px;
+ padding:11px 14px;
+ cursor:pointer;
+}
+main{max-width:1000px;margin:auto;padding:0 16px 35px}
+.hero{
+ background:linear-gradient(120deg,#123b35,#14263b);
+ border:1px solid #28604f;
+ padding:20px;
+ border-radius:16px;
+ margin-bottom:18px;
+}
+.hero h2{margin:0 0 7px;font-size:19px}
+.hero p{margin:0;color:#b6c9d9;font-size:13px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+button.active{background:#176344;border-color:#42d392}
+.leagues{display:flex;gap:8px;overflow:auto;padding:4px 0 14px}
+.leagues button{white-space:nowrap;font-size:12px}
+.section{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ margin:20px 0 12px;
+}
+.section h3{font-size:16px;margin:0}
+.muted{font-size:12px;color:#91a5bc}
+.matches{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
+ gap:12px;
+}
+.match{
+ background:#101e30;
+ border:1px solid #263b53;
+ border-radius:15px;
+ padding:15px;
+}
+.matchtop{
+ display:flex;
+ justify-content:space-between;
+ color:#91a5bc;
+ font-size:11px;
+ margin-bottom:15px;
+ gap:8px;
+}
+.teams{
+ display:grid;
+ grid-template-columns:1fr auto;
+ gap:10px;
+ align-items:center;
+ font-size:14px;
+ font-weight:bold;
+}
+.score{text-align:right;font-size:19px}
+.meta{
+ color:#91a5bc;
+ font-size:11px;
+ margin-top:12px;
+ border-top:1px solid #263b53;
+ padding-top:10px;
+}
+.prediction{
+ margin-top:13px;
+ background:#0b2b25;
+ border:1px solid #22634d;
+ border-radius:11px;
+ padding:12px;
+}
+.prediction small{
+ color:#9eb8ae;
+ display:block;
+ font-size:10px;
+ margin-bottom:6px;
+}
+.prediction strong{
+ color:#65e3a7;
+ font-size:15px;
+}
+.loading,.empty{
+ text-align:center;
+ padding:28px 12px;
+ color:#91a5bc;
+ font-size:13px;
+ line-height:1.5;
+}
+footer{
+ text-align:center;
+ color:#74879d;
+ font-size:11px;
+ line-height:1.5;
+ padding:25px 10px;
+}
+@media(max-width:520px){
+ header{padding-top:18px}
+ .matches{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
+
 <header>
- <div class="brand">
-  <div class="logo">⚽</div>
-  <div>
-   <h1>RADAR FC</h1>
-   <div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div>
-  </div>
+ <div>
+  <h1>⚽ RADAR FC</h1>
+  <div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div>
  </div>
  <button id="refresh">↻ Atualizar</button>
 </header>
 
 <main>
  <section class="hero">
-  <div>
-   <h2>O futebol em um só lugar.</h2>
-   <p>Jogos, placares e estatísticas das principais competições.</p>
-  </div>
-  <div class="livepill">● DADOS DE JOGOS</div>
+  <h2>O futebol em um só lugar.</h2>
+  <p>Confira partidas e veja o resultado mais provável.</p>
  </section>
 
  <div class="toolbar">
   <button class="active" data-day="today">Hoje</button>
   <button data-day="tomorrow">Amanhã</button>
   <button data-day="yesterday">Ontem</button>
-  <span class="muted" id="dateLabel"></span>
  </div>
 
- <div class="sectionhead">
+ <div class="section">
   <h3>Competições</h3>
-  <span class="muted">Selecione uma liga</span>
+  <span class="muted">Escolha uma liga</span>
  </div>
  <div class="leagues" id="leagues"></div>
 
- <div class="sectionhead">
-  <h3 id="matchesTitle">Partidas</h3>
+ <div class="section">
+  <h3 id="title">Partidas</h3>
   <span class="muted" id="count"></span>
  </div>
 
  <div class="matches" id="matches">
-  <div class="loading">Carregando partidas…</div>
+  <div class="loading">Carregando partidas...</div>
  </div>
 
  <footer>
-  Radar FC é um projeto independente de consulta esportiva.
-  As probabilidades são estimativas estatísticas simplificadas.
-  Não representam garantia de resultado. Os dados dependem da disponibilidade do provedor.
+  As previsões são estimativas estatísticas baseadas em resultados anteriores.
+  Não garantem o resultado das partidas.
  </footer>
 </main>
 
@@ -115,34 +182,34 @@ const competitions=[
  {id:"uel",name:"Europa League",path:"uefa.europa"}
 ];
 
+let selected="all";
+let day="today";
+let games=[];
+const historyCache=new Map();
+
 const $=s=>document.querySelector(s);
-let selected="all",day="today",allGames=[];
-const teamHistoryCache=new Map();
 
-const dateFor=d=>{
- let x=new Date();
- x.setDate(x.getDate()+(d==="tomorrow"?1:d==="yesterday"?-1:0));
- return x;
-};
+function dateKey(offset){
+ const d=new Date();
+ d.setDate(d.getDate()+offset);
+ return d.getFullYear()+
+  String(d.getMonth()+1).padStart(2,"0")+
+  String(d.getDate()).padStart(2,"0");
+}
 
-const dateKey=d=>{
- const x=dateFor(d);
- return `${x.getFullYear()}${String(x.getMonth()+1).padStart(2,"0")}${String(x.getDate()).padStart(2,"0")}`;
-};
+function offsetDay(){
+ return day==="tomorrow"?1:day==="yesterday"?-1:0;
+}
 
-const fmt=d=>dateFor(d).toLocaleDateString("pt-BR",{
- weekday:"long",day:"2-digit",month:"long"
-});
-
-function escapeHtml(s){
- return String(s).replace(/[&<>"']/g,c=>({
+function safe(s){
+ return String(s??"").replace(/[&<>"']/g,c=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
  }[c]));
 }
 
 function renderLeagues(){
  $("#leagues").innerHTML=competitions.map(c=>
- `<button class="league ${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`
+  `<button class="${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`
  ).join("");
 
  document.querySelectorAll("[data-league]").forEach(b=>{
@@ -154,33 +221,32 @@ function renderLeagues(){
  });
 }
 
-function parseEvent(e,league){
+function parseEvent(e,league,path){
  const comp=e.competitions?.[0]||{};
- const competitors=comp.competitors||[];
- const home=competitors.find(t=>t.homeAway==="home")||competitors[0]||{};
- const away=competitors.find(t=>t.homeAway==="away")||competitors[1]||{};
+ const teams=comp.competitors||[];
+ const home=teams.find(t=>t.homeAway==="home")||teams[0]||{};
+ const away=teams.find(t=>t.homeAway==="away")||teams[1]||{};
  const status=comp.status||e.status||{};
 
  return {
-  id:e.id,league,
+  id:e.id,
+  league,
+  path,
   home:home.team?.displayName||"Time a definir",
   away:away.team?.displayName||"Time a definir",
   homeId:home.team?.id,
   awayId:away.team?.id,
-  hs:home.score??"–",
-  as:away.score??"–",
+  hs:home.score??"-",
+  as:away.score??"-",
+  completed:status.type?.completed===true,
   state:status.type?.shortDetail||status.type?.description||"Agendado",
-  completed:status.type?.completed,
-  clock:status.displayClock||"",
-  date:e.date,
-  live:status.type?.state==="in"
+  date:e.date
  };
 }
 
 async function load(){
  const box=$("#matches");
- box.innerHTML='<div class="loading">Buscando partidas…</div>';
- $("#dateLabel").textContent=fmt(day);
+ box.innerHTML='<div class="loading">Buscando partidas...</div>';
 
  const comps=selected==="all"
   ?competitions.filter(c=>c.path)
@@ -188,106 +254,63 @@ async function load(){
 
  try{
   const results=await Promise.all(comps.map(async c=>{
-   const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?dates=${dateKey(day)}`;
-   const r=await fetch(url);
-   if(!r.ok)throw Error("Falha ao consultar "+c.name);
-   const data=await r.json();
-   return (data.events||[]).map(e=>parseEvent(e,c.name));
+   const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?dates=${dateKey(offsetDay())}`;
+   const response=await fetch(url);
+   if(!response.ok)return [];
+   const data=await response.json();
+   return (data.events||[]).map(e=>parseEvent(e,c.name,c.path));
   }));
 
-  allGames=results.flat().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  games=results.flat().sort((a,b)=>new Date(a.date)-new Date(b.date));
   renderGames();
- }catch(err){
-  box.innerHTML='<div class="error">Não foi possível carregar os jogos agora. Verifique sua conexão e tente novamente.</div>';
-  $("#count").textContent="";
+ }catch(error){
+  box.innerHTML='<div class="empty">Não foi possível carregar os jogos. Tente novamente.</div>';
  }
 }
-async function teamHistory(teamId,beforeDate){
- const key=`all:${teamId}`;
 
- if(!teamHistoryCache.has(key)){
-  const promise=(async()=>{
-   const paths=competitions
-    .filter(c=>c.path)
-    .map(c=>c.path);
+async function teamHistory(path,id,before){
+ const key=path+":"+id;
 
-   const results=await Promise.all(
-    paths.map(async path=>{
-     try{
-      const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${teamId}/schedule`;
+ if(!historyCache.has(key)){
+  historyCache.set(key,(async()=>{
+   const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`;
+   const response=await fetch(url);
+   if(!response.ok)throw Error("Histórico indisponível");
 
-      const response=await fetch(url);
-      if(!response.ok)return [];
+   const data=await response.json();
 
-      const data=await response.json();
+   return (data.events||[]).map(e=>{
+    const comp=e.competitions?.[0]||{};
+    const teams=comp.competitors||[];
+    const me=teams.find(t=>String(t.team?.id)===String(id));
+    const other=teams.find(t=>String(t.team?.id)!==String(id));
+    const status=comp.status?.type||e.status?.type||{};
 
-      return (data.events||[]).map(ev=>{
-       const comp=ev.competitions?.[0]||{};
-       const teams=comp.competitors||[];
-       const me=teams.find(t=>
-        String(t.team?.id)===String(teamId)
-       );
-       const opponent=teams.find(t=>
-        String(t.team?.id)!==String(teamId)
-       );
-       const status=comp.status?.type||ev.status?.type||{};
-
-       return {
-        id:ev.id,
-        date:ev.date,
-        scored:Number(me?.score),
-        conceded:Number(opponent?.score),
-        completed:status.completed===true||status.state==="post"
-       };
-      }).filter(g=>
-       g.completed&&
-       Number.isFinite(g.scored)&&
-       Number.isFinite(g.conceded)
-      );
-     }catch(error){
-      return [];
-     }
-    })
+    return {
+     date:e.date,
+     id:e.id,
+     scored:Number(me?.score),
+     conceded:Number(other?.score),
+     done:status.completed===true||status.state==="post"
+    };
+   }).filter(g=>
+    g.done&&
+    Number.isFinite(g.scored)&&
+    Number.isFinite(g.conceded)
    );
-
-   const unique=new Map();
-
-   results.flat().forEach(g=>{
-    if(g.id)unique.set(String(g.id),g);
-   });
-
-   return [...unique.values()];
-  })();
-
-  teamHistoryCache.set(key,promise);
+  })());
  }
 
- const games=await teamHistoryCache.get(key);
-
- return games
-  .filter(g=>new Date(g.date)<new Date(beforeDate))
+ const list=await historyCache.get(key);
+ return list
+  .filter(g=>new Date(g.date)<new Date(before))
   .sort((a,b)=>new Date(b.date)-new Date(a.date))
-  .slice(0,10);
-}
-async function teamHistory(values){
- return values.length
-  ?values.reduce((sum,v)=>sum+v,0)/values.length
-  :0;
-}
-
-function analyzeTeam(games){
- return {
-  played:games.length,
-  goalsScored:games.reduce((s,g)=>s+g.scored,0),
-  goalsConceded:games.reduce((s,g)=>s+g.conceded,0),
-  scoredIn:games.filter(g=>g.scored>0).length,
-  averageScored:average(games.map(g=>g.scored)),
-  averageConceded:average(games.map(g=>g.conceded))
- };
+  .slice(0,5);
 }
 
 function poisson(k,lambda){
- let p=Math.exp(-lambda),sum=p;
+ let p=Math.exp(-lambda);
+ let sum=p;
  for(let i=1;i<=k;i++){
   p*=lambda/i;
   sum+=p;
@@ -295,161 +318,101 @@ function poisson(k,lambda){
  return sum;
 }
 
-function totalOver(lambda,k){
- return Math.max(0,Math.min(1,1-poisson(k,lambda)));
-}
+async function predict(g){
+ if(!g.homeId||!g.awayId)throw Error("Times indisponíveis");
 
-function pct(value){
- return `${Math.round(value*100)}%`;
-}
+ const [h,a]=await Promise.all([
+  teamHistory(g.path,g.homeId,g.date),
+  teamHistory(g.path,g.awayId,g.date)
+ ]);
 
-function estimateProbabilities(home,away){
- if(home.played<3||away.played<3)return null;
+ if(h.length<3||a.length<3)throw Error("Histórico insuficiente");
 
- const homeExpected=Math.max(.05,
-  (home.averageScored+away.averageConceded)/2*1.08
- );
+ const avg=(arr,key)=>arr.reduce((s,x)=>s+x[key],0)/arr.length;
 
- const awayExpected=Math.max(.05,
-  (away.averageScored+home.averageConceded)/2*.92
- );
+ const homeGoals=(avg(h,"scored")+avg(a,"conceded"))/2*1.08;
+ const awayGoals=(avg(a,"scored")+avg(h,"conceded"))/2*.92;
 
- const total=homeExpected+awayExpected;
+ let homeWin=0,draw=0,awayWin=0;
 
- return {
-  homeExpected,
-  awayExpected,
-  homeScores:1-Math.exp(-homeExpected),
-  awayScores:1-Math.exp(-awayExpected),
-  over05:totalOver(total,0),
-  over15:totalOver(total,1),
-  over25:totalOver(total,2),
-  btts:(1-Math.exp(-homeExpected))*(1-Math.exp(-awayExpected))
- };
-}
+ for(let i=0;i<=7;i++){
+  for(let j=0;j<=7;j++){
+   const probability=
+    Math.exp(-homeGoals)*Math.pow(homeGoals,i)/factorial(i)*
+    Math.exp(-awayGoals)*Math.pow(awayGoals,j)/factorial(j);
 
-async function loadAnalysisasync function loadAnalysis(g,card){
- const target=card.querySelector(".analysis-body");
-
- if(!g.homeId||!g.awayId){
-  target.innerHTML='<div class="analysis-loading">Dados históricos não disponíveis para esta partida.</div>';
-  return;
- }
-
- try{
-  const [homeGames,awayGames]=await Promise.all([
-   teamHistory(g.homeId,g.date),
-   teamHistory(g.awayId,g.date)
-  ]);
-
-  const home=analyzeTeam(homeGames);
-  const away=analyzeTeam(awayGames);
-  const p=estimateProbabilities(home,away);
-
-  if(!p){
-   target.innerHTML=`
-    <div class="analysis-loading">
-     Não foram encontrados pelo menos 3 jogos anteriores para os dois times nas competições disponíveis.
-     </div>`;
-   return;
+   if(i>j)homeWin+=probability;
+   else if(i===j)draw+=probability;
+   else awayWin+=probability;
   }
-
-  let better="Ataques equilibrados";
-  if(p.homeExpected>p.awayExpected)better=g.home;
-  if(p.awayExpected>p.homeExpected)better=g.away;
-
-  target.innerHTML=`
-   <div class="probgrid">
-    <div class="prob"><b>${pct(p.over05)}</b><span>Mais de 0,5 gol</span></div>
-    <div class="prob"><b>${pct(p.over15)}</b><span>Mais de 1,5 gols</span></div>
-    <div class="prob"><b>${pct(p.over25)}</b><span>Mais de 2,5 gols</span></div>
-    <div class="prob"><b>${pct(p.btts)}</b><span>Ambas marcam</span></div>
-    <div class="prob"><b>${pct(p.homeScores)}</b><span>${escapeHtml(g.home)} marcar pelo menos 1 gol</span></div>
-    <div class="prob"><b>${pct(p.awayScores)}</b><span>${escapeHtml(g.away)} marcar pelo menos 1 gol</span></div>
-   </div>
-
-   <div class="modelnote">
-    <strong>ATAQUE MAIS PRODUTIVO:</strong> ${escapeHtml(better)}<br>
-    <strong>Gols esperados — ${escapeHtml(g.home)}:</strong> ${p.homeExpected.toFixed(2)}<br>
-    <strong>Gols esperados — ${escapeHtml(g.away)}:</strong> ${p.awayExpected.toFixed(2)}<br><br>
-
-    <strong>ÚLTIMOS JOGOS — ${escapeHtml(g.home)}</strong><br>
-    Jogos analisados: ${home.played}<br>
-    Gols marcados: ${home.goalsScored}<br>
-    Gols sofridos: ${home.goalsConceded}<br>
-    Média de gols marcados: ${home.averageScored.toFixed(2)}<br>
-    Marcou em ${home.scoredIn} de ${home.played} jogos.<br><br>
-
-    <strong>ÚLTIMOS JOGOS — ${escapeHtml(g.away)}</strong><br>
-    Jogos analisados: ${away.played}<br>
-    Gols marcados: ${away.goalsScored}<br>
-    Gols sofridos: ${away.goalsConceded}<br>
-    Média de gols marcados: ${away.averageScored.toFixed(2)}<br>
-    Marcou em ${away.scoredIn} de ${away.played} jogos.<br><br>
-
-    Histórico consultado nas competições disponíveis no Radar FC.
-    Foram utilizados até 10 jogos anteriores de cada time.
-    As estimativas são estatísticas simplificadas e não garantem resultados.
-   </div>`;
- }catch(error){
-  target.innerHTML='<div class="analysis-loading">Não foi possível obter o histórico agora. Tente novamente mais tarde.</div>';
  }
-}(){
+
+ const best=Math.max(homeWin,draw,awayWin);
+
+ if(best===homeWin)return "Vitória do "+g.home;
+ if(best===draw)return "Empate";
+ return "Vitória do "+g.away;
+}
+
+function factorial(n){
+ let result=1;
+ for(let i=2;i<=n;i++)result*=i;
+ return result;
+}
+
+function renderGames(){
  const box=$("#matches");
 
- $("#matchesTitle").textContent=selected==="all"
+ $("#title").textContent=selected==="all"
   ?"Partidas de todas as competições"
   :competitions.find(c=>c.id===selected)?.name;
 
- $("#count").textContent=`${allGames.length} jogo(s)`;
+ $("#count").textContent=games.length+" jogo(s)";
 
- if(!allGames.length){
-  box.innerHTML='<div class="empty">Nenhuma partida encontrada para esta data e competição.</div>';
+ if(!games.length){
+  box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';
   return;
  }
 
- box.innerHTML=allGames.map(g=>{
-  const time=new Date(g.date).toLocaleTimeString("pt-BR",{
-   hour:"2-digit",minute:"2-digit"
-  });
-  const state=g.live?`AO VIVO ${g.clock}`:g.state;
+ box.innerHTML=games.map(g=>`
+  <article class="match" data-id="${safe(g.id)}">
+   <div class="matchtop">
+    <span>${safe(g.league)}</span>
+    <span>${safe(g.state)}</span>
+   </div>
 
-  return `
-   <article class="match" data-game="${escapeHtml(g.id)}">
-    <div class="matchtop">
-     <span>${escapeHtml(g.league)}</span>
-     <span class="${g.live?"status":""}">${escapeHtml(state)}</span>
-    </div>
+   <div class="teams">
+    <div>${safe(g.home)}</div>
+    <div class="score">${safe(g.hs)}</div>
+    <div>${safe(g.away)}</div>
+    <div class="score">${safe(g.as)}</div>
+   </div>
 
-    <div class="teams">
-     <div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.home)}</span></div>
-     <div class="score">${escapeHtml(g.hs)}</div>
-     <div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.away)}</span></div>
-     <div class="score">${escapeHtml(g.as)}</div>
-    </div>
+   <div class="meta">
+    ${new Date(g.date).toLocaleDateString("pt-BR")} ·
+    ${new Date(g.date).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+   </div>
 
-    <div class="meta">
-     <span>${g.completed||g.live?"Placar":"Horário"}: ${escapeHtml(state)}</span>
-     <span>${new Date(g.date).toLocaleDateString("pt-BR")}</span>
-    </div>
-
-    <details class="analysis">
-     <summary>Probabilidades de gols</summary>
-     <div class="analysis-body">
-      <div class="analysis-loading">Calculando com o histórico recente…</div>
-     </div>
-    </details>
-   </article>`;
- }).join("");
+   <div class="prediction">
+    <small>RESULTADO MAIS PROVÁVEL</small>
+    <strong class="forecast">Calculando previsão...</strong>
+   </div>
+  </article>
+ `).join("");
 
  box.querySelectorAll(".match").forEach(card=>{
-  const g=allGames.find(x=>String(x.id)===card.dataset.game);
+  const g=games.find(x=>String(x.id)===card.dataset.id);
+  const output=card.querySelector(".forecast");
 
-  card.querySelector(".analysis").addEventListener("toggle",e=>{
-   if(e.target.open&&!card.dataset.analysisLoaded){
-    card.dataset.analysisLoaded="1";
-    loadAnalysis(g,card);
-   }
+  if(g.completed){
+   output.textContent="Partida encerrada";
+   return;
+  }
+
+  predict(g).then(result=>{
+   output.textContent=result;
+  }).catch(()=>{
+   output.textContent="Previsão indisponível";
   });
  });
 }
