@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#08111f">
 <title>Radar FC</title>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#08111f;color:#f2f6fc;font-family:Arial,sans-serif}
@@ -27,7 +28,10 @@ button.active{background:#176344;border-color:#42d392}
 .matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
 .match{background:#101e30;border:1px solid #263b53;border-radius:15px;padding:15px}
 .matchtop{display:flex;justify-content:space-between;color:#91a5bc;font-size:11px;margin-bottom:15px;gap:8px}
-.teams{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-size:14px;font-weight:bold}
+.teams{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;font-size:14px;font-weight:bold}
+.team-name{display:flex;align-items:center;gap:9px;min-width:0}
+.team-name span{overflow-wrap:anywhere}
+.team-logo{width:30px;height:30px;object-fit:contain;flex-shrink:0}
 .score{text-align:right;font-size:19px}
 .meta{color:#91a5bc;font-size:11px;margin-top:12px;border-top:1px solid #263b53;padding-top:10px}
 .phase{margin-top:14px;background:#0b1929;border:1px solid #29415c;border-radius:11px;padding:12px}
@@ -42,9 +46,13 @@ button.active{background:#176344;border-color:#42d392}
 .loss{color:#ff9292}
 .loading,.empty{text-align:center;padding:28px 12px;color:#91a5bc;font-size:13px;line-height:1.5}
 footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25px 10px}
-@media(max-width:520px){header{padding-top:18px}.matches{grid-template-columns:1fr}}
+@media(max-width:520px){
+ header{padding-top:18px}
+ .matches{grid-template-columns:1fr}
+}
 </style>
 </head>
+
 <body>
 
 <header>
@@ -56,6 +64,7 @@ footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25
 </header>
 
 <main>
+
  <section class="hero">
   <h2>O futebol em um só lugar.</h2>
   <p>Partidas, placares e fase recente dos clubes.</p>
@@ -71,6 +80,7 @@ footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25
   <h3>Competições</h3>
   <span class="muted">Escolha uma liga</span>
  </div>
+
  <div class="leagues" id="leagues"></div>
 
  <div class="section">
@@ -86,6 +96,7 @@ footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25
   Dados esportivos fornecidos pela ESPN.
   A comparação de fase considera os resultados recentes disponíveis.
  </footer>
+
 </main>
 
 <script>
@@ -105,11 +116,13 @@ let selected="all";
 let day="today";
 let games=[];
 const historyCache=new Map();
+
 const $=s=>document.querySelector(s);
 
 function dateKey(offset){
  const d=new Date();
  d.setDate(d.getDate()+offset);
+
  return d.getFullYear()+
   String(d.getMonth()+1).padStart(2,"0")+
   String(d.getDate()).padStart(2,"0");
@@ -121,17 +134,29 @@ function offsetDay(){
 
 function safe(s){
  return String(s??"").replace(/[&<>"']/g,c=>({
-  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
  }[c]));
 }
 
 function getScore(value){
  if(value===null||value===undefined)return NaN;
+
  const raw=typeof value==="object"
   ?(value.value??value.displayValue)
   :value;
+
  const n=Number(raw);
  return Number.isFinite(n)?n:NaN;
+}
+
+function getTeamLogo(team){
+ return team?.logo||
+  team?.logos?.[0]?.href||
+  "";
 }
 
 function renderLeagues(){
@@ -151,22 +176,32 @@ function renderLeagues(){
 function parseEvent(e,league,path){
  const comp=e.competitions?.[0]||{};
  const teams=comp.competitors||[];
+
  const home=teams.find(t=>t.homeAway==="home")||teams[0]||{};
  const away=teams.find(t=>t.homeAway==="away")||teams[1]||{};
+
  const status=comp.status||e.status||{};
 
  return {
   id:e.id,
   league,
   path,
+
   home:home.team?.displayName||"Time a definir",
   away:away.team?.displayName||"Time a definir",
+
   homeId:home.team?.id,
   awayId:away.team?.id,
+
+  homeLogo:getTeamLogo(home.team),
+  awayLogo:getTeamLogo(away.team),
+
   hs:home.score?.displayValue??home.score??"-",
   as:away.score?.displayValue??away.score??"-",
+
   completed:status.type?.completed===true,
   state:status.type?.shortDetail||status.type?.description||"Agendado",
+
   date:e.date
  };
 }
@@ -182,14 +217,23 @@ async function load(){
  try{
   const results=await Promise.all(comps.map(async c=>{
    const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?dates=${dateKey(offsetDay())}`;
+
    const response=await fetch(url);
    if(!response.ok)return [];
+
    const data=await response.json();
-   return (data.events||[]).map(e=>parseEvent(e,c.name,c.path));
+
+   return (data.events||[]).map(e=>
+    parseEvent(e,c.name,c.path)
+   );
   }));
 
-  games=results.flat().sort((a,b)=>new Date(a.date)-new Date(b.date));
+  games=results.flat().sort((a,b)=>
+   new Date(a.date)-new Date(b.date)
+  );
+
   renderGames();
+
  }catch(error){
   box.innerHTML='<div class="empty">Não foi possível carregar os jogos. Tente novamente.</div>';
  }
@@ -201,6 +245,7 @@ async function teamHistory(path,id){
  if(!historyCache.has(key)){
   historyCache.set(key,(async()=>{
    const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`;
+
    const response=await fetch(url);
    if(!response.ok)throw Error("Histórico indisponível");
 
@@ -209,8 +254,15 @@ async function teamHistory(path,id){
    return (data.events||[]).map(e=>{
     const comp=e.competitions?.[0]||{};
     const teams=comp.competitors||[];
-    const me=teams.find(t=>String(t.team?.id)===String(id));
-    const other=teams.find(t=>String(t.team?.id)!==String(id));
+
+    const me=teams.find(t=>
+     String(t.team?.id)===String(id)
+    );
+
+    const other=teams.find(t=>
+     String(t.team?.id)!==String(id)
+    );
+
     const status=comp.status?.type||e.status?.type||{};
 
     const scored=getScore(me?.score);
@@ -224,11 +276,13 @@ async function teamHistory(path,id){
      conceded,
      completed:status.completed===true||status.state==="post"
     };
+
    }).filter(g=>
     g.completed&&
     Number.isFinite(g.scored)&&
     Number.isFinite(g.conceded)
    );
+
   })());
  }
 
@@ -244,7 +298,12 @@ function getForm(games){
  const draws=games.filter(g=>g.scored===g.conceded).length;
  const losses=games.filter(g=>g.scored<g.conceded).length;
 
- return {wins,draws,losses,points:wins*3+draws};
+ return {
+  wins,
+  draws,
+  losses,
+  points:wins*3+draws
+ };
 }
 
 function resultLabel(g){
@@ -259,15 +318,23 @@ function renderHistory(team,games){
  return `
  <div class="history-team">
   <strong>${safe(team)}</strong>
-  <div class="muted">V ${form.wins} · E ${form.draws} · D ${form.losses}</div>
+
+  <div class="muted">
+   V ${form.wins} · E ${form.draws} · D ${form.losses}
+  </div>
+
   ${games.map(g=>{
    const [label,css]=resultLabel(g);
-   return `<div class="game-result">
-    <span class="${css}">${label}</span><br>
-    ${safe(g.opponent)}<br>
-    ${g.scored} x ${g.conceded}
-   </div>`;
+
+   return `
+    <div class="game-result">
+     <span class="${css}">${label}</span><br>
+     ${safe(g.opponent)}<br>
+     ${g.scored} x ${g.conceded}
+    </div>
+   `;
   }).join("")}
+
  </div>`;
 }
 
@@ -294,18 +361,40 @@ async function loadForm(g,card){
   const awayForm=getForm(awayGames);
 
   let message="Os times estão em fase semelhante.";
-  if(homeForm.points>awayForm.points)message=`${g.home} tem a melhor fase recente.`;
-  if(awayForm.points>homeForm.points)message=`${g.away} tem a melhor fase recente.`;
+
+  if(homeForm.points>awayForm.points){
+   message=`${g.home} tem a melhor fase recente.`;
+  }
+
+  if(awayForm.points>homeForm.points){
+   message=`${g.away} tem a melhor fase recente.`;
+  }
 
   target.innerHTML=`
    <div class="phase-result">${safe(message)}</div>
+
    <div class="history">
     ${renderHistory(g.home,homeGames)}
     ${renderHistory(g.away,awayGames)}
-   </div>`;
+   </div>
+  `;
+
  }catch(error){
   target.textContent="Não foi possível carregar os resultados anteriores.";
  }
+}
+
+function teamHTML(name,logo){
+ const image=logo
+  ?`<img class="team-logo" src="${safe(logo)}" alt="" onerror="this.style.display='none'">`
+  :"";
+
+ return `
+  <div class="team-name">
+   ${image}
+   <span>${safe(name)}</span>
+  </div>
+ `;
 }
 
 function renderGames(){
@@ -324,32 +413,43 @@ function renderGames(){
 
  box.innerHTML=games.map(g=>`
   <article class="match" data-id="${safe(g.id)}">
+
    <div class="matchtop">
     <span>${safe(g.league)}</span>
     <span>${safe(g.state)}</span>
    </div>
 
    <div class="teams">
-    <div>${safe(g.home)}</div>
+    ${teamHTML(g.home,g.homeLogo)}
     <div class="score">${safe(g.hs)}</div>
-    <div>${safe(g.away)}</div>
+
+    ${teamHTML(g.away,g.awayLogo)}
     <div class="score">${safe(g.as)}</div>
    </div>
 
    <div class="meta">
     ${new Date(g.date).toLocaleDateString("pt-BR")} ·
-    ${new Date(g.date).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+    ${new Date(g.date).toLocaleTimeString("pt-BR",{
+     hour:"2-digit",
+     minute:"2-digit"
+    })}
    </div>
 
    <div class="phase">
     <h4>FASE RECENTE DOS TIMES</h4>
-    <div class="phase-content loading">Consultando últimos resultados...</div>
+    <div class="phase-content loading">
+     Consultando últimos resultados...
+    </div>
    </div>
+
   </article>
  `).join("");
 
  box.querySelectorAll(".match").forEach(card=>{
-  const g=games.find(x=>String(x.id)===card.dataset.id);
+  const g=games.find(x=>
+   String(x.id)===card.dataset.id
+  );
+
   loadForm(g,card);
  });
 }
@@ -357,16 +457,20 @@ function renderGames(){
 document.querySelectorAll("[data-day]").forEach(b=>{
  b.onclick=()=>{
   day=b.dataset.day;
+
   document.querySelectorAll("[data-day]").forEach(x=>
    x.classList.toggle("active",x===b)
   );
+
   load();
  };
 });
 
 $("#refresh").onclick=load;
+
 renderLeagues();
 load();
 </script>
+
 </body>
 </html>
