@@ -59,6 +59,7 @@ footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25
  </div>
  <button id="refresh">↻ Atualizar</button>
 </header>
+
 <main>
  <section class="hero">
   <h2>O futebol em um só lugar.</h2>
@@ -87,7 +88,7 @@ footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25
 
  <footer>
   Dados esportivos fornecidos pela ESPN.<br>
-  Placar atualizado automaticamente a cada 60 segundos enquanto a página estiver aberta.<br>
+  Atualização automática a cada 60 segundos enquanto a página estiver aberta.<br>
   A Dupla do Dia destaca jogos com base na fase recente disponível.
  </footer>
 </main>
@@ -114,7 +115,9 @@ function dateKey(offset){
  d.setDate(d.getDate()+offset);
  return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
 }
-function offsetDay(){return day==="tomorrow"?1:day==="yesterday"?-1:0}
+function offsetDay(){
+ return day==="tomorrow"?1:day==="yesterday"?-1:0;
+}
 function safe(s){
  return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
@@ -123,7 +126,9 @@ function getScore(v){
  const n=Number(typeof v==="object"?(v.value??v.displayValue):v);
  return Number.isFinite(n)?n:NaN;
 }
-function getTeamLogo(t){return t?.logo||t?.logos?.[0]?.href||""}
+function getTeamLogo(t){
+ return t?.logo||t?.logos?.[0]?.href||"";
+}
 
 function getStatus(e,c){
  const s=c.status||e.status||{},t=s.type||{};
@@ -139,6 +144,7 @@ function renderLeagues(){
  $("#leagues").innerHTML=options.map(c=>
   `<button class="${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`
  ).join("");
+
  document.querySelectorAll("[data-league]").forEach(b=>{
   b.onclick=()=>{
    selected=b.dataset.league;
@@ -162,7 +168,8 @@ function parseEvent(e,league,path){
   homeLogo:getTeamLogo(h.team),awayLogo:getTeamLogo(a.team),
   hs:h.score?.displayValue??h.score??"-",
   as:a.score?.displayValue??a.score??"-",
-  live:status.live,completed:status.completed,state:status.label,date:e.date
+  live:status.live,completed:status.completed,
+  state:status.label,date:e.date
  };
 }
 
@@ -171,6 +178,7 @@ async function load(){
  loading=true;
  const box=$("#matches");
  box.innerHTML='<div class="loading">Buscando partidas...</div>';
+
  const comps=selected==="all"||selected==="dupla"
   ?competitions.filter(c=>c.path)
   :competitions.filter(c=>c.id===selected);
@@ -185,42 +193,52 @@ async function load(){
     return (data.events||[]).map(e=>parseEvent(e,c.name,c.path));
    }catch(e){return []}
   }));
+
   games=results.flat().sort((a,b)=>{
    if(a.live&&!b.live)return -1;
    if(!a.live&&b.live)return 1;
    return new Date(a.date)-new Date(b.date);
   });
+
   if(selected==="dupla")await renderDupla();
   else renderGames();
+
  }catch(e){
   box.innerHTML='<div class="empty">Não foi possível carregar os jogos. Tente novamente.</div>';
- }finally{loading=false}
+ }finally{
+  loading=false;
+ }
 }
 
 async function teamHistory(path,id){
  const key=path+":"+id;
+
  if(!historyCache.has(key)){
   historyCache.set(key,(async()=>{
    const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`;
    const response=await fetch(url);
    if(!response.ok)throw Error("Histórico indisponível");
+
    const data=await response.json();
    return (data.events||[]).map(e=>{
     const c=e.competitions?.[0]||{},teams=c.competitors||[];
     const me=teams.find(t=>String(t.team?.id)===String(id));
     const other=teams.find(t=>String(t.team?.id)!==String(id));
     const status=c.status?.type||e.status?.type||{};
+
     return {
      id:e.id,date:e.date,
      opponent:other?.team?.displayName||"Adversário",
-     scored:getScore(me?.score),conceded:getScore(other?.score),
+     scored:getScore(me?.score),
+     conceded:getScore(other?.score),
      completed:status.completed===true||status.state==="post"
     };
    }).filter(g=>g.completed&&Number.isFinite(g.scored)&&Number.isFinite(g.conceded));
   })());
  }
+
  const list=await historyCache.get(key);
- return list.sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+ return list.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
 }
 
 function getForm(list){
@@ -229,11 +247,13 @@ function getForm(list){
  const losses=list.filter(g=>g.scored<g.conceded).length;
  return {wins,draws,losses,points:wins*3+draws};
 }
+
 function resultLabel(g){
  if(g.scored>g.conceded)return ["VITÓRIA","win"];
  if(g.scored===g.conceded)return ["EMPATE","draw"];
  return ["DERROTA","loss"];
 }
+
 function renderHistory(team,list){
  const f=getForm(list);
  return `<div class="history-team">
@@ -245,12 +265,14 @@ function renderHistory(team,list){
   }).join("")}
  </div>`;
 }
+
 function teamHTML(name,logo){
  const img=logo?`<img class="team-logo" src="${safe(logo)}" alt="" onerror="this.style.display='none'">`:"";
  return `<div class="team-name">${img}<span>${safe(name)}</span></div>`;
 }
+
 function matchHTML(g,extra=""){
- return `<article class="match ${g.live?"live-match":""} ${extra}">
+ return `<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}">
   <div class="matchtop">
    <span>${safe(g.league)}</span>
    <span class="${g.live?"status-live":""}">${g.live?'<span class="live-dot"></span>':""}${safe(g.state)}</span>
@@ -266,24 +288,49 @@ function matchHTML(g,extra=""){
 
 async function loadForm(g,card){
  const target=card.querySelector(".phase-content");
- if(!g.homeId||!g.awayId){target.textContent="Histórico não disponível.";return}
+ if(!target)return;
+
+ if(!g.homeId||!g.awayId){
+  target.textContent="Histórico não disponível.";
+  return;
+ }
+
  try{
-  const [hg,ag]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
-  if(!hg.length||!ag.length){target.textContent="Ainda não há resultados anteriores disponíveis para comparar.";return}
+  const [hg,ag]=await Promise.all([
+   teamHistory(g.path,g.homeId),
+   teamHistory(g.path,g.awayId)
+  ]);
+
+  if(!hg.length||!ag.length){
+   target.textContent="Ainda não há resultados anteriores disponíveis para comparar.";
+   return;
+  }
+
   const hf=getForm(hg),af=getForm(ag);
   let message="Os times estão em fase semelhante.";
+
   if(hf.points>af.points)message=`${g.home} tem a melhor fase recente.`;
   if(af.points>hf.points)message=`${g.away} tem a melhor fase recente.`;
+
   target.innerHTML=`<div class="phase-result">${safe(message)}</div><div class="history">${renderHistory(g.home,hg)}${renderHistory(g.away,ag)}</div>`;
- }catch(e){target.textContent="Não foi possível carregar os resultados anteriores."}
+
+ }catch(e){
+  target.textContent="Não foi possível carregar os resultados anteriores.";
+ }
 }
 
 function renderGames(){
  $("#title").textContent=selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name;
  $("#count").textContent=games.length+" jogo(s)";
+
  const box=$("#matches");
- if(!games.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';return}
+ if(!games.length){
+  box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';
+  return;
+ }
+
  box.innerHTML=games.map(g=>matchHTML(g)).join("");
+
  box.querySelectorAll(".match").forEach(card=>{
   const g=games.find(x=>String(x.id)===card.dataset.id);
   if(g)loadForm(g,card);
@@ -293,32 +340,55 @@ function renderGames(){
 async function renderDupla(){
  $("#title").textContent="⚽ Dupla do Dia";
  $("#count").textContent="2 jogos em destaque";
+
  const box=$("#matches");
- if(!games.length){box.innerHTML='<div class="empty">Não encontramos partidas para esta data.</div>';return}
+ if(!games.length){
+  box.innerHTML='<div class="empty">Não encontramos partidas para esta data.</div>';
+  return;
+ }
+
  box.innerHTML='<div class="loading">Analisando os resultados recentes dos times...</div>';
 
  const candidates=games.filter(g=>g.homeId&&g.awayId&&!g.completed);
+
  const evaluated=await Promise.all(candidates.map(async g=>{
   try{
-   const [h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
+   const [h,a]=await Promise.all([
+    teamHistory(g.path,g.homeId),
+    teamHistory(g.path,g.awayId)
+   ]);
+
    if(!h.length||!a.length)return null;
+
    const hf=getForm(h),af=getForm(a);
-   return {...g,histHome:h,histAway:a,hf,af,
-    rank:Math.max(hf.points,af.points)*2+Math.min(hf.points,af.points)};
+
+   return {
+    ...g,
+    histHome:h,
+    histAway:a,
+    hf,af,
+    rank:Math.max(hf.points,af.points)*2+Math.min(hf.points,af.points)
+   };
   }catch(e){return null}
  }));
+
  const valid=evaluated.filter(Boolean).sort((a,b)=>b.rank-a.rank);
  const chosen=valid.slice(0,2);
+
  if(!chosen.length){
   box.innerHTML='<div class="empty">Ainda não há histórico suficiente para selecionar dois jogos com análise. Tente outra data ou volte mais tarde.</div>';
   return;
  }
+
  box.innerHTML=chosen.map(g=>matchHTML(g,"pick")).join("");
+
  box.querySelectorAll(".match").forEach((card,i)=>{
   const g=chosen[i],target=card.querySelector(".phase-content");
+
   let message="As equipes apresentam fase recente semelhante.";
   if(g.hf.points>g.af.points)message=`Melhor fase recente: ${g.home}.`;
   if(g.af.points>g.hf.points)message=`Melhor fase recente: ${g.away}.`;
+
   target.innerHTML=`<span class="pick-tag">JOGO EM DESTAQUE</span><div class="phase-result">${safe(message)}</div><div class="history">${renderHistory(g.home,g.histHome)}${renderHistory(g.away,g.histAway)}</div>`;
  });
 }
@@ -331,11 +401,22 @@ document.querySelectorAll("[data-day]").forEach(b=>{
   load();
  };
 });
-$("#refresh").onclick=()=>{games=[];load()};
+
+$("#refresh").onclick=()=>{
+ games=[];
+ load();
+};
+
 renderLeagues();
 load();
-setInterval(()=>{if(!document.hidden&&day==="today")load()},60000);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&day==="today")load()});
+
+setInterval(()=>{
+ if(!document.hidden&&day==="today")load();
+},60000);
+
+document.addEventListener("visibilitychange",()=>{
+ if(!document.hidden&&day==="today")load();
+});
 </script>
 </body>
 </html>
