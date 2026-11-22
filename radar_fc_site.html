@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08111f">
+<title>Radar FC</title>
+<style>
+:root{color-scheme:dark;--bg:#07101c;--panel:#101d2d;--panel2:#142338;--line:#24364d;--text:#f2f6fc;--muted:#9aabc0;--green:#42d392;--blue:#4d9cff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#10243a 0,#07101c 48%);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);min-height:100vh}
+header{padding:25px 18px 18px;max-width:1050px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:11px}.logo{width:43px;height:43px;border-radius:14px;background:linear-gradient(145deg,#43d99a,#17865f);display:grid;place-items:center;color:#052117;font-size:22px;font-weight:900;box-shadow:0 8px 30px #20b87933}
+h1{font-size:22px;margin:0;letter-spacing:.2px}.sub{font-size:12px;color:var(--muted);margin-top:3px}
+button,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+main{max-width:1050px;margin:auto;padding:0 18px 40px}
+.hero{background:linear-gradient(115deg,#142b40,#102034 65%,#10352d);border:1px solid #29435a;border-radius:19px;padding:20px;margin:5px 0 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.hero h2{margin:0 0 6px;font-size:20px}.hero p{margin:0;color:#b7c8d9;font-size:13px;line-height:1.5}.livepill{white-space:nowrap;color:#9ff0c9;background:#164b3c;padding:7px 10px;border-radius:99px;font-size:11px;font-weight:700}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:15px 0}
+.toolbar button.active{background:#174c3c;border-color:#2b9b70;color:#aaffd8}
+.sectionhead{display:flex;justify-content:space-between;align-items:center;margin:22px 0 12px}.sectionhead h3{font-size:16px;margin:0}.muted{color:var(--muted);font-size:12px}
+.leagues{display:flex;gap:8px;overflow:auto;padding:2px 0 12px;scrollbar-width:thin}.league{white-space:nowrap;font-size:12px}
+.matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:11px}
+.match{background:linear-gradient(160deg,#132238,#0e1a2a);border:1px solid var(--line);border-radius:15px;padding:14px;min-width:0}
+.matchtop{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;margin-bottom:13px}
+.status{color:#a8f1ca}.teams{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:14px;font-weight:650}
+.team{display:flex;align-items:center;gap:8px;min-width:0}.team span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crest{width:24px;height:24px;border-radius:50%;background:#233a52;display:grid;place-items:center;font-size:12px;flex:none}
+.score{font-size:18px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.meta{border-top:1px solid #22344a;margin-top:12px;padding-top:10px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:8px}
+.empty,.loading,.error{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:15px;color:var(--muted);grid-column:1/-1;font-size:13px;line-height:1.5}
+footer{color:#74879d;font-size:11px;line-height:1.6;text-align:center;margin:24px auto 0;max-width:720px}
+@media(max-width:520px){header{padding-top:18px}.hero{align-items:flex-start;flex-direction:column}.hero h2{font-size:18px}.matches{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand"><div class="logo">⚽</div><div><h1>RADAR FC</h1><div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div></div></div>
+ <button id="refresh">↻ Atualizar</button>
+</header>
+<main>
+ <section class="hero">
+  <div><h2>O futebol em um só lugar.</h2><p>Jogos, placares e competições. Consulte os resultados e acompanhe a rodada.</p></div>
+  <div class="livepill">● DADOS DE JOGOS</div>
+ </section>
+ <div class="toolbar">
+  <button class="active" data-day="today">Hoje</button>
+  <button data-day="tomorrow">Amanhã</button>
+  <button data-day="yesterday">Ontem</button>
+  <span class="muted" id="dateLabel"></span>
+ </div>
+ <div class="sectionhead"><h3>Competições</h3><span class="muted">Selecione uma liga</span></div>
+ <div class="leagues" id="leagues"></div>
+ <div class="sectionhead"><h3 id="matchesTitle">Partidas</h3><span class="muted" id="count"></span></div>
+ <div class="matches" id="matches"><div class="loading">Carregando partidas…</div></div>
+ <footer>Radar FC é um projeto independente de consulta esportiva. Os dados dependem da disponibilidade do provedor e podem apresentar atrasos. Estatísticas e resultados não garantem previsões de partidas.</footer>
+</main>
+<script>
+const competitions=[
+ {id:"all",name:"Todas",path:null},
+ {id:"bra",name:"Brasileirão",path:"bra.1"},
+ {id:"eng",name:"Premier League",path:"eng.1"},
+ {id:"esp",name:"La Liga",path:"esp.1"},
+ {id:"ita",name:"Serie A",path:"ita.1"},
+ {id:"ger",name:"Bundesliga",path:"ger.1"},
+ {id:"fra",name:"Ligue 1",path:"fra.1"},
+ {id:"ucl",name:"Champions League",path:"uefa.champions"},
+ {id:"uel",name:"Europa League",path:"uefa.europa"}
+];
+const $=s=>document.querySelector(s);
+let selected="all",day="today",allGames=[];
+const dateFor=d=>{let x=new Date();x.setDate(x.getDate()+(d==="tomorrow"?1:d==="yesterday"?-1:0));return x};
+const dateKey=d=>{const x=dateFor(d);return `${x.getFullYear()}${String(x.getMonth()+1).padStart(2,"0")}${String(x.getDate()).padStart(2,"0")}`};
+const fmt=d=>dateFor(d).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"});
+function renderLeagues(){$("#leagues").innerHTML=competitions.map(c=>`<button class="league ${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`).join("");document.querySelectorAll("[data-league]").forEach(b=>b.onclick=()=>{selected=b.dataset.league;renderLeagues();renderGames()})}
+function parseEvent(e,league){const comp=e.competitions?.[0]||{};const competitors=comp.competitors||[];const home=competitors.find(t=>t.homeAway==="home")||competitors[0]||{};const away=competitors.find(t=>t.homeAway==="away")||competitors[1]||{};const status=comp.status||e.status||{};return {id:e.id,league,home:home.team?.displayName||"Time a definir",away:away.team?.displayName||"Time a definir",hs:home.score??"–",as:away.score??"–",state:status.type?.shortDetail||status.type?.description||"Agendado",completed:status.type?.completed,clock:status.displayClock||"",date:e.date,live:status.type?.state==="in"}}
+async function load(){const box=$("#matches");box.innerHTML='<div class="loading">Buscando partidas…</div>';$("#dateLabel").textContent=fmt(day);const comps=selected==="all"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);try{const results=await Promise.all(comps.map(async c=>{const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?dates=${dateKey(day)}`;const r=await fetch(url);if(!r.ok)throw Error("Falha ao consultar "+c.name);const data=await r.json();return (data.events||[]).map(e=>parseEvent(e,c.name))}));allGames=results.flat().sort((a,b)=>new Date(a.date)-new Date(b.date));renderGames()}catch(err){box.innerHTML='<div class="error">Não foi possível carregar os jogos agora. Verifique sua conexão e tente novamente.<br><br><small>O provedor público pode estar temporariamente indisponível.</small></div>';$("#count").textContent=""}}
+function renderGames(){const box=$("#matches");$("#matchesTitle").textContent=selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name;$("#count").textContent=`${allGames.length} jogo(s)`;if(!allGames.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada para esta data e competição.</div>';return}box.innerHTML=allGames.map(g=>{const time=new Date(g.date).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});const state=g.live?`AO VIVO ${g.clock}`:g.state;return `<article class="match"><div class="matchtop"><span>${g.league}</span><span class="${g.live?"status":""}">${state}</span></div><div class="teams"><div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.home)}</span></div><div class="score">${g.hs}</div><div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.away)}</span></div><div class="score">${g.as}</div></div><div class="meta"><span>${g.completed||g.live?"Placar":"Horário"}: ${g.completed||g.live?state:time}</span><span>${new Date(g.date).toLocaleDateString("pt-BR")}</span></div></article>`}).join("")}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));load()});
+$("#refresh").onclick=load;renderLeagues();load();
+</script>
+</body></html>
