@@ -8,122 +8,41 @@
 <title>Radar FC</title>
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;
- background:#08111f;
- color:#f2f6fc;
- font-family:Arial,sans-serif;
-}
-header{
- max-width:1000px;
- margin:auto;
- padding:22px 16px;
- display:flex;
- justify-content:space-between;
- align-items:center;
-}
+body{margin:0;background:#08111f;color:#f2f6fc;font-family:Arial,sans-serif}
+header{max-width:1000px;margin:auto;padding:22px 16px;display:flex;justify-content:space-between;align-items:center}
 h1{margin:0;font-size:23px}
 .sub{font-size:11px;color:#91a5bc;margin-top:4px}
-button{
- background:#14263b;
- color:white;
- border:1px solid #29415c;
- border-radius:10px;
- padding:11px 14px;
- cursor:pointer;
-}
+button{background:#14263b;color:white;border:1px solid #29415c;border-radius:10px;padding:11px 14px;cursor:pointer}
 main{max-width:1000px;margin:auto;padding:0 16px 35px}
-.hero{
- background:linear-gradient(120deg,#123b35,#14263b);
- border:1px solid #28604f;
- padding:20px;
- border-radius:16px;
- margin-bottom:18px;
-}
+.hero{background:linear-gradient(120deg,#123b35,#14263b);border:1px solid #28604f;padding:20px;border-radius:16px;margin-bottom:18px}
 .hero h2{margin:0 0 7px;font-size:19px}
 .hero p{margin:0;color:#b6c9d9;font-size:13px}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
 button.active{background:#176344;border-color:#42d392}
 .leagues{display:flex;gap:8px;overflow:auto;padding:4px 0 14px}
 .leagues button{white-space:nowrap;font-size:12px}
-.section{
- display:flex;
- justify-content:space-between;
- align-items:center;
- margin:20px 0 12px;
-}
+.section{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}
 .section h3{font-size:16px;margin:0}
 .muted{font-size:12px;color:#91a5bc}
-.matches{
- display:grid;
- grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
- gap:12px;
-}
-.match{
- background:#101e30;
- border:1px solid #263b53;
- border-radius:15px;
- padding:15px;
-}
-.matchtop{
- display:flex;
- justify-content:space-between;
- color:#91a5bc;
- font-size:11px;
- margin-bottom:15px;
- gap:8px;
-}
-.teams{
- display:grid;
- grid-template-columns:1fr auto;
- gap:10px;
- align-items:center;
- font-size:14px;
- font-weight:bold;
-}
+.matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.match{background:#101e30;border:1px solid #263b53;border-radius:15px;padding:15px}
+.matchtop{display:flex;justify-content:space-between;color:#91a5bc;font-size:11px;margin-bottom:15px;gap:8px}
+.teams{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-size:14px;font-weight:bold}
 .score{text-align:right;font-size:19px}
-.meta{
- color:#91a5bc;
- font-size:11px;
- margin-top:12px;
- border-top:1px solid #263b53;
- padding-top:10px;
-}
-.prediction{
- margin-top:13px;
- background:#0b2b25;
- border:1px solid #22634d;
- border-radius:11px;
- padding:12px;
-}
-.prediction small{
- color:#9eb8ae;
- display:block;
- font-size:10px;
- margin-bottom:6px;
-}
-.prediction strong{
- color:#65e3a7;
- font-size:15px;
-}
-.loading,.empty{
- text-align:center;
- padding:28px 12px;
- color:#91a5bc;
- font-size:13px;
- line-height:1.5;
-}
-footer{
- text-align:center;
- color:#74879d;
- font-size:11px;
- line-height:1.5;
- padding:25px 10px;
-}
-@media(max-width:520px){
- header{padding-top:18px}
- .matches{grid-template-columns:1fr}
-}
+.meta{color:#91a5bc;font-size:11px;margin-top:12px;border-top:1px solid #263b53;padding-top:10px}
+.phase{margin-top:14px;background:#0b1929;border:1px solid #29415c;border-radius:11px;padding:12px}
+.phase h4{margin:0 0 10px;font-size:13px}
+.phase-result{color:#65e3a7;font-weight:bold;font-size:13px;margin-bottom:12px}
+.history{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.history-team{background:#101e30;border:1px solid #263b53;border-radius:9px;padding:9px;min-width:0}
+.history-team strong{font-size:12px;display:block;margin-bottom:8px}
+.game-result{font-size:11px;color:#b8c8d8;padding:6px 0;border-top:1px solid #263b53;line-height:1.4}
+.win{color:#65e3a7}
+.draw{color:#f3d27a}
+.loss{color:#ff9292}
+.loading,.empty{text-align:center;padding:28px 12px;color:#91a5bc;font-size:13px;line-height:1.5}
+footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25px 10px}
+@media(max-width:520px){header{padding-top:18px}.matches{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -139,7 +58,7 @@ footer{
 <main>
  <section class="hero">
   <h2>O futebol em um só lugar.</h2>
-  <p>Confira partidas e veja o resultado mais provável.</p>
+  <p>Partidas, placares e fase recente dos clubes.</p>
  </section>
 
  <div class="toolbar">
@@ -164,8 +83,8 @@ footer{
  </div>
 
  <footer>
-  As previsões são estimativas estatísticas baseadas em resultados anteriores.
-  Não garantem o resultado das partidas.
+  Dados esportivos fornecidos pela ESPN.
+  A comparação de fase considera os resultados recentes disponíveis.
  </footer>
 </main>
 
@@ -186,7 +105,6 @@ let selected="all";
 let day="today";
 let games=[];
 const historyCache=new Map();
-
 const $=s=>document.querySelector(s);
 
 function dateKey(offset){
@@ -205,6 +123,15 @@ function safe(s){
  return String(s??"").replace(/[&<>"']/g,c=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
  }[c]));
+}
+
+function getScore(value){
+ if(value===null||value===undefined)return NaN;
+ const raw=typeof value==="object"
+  ?(value.value??value.displayValue)
+  :value;
+ const n=Number(raw);
+ return Number.isFinite(n)?n:NaN;
 }
 
 function renderLeagues(){
@@ -236,8 +163,8 @@ function parseEvent(e,league,path){
   away:away.team?.displayName||"Time a definir",
   homeId:home.team?.id,
   awayId:away.team?.id,
-  hs:home.score??"-",
-  as:away.score??"-",
+  hs:home.score?.displayValue??home.score??"-",
+  as:away.score?.displayValue??away.score??"-",
   completed:status.type?.completed===true,
   state:status.type?.shortDetail||status.type?.description||"Agendado",
   date:e.date
@@ -268,7 +195,7 @@ async function load(){
  }
 }
 
-async function teamHistory(path,id,before){
+async function teamHistory(path,id){
  const key=path+":"+id;
 
  if(!historyCache.has(key)){
@@ -286,15 +213,19 @@ async function teamHistory(path,id,before){
     const other=teams.find(t=>String(t.team?.id)!==String(id));
     const status=comp.status?.type||e.status?.type||{};
 
+    const scored=getScore(me?.score);
+    const conceded=getScore(other?.score);
+
     return {
-     date:e.date,
      id:e.id,
-     scored:Number(me?.score),
-     conceded:Number(other?.score),
-     done:status.completed===true||status.state==="post"
+     date:e.date,
+     opponent:other?.team?.displayName||"Adversário",
+     scored,
+     conceded,
+     completed:status.completed===true||status.state==="post"
     };
    }).filter(g=>
-    g.done&&
+    g.completed&&
     Number.isFinite(g.scored)&&
     Number.isFinite(g.conceded)
    );
@@ -302,62 +233,79 @@ async function teamHistory(path,id,before){
  }
 
  const list=await historyCache.get(key);
+
  return list
-  .filter(g=>new Date(g.date)<new Date(before))
   .sort((a,b)=>new Date(b.date)-new Date(a.date))
   .slice(0,5);
 }
 
-function poisson(k,lambda){
- let p=Math.exp(-lambda);
- let sum=p;
- for(let i=1;i<=k;i++){
-  p*=lambda/i;
-  sum+=p;
- }
- return sum;
+function getForm(games){
+ const wins=games.filter(g=>g.scored>g.conceded).length;
+ const draws=games.filter(g=>g.scored===g.conceded).length;
+ const losses=games.filter(g=>g.scored<g.conceded).length;
+
+ return {wins,draws,losses,points:wins*3+draws};
 }
 
-async function predict(g){
- if(!g.homeId||!g.awayId)throw Error("Times indisponíveis");
+function resultLabel(g){
+ if(g.scored>g.conceded)return ["VITÓRIA","win"];
+ if(g.scored===g.conceded)return ["EMPATE","draw"];
+ return ["DERROTA","loss"];
+}
 
- const [h,a]=await Promise.all([
-  teamHistory(g.path,g.homeId,g.date),
-  teamHistory(g.path,g.awayId,g.date)
- ]);
+function renderHistory(team,games){
+ const form=getForm(games);
 
- if(h.length<3||a.length<3)throw Error("Histórico insuficiente");
+ return `
+ <div class="history-team">
+  <strong>${safe(team)}</strong>
+  <div class="muted">V ${form.wins} · E ${form.draws} · D ${form.losses}</div>
+  ${games.map(g=>{
+   const [label,css]=resultLabel(g);
+   return `<div class="game-result">
+    <span class="${css}">${label}</span><br>
+    ${safe(g.opponent)}<br>
+    ${g.scored} x ${g.conceded}
+   </div>`;
+  }).join("")}
+ </div>`;
+}
 
- const avg=(arr,key)=>arr.reduce((s,x)=>s+x[key],0)/arr.length;
+async function loadForm(g,card){
+ const target=card.querySelector(".phase-content");
 
- const homeGoals=(avg(h,"scored")+avg(a,"conceded"))/2*1.08;
- const awayGoals=(avg(a,"scored")+avg(h,"conceded"))/2*.92;
+ if(!g.homeId||!g.awayId){
+  target.textContent="Histórico não disponível.";
+  return;
+ }
 
- let homeWin=0,draw=0,awayWin=0;
+ try{
+  const [homeGames,awayGames]=await Promise.all([
+   teamHistory(g.path,g.homeId),
+   teamHistory(g.path,g.awayId)
+  ]);
 
- for(let i=0;i<=7;i++){
-  for(let j=0;j<=7;j++){
-   const probability=
-    Math.exp(-homeGoals)*Math.pow(homeGoals,i)/factorial(i)*
-    Math.exp(-awayGoals)*Math.pow(awayGoals,j)/factorial(j);
-
-   if(i>j)homeWin+=probability;
-   else if(i===j)draw+=probability;
-   else awayWin+=probability;
+  if(!homeGames.length||!awayGames.length){
+   target.textContent="Ainda não há resultados anteriores disponíveis para comparar.";
+   return;
   }
+
+  const homeForm=getForm(homeGames);
+  const awayForm=getForm(awayGames);
+
+  let message="Os times estão em fase semelhante.";
+  if(homeForm.points>awayForm.points)message=`${g.home} tem a melhor fase recente.`;
+  if(awayForm.points>homeForm.points)message=`${g.away} tem a melhor fase recente.`;
+
+  target.innerHTML=`
+   <div class="phase-result">${safe(message)}</div>
+   <div class="history">
+    ${renderHistory(g.home,homeGames)}
+    ${renderHistory(g.away,awayGames)}
+   </div>`;
+ }catch(error){
+  target.textContent="Não foi possível carregar os resultados anteriores.";
  }
-
- const best=Math.max(homeWin,draw,awayWin);
-
- if(best===homeWin)return "Vitória do "+g.home;
- if(best===draw)return "Empate";
- return "Vitória do "+g.away;
-}
-
-function factorial(n){
- let result=1;
- for(let i=2;i<=n;i++)result*=i;
- return result;
 }
 
 function renderGames(){
@@ -393,27 +341,16 @@ function renderGames(){
     ${new Date(g.date).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
    </div>
 
-   <div class="prediction">
-    <small>RESULTADO MAIS PROVÁVEL</small>
-    <strong class="forecast">Calculando previsão...</strong>
+   <div class="phase">
+    <h4>FASE RECENTE DOS TIMES</h4>
+    <div class="phase-content loading">Consultando últimos resultados...</div>
    </div>
   </article>
  `).join("");
 
  box.querySelectorAll(".match").forEach(card=>{
   const g=games.find(x=>String(x.id)===card.dataset.id);
-  const output=card.querySelector(".forecast");
-
-  if(g.completed){
-   output.textContent="Partida encerrada";
-   return;
-  }
-
-  predict(g).then(result=>{
-   output.textContent=result;
-  }).catch(()=>{
-   output.textContent="Previsão indisponível";
-  });
+  loadForm(g,card);
  });
 }
 
