@@ -1,0 +1,14 @@
+
+{
+  "name": "radar-fc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma de análise de futebol",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
