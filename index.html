@@ -22,7 +22,7 @@ main{max-width:1050px;margin:auto;padding:0 18px 40px}
 .hero p{margin:0;color:#b7c8d9;font-size:13px;line-height:1.5}
 .livepill{color:#9ff0c9;background:#164b3c;padding:7px 10px;border-radius:99px;font-size:11px;font-weight:700}
 .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:15px 0}
-.toolbar button.active{background:#174c3c;border-color:#2b9b70;color:#aaffd8}
+.toolbar button.active,.league.active{background:#174c3c;border-color:#2b9b70;color:#aaffd8}
 .sectionhead{display:flex;justify-content:space-between;align-items:center;margin:22px 0 12px}
 .sectionhead h3{font-size:16px;margin:0}
 .muted{color:var(--muted);font-size:12px}
@@ -46,7 +46,7 @@ main{max-width:1050px;margin:auto;padding:0 18px 40px}
 .prob{background:#0a1726;border:1px solid #22364c;border-radius:10px;padding:9px}
 .prob b{display:block;font-size:17px;color:#9ff0c9}
 .prob span{font-size:10px;color:var(--muted)}
-.modelnote{font-size:10px;color:#8094aa;line-height:1.45;margin-top:9px}
+.modelnote{font-size:11px;color:#a9bacd;line-height:1.6;margin-top:12px;background:#0a1726;border:1px solid #22364c;border-radius:10px;padding:12px}
 .analysis-loading,.empty,.loading,.error{padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
 footer{color:#74879d;font-size:11px;line-height:1.6;text-align:center;margin:24px auto 0;max-width:720px}
 @media(max-width:520px){header{padding-top:18px}.hero{align-items:flex-start;flex-direction:column}.matches{grid-template-columns:1fr}}
@@ -97,7 +97,7 @@ footer{color:#74879d;font-size:11px;line-height:1.6;text-align:center;margin:24p
 
  <footer>
   Radar FC é um projeto independente de consulta esportiva.
-  As probabilidades são estimativas simplificadas baseadas nos últimos jogos disponíveis.
+  As probabilidades são estimativas estatísticas simplificadas.
   Não representam garantia de resultado. Os dados dependem da disponibilidade do provedor.
  </footer>
 </main>
@@ -117,6 +117,7 @@ const competitions=[
 
 const $=s=>document.querySelector(s);
 let selected="all",day="today",allGames=[];
+const teamHistoryCache=new Map();
 
 const dateFor=d=>{
  let x=new Date();
@@ -132,6 +133,12 @@ const dateKey=d=>{
 const fmt=d=>dateFor(d).toLocaleDateString("pt-BR",{
  weekday:"long",day:"2-digit",month:"long"
 });
+
+function escapeHtml(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
 
 function renderLeagues(){
  $("#leagues").innerHTML=competitions.map(c=>
@@ -155,8 +162,7 @@ function parseEvent(e,league){
  const status=comp.status||e.status||{};
 
  return {
-  id:e.id,
-  league,
+  id:e.id,league,
   home:home.team?.displayName||"Time a definir",
   away:away.team?.displayName||"Time a definir",
   homeId:home.team?.id,
@@ -197,35 +203,35 @@ async function load(){
  }
 }
 
-const teamHistoryCache=new Map();
-
 async function teamHistory(leaguePath,teamId,beforeDate){
  const key=`${leaguePath}:${teamId}`;
 
  if(!teamHistoryCache.has(key)){
   const promise=(async()=>{
-   const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leaguePath}/teams/${teamId}/schedule`);
-   if(!r.ok)throw Error("Histórico indisponível");
+   const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${leaguePath}/teams/${teamId}/schedule`;
+   const response=await fetch(url);
+   if(!response.ok)throw Error("Histórico indisponível");
 
-   const d=await r.json();
+   const data=await response.json();
 
-   return (d.events||[]).map(ev=>{
-    const c=ev.competitions?.[0]||{};
-    const ts=c.competitors||[];
-    const me=ts.find(x=>String(x.team?.id)===String(teamId));
-    const op=ts.find(x=>String(x.team?.id)!==String(teamId));
-    const st=c.status?.type||ev.status?.type||{};
-    const myScore=Number(me?.score);
-    const opScore=Number(op?.score);
+   return (data.events||[]).map(ev=>{
+    const comp=ev.competitions?.[0]||{};
+    const teams=comp.competitors||[];
+    const me=teams.find(t=>String(t.team?.id)===String(teamId));
+    const opponent=teams.find(t=>String(t.team?.id)!==String(teamId));
+    const status=comp.status?.type||ev.status?.type||{};
 
     return {
+     id:ev.id,
      date:ev.date,
-     scored:myScore,
-     conceded:opScore,
-     completed:!!st.completed
+     scored:Number(me?.score),
+     conceded:Number(opponent?.score),
+     completed:status.completed===true||status.state==="post"
     };
-   }).filter(x=>
-    x.completed&&Number.isFinite(x.scored)&&Number.isFinite(x.conceded)
+   }).filter(g=>
+    g.completed&&
+    Number.isFinite(g.scored)&&
+    Number.isFinite(g.conceded)
    );
   })();
 
@@ -235,9 +241,26 @@ async function teamHistory(leaguePath,teamId,beforeDate){
  const games=await teamHistoryCache.get(key);
 
  return games
-  .filter(x=>new Date(x.date)<new Date(beforeDate))
+  .filter(g=>new Date(g.date)<new Date(beforeDate))
   .sort((a,b)=>new Date(b.date)-new Date(a.date))
-  .slice(0,6);
+  .slice(0,10);
+}
+
+function average(values){
+ return values.length
+  ?values.reduce((sum,v)=>sum+v,0)/values.length
+  :0;
+}
+
+function analyzeTeam(games){
+ return {
+  played:games.length,
+  goalsScored:games.reduce((s,g)=>s+g.scored,0),
+  goalsConceded:games.reduce((s,g)=>s+g.conceded,0),
+  scoredIn:games.filter(g=>g.scored>0).length,
+  averageScored:average(games.map(g=>g.scored)),
+  averageConceded:average(games.map(g=>g.conceded))
+ };
 }
 
 function poisson(k,lambda){
@@ -253,33 +276,32 @@ function totalOver(lambda,k){
  return Math.max(0,Math.min(1,1-poisson(k,lambda)));
 }
 
-function pct(v){
- return `${Math.round(v*100)}%`;
+function pct(value){
+ return `${Math.round(value*100)}%`;
 }
 
-function average(a){
- return a.reduce((s,x)=>s+x,0)/a.length;
-}
+function estimateProbabilities(home,away){
+ if(home.played<3||away.played<3)return null;
 
-function estimateProbabilities(homeGames,awayGames){
- if(homeGames.length<3||awayGames.length<3)return null;
+ const homeExpected=Math.max(.05,
+  (home.averageScored+away.averageConceded)/2*1.08
+ );
 
- const hAttack=average(homeGames.map(x=>x.scored));
- const hDef=average(homeGames.map(x=>x.conceded));
- const aAttack=average(awayGames.map(x=>x.scored));
- const aDef=average(awayGames.map(x=>x.conceded));
+ const awayExpected=Math.max(.05,
+  (away.averageScored+home.averageConceded)/2*.92
+ );
 
- const lh=Math.max(.15,(hAttack+aDef)/2*1.08);
- const la=Math.max(.15,(aAttack+hDef)/2*.92);
- const total=lh+la;
+ const total=homeExpected+awayExpected;
 
  return {
+  homeExpected,
+  awayExpected,
+  homeScores:1-Math.exp(-homeExpected),
+  awayScores:1-Math.exp(-awayExpected),
   over05:totalOver(total,0),
   over15:totalOver(total,1),
   over25:totalOver(total,2),
-  btts:(1-Math.exp(-lh))*(1-Math.exp(-la)),
-  n:Math.min(homeGames.length,awayGames.length),
-  lh,la
+  btts:(1-Math.exp(-homeExpected))*(1-Math.exp(-awayExpected))
  };
 }
 
@@ -295,17 +317,23 @@ async function loadAnalysis(g,card){
   const path=competitions.find(c=>c.name===g.league)?.path;
   if(!path)throw Error("Competição não identificada");
 
-  const [hg,ag]=await Promise.all([
+  const [homeGames,awayGames]=await Promise.all([
    teamHistory(path,g.homeId,g.date),
    teamHistory(path,g.awayId,g.date)
   ]);
 
-  const p=estimateProbabilities(hg,ag);
+  const home=analyzeTeam(homeGames);
+  const away=analyzeTeam(awayGames);
+  const p=estimateProbabilities(home,away);
 
   if(!p){
-   target.innerHTML='<div class="analysis-loading">Ainda não há jogos anteriores suficientes para estimar as frequências.</div>';
+   target.innerHTML='<div class="analysis-loading">Não foram encontrados pelo menos 3 jogos anteriores para os dois times nesta competição.</div>';
    return;
   }
+
+  let better="Ataques equilibrados";
+  if(p.homeExpected>p.awayExpected)better=g.home;
+  if(p.awayExpected>p.homeExpected)better=g.away;
 
   target.innerHTML=`
    <div class="probgrid">
@@ -313,15 +341,33 @@ async function loadAnalysis(g,card){
     <div class="prob"><b>${pct(p.over15)}</b><span>Mais de 1,5 gols</span></div>
     <div class="prob"><b>${pct(p.over25)}</b><span>Mais de 2,5 gols</span></div>
     <div class="prob"><b>${pct(p.btts)}</b><span>Ambas marcam</span></div>
+    <div class="prob"><b>${pct(p.homeScores)}</b><span>${escapeHtml(g.home)} marcar pelo menos 1 gol</span></div>
+    <div class="prob"><b>${pct(p.awayScores)}</b><span>${escapeHtml(g.away)} marcar pelo menos 1 gol</span></div>
    </div>
+
    <div class="modelnote">
-    Estimativa matemática baseada nos últimos ${p.n} jogos concluídos disponíveis de cada equipe.
-    Médias estimadas: ${escapeHtml(g.home)} ${p.lh.toFixed(2)} gol(s) e
-    ${escapeHtml(g.away)} ${p.la.toFixed(2)} gol(s).
-    Modelo simplificado de Poisson; não é garantia nem previsão certa.
+    <strong>ATAQUE MAIS PRODUTIVO:</strong> ${escapeHtml(better)}<br>
+    <strong>Gols esperados — ${escapeHtml(g.home)}:</strong> ${p.homeExpected.toFixed(2)}<br>
+    <strong>Gols esperados — ${escapeHtml(g.away)}:</strong> ${p.awayExpected.toFixed(2)}<br><br>
+
+    <strong>ÚLTIMOS JOGOS — ${escapeHtml(g.home)}</strong><br>
+    Jogos analisados: ${home.played}<br>
+    Gols marcados: ${home.goalsScored}<br>
+    Gols sofridos: ${home.goalsConceded}<br>
+    Média de gols marcados: ${home.averageScored.toFixed(2)}<br>
+    Marcou em ${home.scoredIn} de ${home.played} jogos.<br><br>
+
+    <strong>ÚLTIMOS JOGOS — ${escapeHtml(g.away)}</strong><br>
+    Jogos analisados: ${away.played}<br>
+    Gols marcados: ${away.goalsScored}<br>
+    Gols sofridos: ${away.goalsConceded}<br>
+    Média de gols marcados: ${away.averageScored.toFixed(2)}<br>
+    Marcou em ${away.scoredIn} de ${away.played} jogos.<br><br>
+
+    Histórico consultado na competição da partida. O provedor pode não disponibilizar todas as competições ou os dez jogos. Estimativas simplificadas, sem garantia de resultado.
    </div>`;
- }catch(e){
-  target.innerHTML='<div class="analysis-loading">Não foi possível obter o histórico desta partida agora. Tente novamente mais tarde.</div>';
+ }catch(error){
+  target.innerHTML='<div class="analysis-loading">Não foi possível obter o histórico agora. Tente novamente mais tarde.</div>';
  }
 }
 
@@ -348,19 +394,19 @@ function renderGames(){
   return `
    <article class="match" data-game="${escapeHtml(g.id)}">
     <div class="matchtop">
-     <span>${g.league}</span>
-     <span class="${g.live?"status":""}">${state}</span>
+     <span>${escapeHtml(g.league)}</span>
+     <span class="${g.live?"status":""}">${escapeHtml(state)}</span>
     </div>
 
     <div class="teams">
      <div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.home)}</span></div>
-     <div class="score">${g.hs}</div>
+     <div class="score">${escapeHtml(g.hs)}</div>
      <div class="team"><span class="crest">⚽</span><span>${escapeHtml(g.away)}</span></div>
-     <div class="score">${g.as}</div>
+     <div class="score">${escapeHtml(g.as)}</div>
     </div>
 
     <div class="meta">
-     <span>${g.completed||g.live?"Placar":"Horário"}: ${g.completed||g.live?state:time}</span>
+     <span>${g.completed||g.live?"Placar":"Horário"}: ${escapeHtml(state)}</span>
      <span>${new Date(g.date).toLocaleDateString("pt-BR")}</span>
     </div>
 
@@ -383,16 +429,6 @@ function renderGames(){
    }
   });
  });
-}
-
-function escapeHtml(s){
- return String(s).replace(/[&<>"']/g,c=>({
-  "&":"&amp;",
-  "<":"&lt;",
-  ">":"&gt;",
-  '"':"&quot;",
-  "'":"&#39;"
- }[c]));
 }
 
 document.querySelectorAll("[data-day]").forEach(b=>{
