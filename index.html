@@ -202,37 +202,61 @@ async function load(){
   $("#count").textContent="";
  }
 }
-
-async function teamHistory(leaguePath,teamId,beforeDate){
- const key=`${leaguePath}:${teamId}`;
+async function teamHistory(teamId,beforeDate){
+ const key=`all:${teamId}`;
 
  if(!teamHistoryCache.has(key)){
   const promise=(async()=>{
-   const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${leaguePath}/teams/${teamId}/schedule`;
-   const response=await fetch(url);
-   if(!response.ok)throw Error("Histórico indisponível");
+   const paths=competitions
+    .filter(c=>c.path)
+    .map(c=>c.path);
 
-   const data=await response.json();
+   const results=await Promise.all(
+    paths.map(async path=>{
+     try{
+      const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${teamId}/schedule`;
 
-   return (data.events||[]).map(ev=>{
-    const comp=ev.competitions?.[0]||{};
-    const teams=comp.competitors||[];
-    const me=teams.find(t=>String(t.team?.id)===String(teamId));
-    const opponent=teams.find(t=>String(t.team?.id)!==String(teamId));
-    const status=comp.status?.type||ev.status?.type||{};
+      const response=await fetch(url);
+      if(!response.ok)return [];
 
-    return {
-     id:ev.id,
-     date:ev.date,
-     scored:Number(me?.score),
-     conceded:Number(opponent?.score),
-     completed:status.completed===true||status.state==="post"
-    };
-   }).filter(g=>
-    g.completed&&
-    Number.isFinite(g.scored)&&
-    Number.isFinite(g.conceded)
+      const data=await response.json();
+
+      return (data.events||[]).map(ev=>{
+       const comp=ev.competitions?.[0]||{};
+       const teams=comp.competitors||[];
+       const me=teams.find(t=>
+        String(t.team?.id)===String(teamId)
+       );
+       const opponent=teams.find(t=>
+        String(t.team?.id)!==String(teamId)
+       );
+       const status=comp.status?.type||ev.status?.type||{};
+
+       return {
+        id:ev.id,
+        date:ev.date,
+        scored:Number(me?.score),
+        conceded:Number(opponent?.score),
+        completed:status.completed===true||status.state==="post"
+       };
+      }).filter(g=>
+       g.completed&&
+       Number.isFinite(g.scored)&&
+       Number.isFinite(g.conceded)
+      );
+     }catch(error){
+      return [];
+     }
+    })
    );
+
+   const unique=new Map();
+
+   results.flat().forEach(g=>{
+    if(g.id)unique.set(String(g.id),g);
+   });
+
+   return [...unique.values()];
   })();
 
   teamHistoryCache.set(key,promise);
@@ -245,8 +269,7 @@ async function teamHistory(leaguePath,teamId,beforeDate){
   .sort((a,b)=>new Date(b.date)-new Date(a.date))
   .slice(0,10);
 }
-
-function average(values){
+async function teamHistory(values){
  return values.length
   ?values.reduce((sum,v)=>sum+v,0)/values.length
   :0;
@@ -305,7 +328,7 @@ function estimateProbabilities(home,away){
  };
 }
 
-async function loadAnalysis(g,card){
+async function loadAnalysisasync function loadAnalysis(g,card){
  const target=card.querySelector(".analysis-body");
 
  if(!g.homeId||!g.awayId){
@@ -314,12 +337,9 @@ async function loadAnalysis(g,card){
  }
 
  try{
-  const path=competitions.find(c=>c.name===g.league)?.path;
-  if(!path)throw Error("Competição não identificada");
-
   const [homeGames,awayGames]=await Promise.all([
-   teamHistory(path,g.homeId,g.date),
-   teamHistory(path,g.awayId,g.date)
+   teamHistory(g.homeId,g.date),
+   teamHistory(g.awayId,g.date)
   ]);
 
   const home=analyzeTeam(homeGames);
@@ -327,7 +347,10 @@ async function loadAnalysis(g,card){
   const p=estimateProbabilities(home,away);
 
   if(!p){
-   target.innerHTML='<div class="analysis-loading">Não foram encontrados pelo menos 3 jogos anteriores para os dois times nesta competição.</div>';
+   target.innerHTML=`
+    <div class="analysis-loading">
+     Não foram encontrados pelo menos 3 jogos anteriores para os dois times nas competições disponíveis.
+     </div>`;
    return;
   }
 
@@ -364,14 +387,14 @@ async function loadAnalysis(g,card){
     Média de gols marcados: ${away.averageScored.toFixed(2)}<br>
     Marcou em ${away.scoredIn} de ${away.played} jogos.<br><br>
 
-    Histórico consultado na competição da partida. O provedor pode não disponibilizar todas as competições ou os dez jogos. Estimativas simplificadas, sem garantia de resultado.
+    Histórico consultado nas competições disponíveis no Radar FC.
+    Foram utilizados até 10 jogos anteriores de cada time.
+    As estimativas são estatísticas simplificadas e não garantem resultados.
    </div>`;
  }catch(error){
   target.innerHTML='<div class="analysis-loading">Não foi possível obter o histórico agora. Tente novamente mais tarde.</div>';
  }
-}
-
-function renderGames(){
+}(){
  const box=$("#matches");
 
  $("#matchesTitle").textContent=selected==="all"
