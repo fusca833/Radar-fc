@@ -15,8 +15,7 @@ h1{margin:0;font-size:23px}
 .sub,.muted{font-size:11px;color:#91a5bc;margin-top:4px}
 button{background:#14263b;color:white;border:1px solid #29415c;border-radius:10px;padding:11px 14px;cursor:pointer}
 main{max-width:1000px;margin:auto;padding:0 16px 100px}
-.page{display:none}
-.page.active{display:block}
+.page{display:none}.page.active{display:block}
 .hero{background:linear-gradient(120deg,#123b35,#14263b);border:1px solid #28604f;padding:20px;border-radius:16px;margin-bottom:18px}
 .hero h2{margin:0 0 7px;font-size:19px}
 .hero p{margin:0;color:#b6c9d9;font-size:13px}
@@ -64,86 +63,65 @@ label{font-size:12px;color:#b6c9d9}
 .progress{height:12px;background:#263b53;border-radius:20px;overflow:hidden;margin:12px 0}
 .progress div{height:100%;background:#42d392;width:0%;transition:width .3s}
 .record{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #263b53;font-size:12px}
+.record:last-child{border-bottom:0}
+.record-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .record button{padding:7px 9px;font-size:11px}
-@media(max-width:520px){header{padding-top:18px}.matches{grid-template-columns:1fr}}
+@media(max-width:520px){header{padding-top:18px}.matches{grid-template-columns:1fr}.history{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
-
 <header>
- <div>
-  <h1>⚽ RADAR FC</h1>
-  <div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div>
- </div>
+ <div><h1>⚽ RADAR FC</h1><div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div></div>
  <button id="refresh">↻ Atualizar</button>
 </header>
 
 <main>
 <section class="page active" id="radar">
- <div class="hero">
-  <h2>O futebol em um só lugar.</h2>
-  <p>Partidas, placares ao vivo e fase recente dos clubes.</p>
- </div>
-
+ <div class="hero"><h2>O futebol em um só lugar.</h2><p>Partidas, placares ao vivo e fase recente dos clubes.</p></div>
  <div class="toolbar">
   <button class="active" data-day="today">Hoje</button>
   <button data-day="tomorrow">Amanhã</button>
   <button data-day="yesterday">Ontem</button>
  </div>
-
  <div class="section"><h3>Competições</h3><span class="muted">Escolha uma opção</span></div>
  <div class="leagues" id="leagues"></div>
-
- <div class="section">
-  <h3 id="title">Partidas</h3>
-  <span class="muted" id="count"></span>
- </div>
+ <div class="section"><h3 id="title">Partidas</h3><span class="muted" id="count"></span></div>
  <div class="matches" id="matches"><div class="loading">Carregando partidas...</div></div>
-
  <footer>Dados esportivos fornecidos pela ESPN.<br>Atualização automática a cada 60 segundos.</footer>
 </section>
 
 <section class="page" id="controle">
- <div class="hero">
-  <h2>📊 Meu Controle</h2>
-  <p>Acompanhe seus palpites e sua evolução nas metas.</p>
- </div>
-
+ <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus palpites e sua evolução nas metas.</p></div>
  <div class="section"><h3>Resumo dos palpites</h3></div>
  <div class="stats">
   <div class="stat"><small>Acertos</small><strong class="green" id="wins">0</strong></div>
   <div class="stat"><small>Erros</small><strong class="red" id="losses">0</strong></div>
+  <div class="stat"><small>Em andamento</small><strong id="pending">0</strong></div>
   <div class="stat"><small>Total registrado</small><strong id="total">0</strong></div>
   <div class="stat"><small>Taxa de acerto</small><strong id="rate">0%</strong></div>
  </div>
-
  <div class="panel">
   <h3>Adicionar palpite</h3>
   <label>Descrição do palpite</label>
   <input id="prediction" maxlength="80" placeholder="Ex.: Palmeiras vence">
-  <label>Resultado</label>
+  <label>Resultado inicial</label>
   <select id="result">
+   <option value="pending">Em andamento</option>
    <option value="win">Acerto</option>
    <option value="loss">Erro</option>
   </select>
-  <button class="full" id="addPrediction">Salvar registro</button>
+  <button class="full" id="addPrediction">Salvar palpite</button>
  </div>
-
  <div class="section"><h3>Histórico</h3><button id="clearPredictions">Limpar</button></div>
  <div class="panel" id="predictionList"><div class="empty">Nenhum registro ainda.</div></div>
-
  <div class="section"><h3>🎯 Minhas metas</h3></div>
  <div class="panel">
   <h3>Meta de economia</h3>
-  <label>Nome da meta</label>
-  <input id="goalName" placeholder="Ex.: Comprar um PC">
-  <label>Valor desejado (R$)</label>
-  <input id="goalTarget" type="number" min="0" step="0.01" placeholder="Ex.: 1000">
-  <label>Quanto já guardou (R$)</label>
-  <input id="goalSaved" type="number" min="0" step="0.01" placeholder="Ex.: 150">
+  <label>Nome da meta</label><input id="goalName" placeholder="Ex.: Comprar um PC">
+  <label>Valor desejado (R$)</label><input id="goalTarget" type="number" min="0" step="0.01" placeholder="Ex.: 1000">
+  <label>Quanto já guardou (R$)</label><input id="goalSaved" type="number" min="0" step="0.01" placeholder="Ex.: 150">
   <button class="full" id="saveGoal">Salvar meta</button>
  </div>
-
  <div class="panel" style="margin-top:12px">
   <div class="muted" id="goalLabel">Minha meta</div>
   <h2 id="goalAmount">R$ 0,00 / R$ 0,00</h2>
@@ -177,8 +155,8 @@ const historyCache=new Map();
 const $=s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch(e){return fallback}};
 const money=n=>(Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-
 function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
 function dateKey(offset){
  const d=new Date();d.setDate(d.getDate()+offset);
  return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
@@ -198,15 +176,6 @@ function getStatus(e,c){
  if(state==="in")return {label:description||"AO VIVO",live:true,completed:false};
  return {label:description||"Agendado",live:false,completed:false};
 }
-
-function renderLeagues(){
- const options=[{id:"dupla",name:"⚽ Dupla do Dia"},...competitions];
- $("#leagues").innerHTML=options.map(c=>`<button class="${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`).join("");
- document.querySelectorAll("[data-league]").forEach(b=>b.onclick=()=>{
-  selected=b.dataset.league;renderLeagues();games=[];load();
- });
-}
-
 function parseEvent(e,league,path){
  const c=e.competitions?.[0]||{},teams=c.competitors||[];
  const h=teams.find(t=>t.homeAway==="home")||teams[0]||{};
@@ -214,8 +183,8 @@ function parseEvent(e,league,path){
  const status=getStatus(e,c);
  return {
   id:e.id,league,path,
-  home:h.team?.displayName||"Time a definir",
-  away:a.team?.displayName||"Time a definir",
+  home:h.team?.displayName||h.team?.name||"Time a definir",
+  away:a.team?.displayName||a.team?.name||"Time a definir",
   homeId:h.team?.id,awayId:a.team?.id,
   homeLogo:getTeamLogo(h.team),awayLogo:getTeamLogo(a.team),
   hs:h.score?.displayValue??h.score??"-",
@@ -224,31 +193,73 @@ function parseEvent(e,league,path){
   state:status.label,date:e.date
  };
 }
+function renderLeagues(){
+ const options=[{id:"dupla",name:"⚽ Dupla do Dia"},...competitions];
+ $("#leagues").innerHTML=options.map(c=>`<button class="${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`).join("");
+ document.querySelectorAll("[data-league]").forEach(b=>b.onclick=()=>{
+  selected=b.dataset.league;renderLeagues();games=[];load();
+ });
+}
+
+/* Consulta de partidas com validação e nova tentativa */
+async function fetchScoreboard(comp){
+ const date=dateKey(offsetDay());
+ const base=`https://site.api.espn.com/apis/site/v2/sports/soccer/${comp.path}/scoreboard`;
+ const urls=[`${base}?dates=${date}&limit=100`];
+ if(day==="today")urls.push(`${base}?limit=100`);
+ let lastError=null;
+ for(let i=0;i<urls.length;i++){
+  try{
+   const response=await fetch(urls[i],{cache:"no-store"});
+   if(!response.ok)throw Error("HTTP "+response.status);
+   const data=await response.json();
+   if(!Array.isArray(data.events))throw Error("Resposta sem lista de partidas");
+   if(data.events.length){
+    let events=data.events;
+    if(i>0){
+     events=events.filter(e=>e.date&&dateFromISO(e.date)===date);
+    }
+    if(events.length)return events.map(e=>parseEvent(e,comp.name,comp.path));
+   }
+  }catch(error){lastError=error}
+ }
+ if(lastError)throw lastError;
+ return [];
+}
+function dateFromISO(value){
+ const d=new Date(value);
+ if(Number.isNaN(d.getTime()))return "";
+ return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+}
 
 async function load(){
  if(loading)return;
  loading=true;
  const box=$("#matches");
  box.innerHTML='<div class="loading">Buscando partidas...</div>';
- const comps=selected==="all"||selected==="dupla"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);
+ const comps=selected==="all"||selected==="dupla"
+  ?competitions.filter(c=>c.path)
+  :competitions.filter(c=>c.id===selected);
  try{
   const results=await Promise.all(comps.map(async c=>{
-   try{
-    const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?dates=${dateKey(offsetDay())}`;
-    const response=await fetch(url);
-    if(!response.ok)return [];
-    const data=await response.json();
-    return (data.events||[]).map(e=>parseEvent(e,c.name,c.path));
-   }catch(e){return []}
+   try{return {games:await fetchScoreboard(c),error:false}}
+   catch(e){return {games:[],error:true}}
   }));
-  games=results.flat().sort((a,b)=>{
+  games=results.flatMap(r=>r.games).sort((a,b)=>{
    if(a.live&&!b.live)return -1;
    if(!a.live&&b.live)return 1;
    return new Date(a.date)-new Date(b.date);
   });
-  if(selected==="dupla")await renderDupla();else renderGames();
+  const failed=results.filter(r=>r.error).length;
+  if(!games.length&&failed===comps.length){
+   box.innerHTML='<div class="empty">Não foi possível conectar aos dados da ESPN agora. Confira sua conexão e toque em Atualizar.</div>';
+   $("#count").textContent="Falha na consulta";
+   return;
+  }
+  if(selected==="dupla")await renderDupla();
+  else renderGames(failed);
  }catch(e){
-  box.innerHTML='<div class="empty">Não foi possível carregar os jogos. Tente novamente.</div>';
+  box.innerHTML='<div class="empty">Erro ao carregar partidas. Tente atualizar novamente.</div>';
  }finally{loading=false}
 }
 
@@ -256,7 +267,7 @@ async function teamHistory(path,id){
  const key=path+":"+id;
  if(!historyCache.has(key)){
   historyCache.set(key,(async()=>{
-   const response=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`);
+   const response=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`,{cache:"no-store"});
    if(!response.ok)throw Error("Histórico indisponível");
    const data=await response.json();
    return (data.events||[]).map(e=>{
@@ -275,7 +286,6 @@ async function teamHistory(path,id){
  const list=await historyCache.get(key);
  return list.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
 }
-
 function getForm(list){
  const wins=list.filter(g=>g.scored>g.conceded).length;
  const draws=list.filter(g=>g.scored===g.conceded).length;
@@ -301,13 +311,14 @@ function teamHTML(name,logo){
  return `<div class="team-name">${img}<span>${safe(name)}</span></div>`;
 }
 function matchHTML(g,extra=""){
+ const date=new Date(g.date);
  return `<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}">
  <div class="matchtop"><span>${safe(g.league)}</span>
  <span class="${g.live?"status-live":""}">${g.live?'<span class="live-dot"></span>':""}${safe(g.state)}</span></div>
  <div class="teams">${teamHTML(g.home,g.homeLogo)}<div class="score">${safe(g.hs)}</div>
  ${teamHTML(g.away,g.awayLogo)}<div class="score">${safe(g.as)}</div></div>
- <div class="meta">${new Date(g.date).toLocaleDateString("pt-BR")} · ${new Date(g.date).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
- ${extra?'<div class="phase"><h4>ANÁLISE DA DUPLA DO DIA</h4><div class="phase-content loading">Analisando...</div></div>':'<div class="phase"><h4>FASE RECENTE DOS TIMES</h4><div class="phase-content loading">Consultando últimos resultados...</div></div>'}
+ <div class="meta">${Number.isNaN(date.getTime())?"Horário não informado":date.toLocaleDateString("pt-BR")+" · "+date.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
+ <div class="phase"><h4>${extra?"ANÁLISE DA DUPLA DO DIA":"FASE RECENTE DOS TIMES"}</h4><div class="phase-content loading">${extra?"Analisando...":"Consultando últimos resultados..."}</div></div>
  </article>`;
 }
 async function loadForm(g,card){
@@ -323,12 +334,15 @@ async function loadForm(g,card){
   target.innerHTML=`<div class="phase-result">${safe(message)}</div><div class="history">${renderHistory(g.home,hg)}${renderHistory(g.away,ag)}</div>`;
  }catch(e){target.textContent="Não foi possível carregar os resultados anteriores."}
 }
-function renderGames(){
+function renderGames(failed=0){
  $("#title").textContent=selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name;
  $("#count").textContent=games.length+" jogo(s)";
  const box=$("#matches");
- if(!games.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';return}
- box.innerHTML=games.map(g=>matchHTML(g)).join("");
+ if(!games.length){
+  box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data. Tente outra data ou atualize.</div>';
+  return;
+ }
+ box.innerHTML=(failed?`<div class="empty" style="grid-column:1/-1">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>`:"")+games.map(g=>matchHTML(g)).join("");
  box.querySelectorAll(".match").forEach(card=>{
   const g=games.find(x=>String(x.id)===card.dataset.id);
   if(g)loadForm(g,card);
@@ -361,28 +375,44 @@ async function renderDupla(){
  });
 }
 
-// Navegação entre páginas
+/* Navegação */
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{
  document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x===b));
  document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id===b.dataset.page));
  $("#refresh").style.display=b.dataset.page==="radar"?"block":"none";
 });
 
-// Controle de palpites: registra apenas acertos e erros
+/* Controle de palpites */
 let predictions=read("radarPredictions",[]);
+predictions=predictions.map(p=>({...p,result:p.result||"pending"}));
 function savePredictions(){localStorage.setItem("radarPredictions",JSON.stringify(predictions))}
 function renderPredictions(){
  const wins=predictions.filter(p=>p.result==="win").length;
  const losses=predictions.filter(p=>p.result==="loss").length;
+ const pending=predictions.filter(p=>p.result==="pending").length;
+ const resolved=wins+losses;
  $("#wins").textContent=wins;
  $("#losses").textContent=losses;
+ $("#pending").textContent=pending;
  $("#total").textContent=predictions.length;
- $("#rate").textContent=predictions.length?Math.round(wins/predictions.length*100)+"%":"0%";
+ $("#rate").textContent=resolved?Math.round(wins/resolved*100)+"%":"0%";
  const box=$("#predictionList");
  if(!predictions.length){box.innerHTML='<div class="empty">Nenhum registro ainda.</div>';return}
- box.innerHTML=predictions.slice().reverse().map(p=>`
- <div class="record"><div><strong>${safe(p.name)}</strong><div class="${p.result==="win"?"green":"red"}">${p.result==="win"?"Acerto":"Erro"} · ${safe(p.date)}</div></div>
- <button data-delete="${p.id}">Excluir</button></div>`).join("");
+ box.innerHTML=predictions.slice().reverse().map(p=>{
+  const status=p.result==="win"?"Acerto":p.result==="loss"?"Erro":"Em andamento";
+  const css=p.result==="win"?"green":p.result==="loss"?"red":"";
+  return `<div class="record"><div><strong>${safe(p.name)}</strong><div class="${css}">${status} · ${safe(p.date||"")}</div></div>
+  <div class="record-actions">
+   ${p.result!=="pending"?`<button data-status="pending" data-id="${safe(p.id)}">Em andamento</button>`:""}
+   ${p.result!=="win"?`<button data-status="win" data-id="${safe(p.id)}">Acerto</button>`:""}
+   ${p.result!=="loss"?`<button data-status="loss" data-id="${safe(p.id)}">Erro</button>`:""}
+   <button data-delete="${safe(p.id)}">Excluir</button>
+  </div></div>`;
+ }).join("");
+ box.querySelectorAll("[data-status]").forEach(b=>b.onclick=()=>{
+  const p=predictions.find(x=>x.id===b.dataset.id);
+  if(p){p.result=b.dataset.status;savePredictions();renderPredictions()}
+ });
  box.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>{
   predictions=predictions.filter(p=>p.id!==b.dataset.delete);
   savePredictions();renderPredictions();
@@ -405,7 +435,7 @@ $("#clearPredictions").onclick=()=>{
  }
 };
 
-// Meta de economia
+/* Metas de economia */
 let goal=read("radarGoal",{name:"Minha meta",target:0,saved:0});
 function renderGoal(){
  const target=Math.max(0,Number(goal.target)||0);
@@ -415,7 +445,7 @@ function renderGoal(){
  $("#goalAmount").textContent=money(saved)+" / "+money(target);
  $("#goalBar").style.width=percent+"%";
  $("#goalPercent").textContent=Math.round(percent)+"% concluído";
- $("#goalRemaining").textContent=target&&saved>=target?"Meta alcançada!": "Faltam "+money(Math.max(0,target-saved));
+ $("#goalRemaining").textContent=target&&saved>=target?"Meta alcançada!":"Faltam "+money(Math.max(0,target-saved));
  $("#goalName").value=goal.name||"";
  $("#goalTarget").value=goal.target||"";
  $("#goalSaved").value=goal.saved||"";
@@ -431,18 +461,21 @@ $("#saveGoal").onclick=()=>{
  localStorage.setItem("radarGoal",JSON.stringify(goal));
  renderGoal();
 };
+
+/* Datas, atualização e inicialização */
 document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{
  day=b.dataset.day;
  document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));
  games=[];load();
 });
 $("#refresh").onclick=()=>{games=[];load()};
-
 renderLeagues();
 renderPredictions();
 renderGoal();
 load();
-setInterval(()=>{if(!document.hidden&&day==="today"&&$("#radar").classList.contains("active"))load()},60000);
+setInterval(()=>{
+ if(!document.hidden&&day==="today"&&$("#radar").classList.contains("active"))load();
+},60000);
 document.addEventListener("visibilitychange",()=>{
  if(!document.hidden&&day==="today"&&$("#radar").classList.contains("active"))load();
 });
