@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#08111f">
+<meta name="apple-mobile-web-app-title" content="Radar FC">
 <title>Radar FC</title>
 
 <style>
@@ -27,7 +28,10 @@ button.active{background:#176344;border-color:#42d392}
 .muted{font-size:12px;color:#91a5bc}
 .matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
 .match{background:#101e30;border:1px solid #263b53;border-radius:15px;padding:15px}
+.match.live-match{border-color:#b63d4a;box-shadow:0 0 0 1px #b63d4a22}
 .matchtop{display:flex;justify-content:space-between;color:#91a5bc;font-size:11px;margin-bottom:15px;gap:8px}
+.status-live{color:#ff737d;font-weight:bold}
+.live-dot{display:inline-block;width:7px;height:7px;background:#ff5965;border-radius:50%;margin-right:5px}
 .teams{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;font-size:14px;font-weight:bold}
 .team-name{display:flex;align-items:center;gap:9px;min-width:0}
 .team-name span{overflow-wrap:anywhere}
@@ -67,7 +71,7 @@ footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25
 
  <section class="hero">
   <h2>O futebol em um só lugar.</h2>
-  <p>Partidas, placares e fase recente dos clubes.</p>
+  <p>Partidas, placares ao vivo e fase recente dos clubes.</p>
  </section>
 
  <div class="toolbar">
@@ -93,7 +97,8 @@ footer{text-align:center;color:#74879d;font-size:11px;line-height:1.5;padding:25
  </div>
 
  <footer>
-  Dados esportivos fornecidos pela ESPN.
+  Dados esportivos fornecidos pela ESPN.<br>
+  Placar atualizado automaticamente a cada 60 segundos enquanto a página estiver aberta.<br>
   A comparação de fase considera os resultados recentes disponíveis.
  </footer>
 
@@ -115,8 +120,10 @@ const competitions=[
 let selected="all";
 let day="today";
 let games=[];
-const historyCache=new Map();
+let loading=false;
+let requestNumber=0;
 
+const historyCache=new Map();
 const $=s=>document.querySelector(s);
 
 function dateKey(offset){
@@ -154,9 +161,32 @@ function getScore(value){
 }
 
 function getTeamLogo(team){
- return team?.logo||
-  team?.logos?.[0]?.href||
-  "";
+ return team?.logo||team?.logos?.[0]?.href||"";
+}
+
+function getStatus(e,comp){
+ const status=comp.status||e.status||{};
+ const type=status.type||{};
+ const state=String(type.state||"").toLowerCase();
+ const description=String(type.shortDetail||type.description||"");
+
+ if(type.completed===true||state==="post"){
+  return {label:"Encerrado",live:false,completed:true};
+ }
+
+ if(state==="in"){
+  return {
+   label:description||"AO VIVO",
+   live:true,
+   completed:false
+  };
+ }
+
+ return {
+  label:description||"Agendado",
+  live:false,
+  completed:false
+ };
 }
 
 function renderLeagues(){
@@ -180,7 +210,7 @@ function parseEvent(e,league,path){
  const home=teams.find(t=>t.homeAway==="home")||teams[0]||{};
  const away=teams.find(t=>t.homeAway==="away")||teams[1]||{};
 
- const status=comp.status||e.status||{};
+ const matchStatus=getStatus(e,comp);
 
  return {
   id:e.id,
@@ -199,16 +229,24 @@ function parseEvent(e,league,path){
   hs:home.score?.displayValue??home.score??"-",
   as:away.score?.displayValue??away.score??"-",
 
-  completed:status.type?.completed===true,
-  state:status.type?.shortDetail||status.type?.description||"Agendado",
+  live:matchStatus.live,
+  completed:matchStatus.completed,
+  state:matchStatus.label,
 
   date:e.date
  };
 }
 
 async function load(){
+ if(loading)return;
+
+ loading=true;
+ const currentRequest=++requestNumber;
  const box=$("#matches");
- box.innerHTML='<div class="loading">Buscando partidas...</div>';
+
+ if(!games.length){
+  box.innerHTML='<div class="loading">Buscando partidas...</div>';
+ }
 
  const comps=selected==="all"
   ?competitions.filter(c=>c.path)
@@ -228,14 +266,22 @@ async function load(){
    );
   }));
 
-  games=results.flat().sort((a,b)=>
-   new Date(a.date)-new Date(b.date)
-  );
+  if(currentRequest!==requestNumber)return;
+
+  games=results.flat().sort((a,b)=>{
+   if(a.live&&!b.live)return -1;
+   if(!a.live&&b.live)return 1;
+   return new Date(a.date)-new Date(b.date);
+  });
 
   renderGames();
 
  }catch(error){
-  box.innerHTML='<div class="empty">Não foi possível carregar os jogos. Tente novamente.</div>';
+  if(currentRequest===requestNumber){
+   box.innerHTML='<div class="empty">Não foi possível carregar os jogos. Tente novamente.</div>';
+  }
+ }finally{
+  loading=false;
  }
 }
 
@@ -293,10 +339,10 @@ async function teamHistory(path,id){
   .slice(0,5);
 }
 
-function getForm(games){
- const wins=games.filter(g=>g.scored>g.conceded).length;
- const draws=games.filter(g=>g.scored===g.conceded).length;
- const losses=games.filter(g=>g.scored<g.conceded).length;
+function getForm(list){
+ const wins=list.filter(g=>g.scored>g.conceded).length;
+ const draws=list.filter(g=>g.scored===g.conceded).length;
+ const losses=list.filter(g=>g.scored<g.conceded).length;
 
  return {
   wins,
@@ -312,8 +358,8 @@ function resultLabel(g){
  return ["DERROTA","loss"];
 }
 
-function renderHistory(team,games){
- const form=getForm(games);
+function renderHistory(team,list){
+ const form=getForm(list);
 
  return `
  <div class="history-team">
@@ -323,7 +369,7 @@ function renderHistory(team,games){
    V ${form.wins} · E ${form.draws} · D ${form.losses}
   </div>
 
-  ${games.map(g=>{
+  ${list.map(g=>{
    const [label,css]=resultLabel(g);
 
    return `
@@ -372,7 +418,6 @@ async function loadForm(g,card){
 
   target.innerHTML=`
    <div class="phase-result">${safe(message)}</div>
-
    <div class="history">
     ${renderHistory(g.home,homeGames)}
     ${renderHistory(g.away,awayGames)}
@@ -412,11 +457,15 @@ function renderGames(){
  }
 
  box.innerHTML=games.map(g=>`
-  <article class="match" data-id="${safe(g.id)}">
+  <article class="match ${g.live?"live-match":""}" data-id="${safe(g.id)}">
 
    <div class="matchtop">
     <span>${safe(g.league)}</span>
-    <span>${safe(g.state)}</span>
+
+    <span class="${g.live?"status-live":""}">
+     ${g.live?'<span class="live-dot"></span>':""}
+     ${safe(g.state)}
+    </span>
    </div>
 
    <div class="teams">
@@ -462,14 +511,30 @@ document.querySelectorAll("[data-day]").forEach(b=>{
    x.classList.toggle("active",x===b)
   );
 
+  games=[];
   load();
  };
 });
 
-$("#refresh").onclick=load;
+$("#refresh").onclick=()=>{
+ games=[];
+ load();
+};
 
 renderLeagues();
 load();
+
+setInterval(()=>{
+ if(!document.hidden&&day==="today"){
+  load();
+ }
+},60000);
+
+document.addEventListener("visibilitychange",()=>{
+ if(!document.hidden&&day==="today"){
+  load();
+ }
+});
 </script>
 
 </body>
