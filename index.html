@@ -24,9 +24,11 @@ button.active{background:#176344;border-color:#42d392}
 .leagues button{white-space:nowrap;font-size:12px}
 .section{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}
 .section h3{font-size:16px;margin:0}
-.matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;align-items:start}
 .match,.panel{background:#101e30;border:1px solid #263b53;border-radius:15px;padding:15px}
-.match{position:relative;overflow:hidden}
+.match{position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s,background .2s}
+.match:hover{border-color:#42617f}
+.match.expanded{border-color:#42d392;background:#122238}
 .match.live-match{border-color:#b63d4a}
 .matchtop{display:flex;justify-content:space-between;color:#91a5bc;font-size:11px;margin-bottom:15px;gap:8px}
 .status-live{color:#ff737d;font-weight:bold}
@@ -37,6 +39,11 @@ button.active{background:#176344;border-color:#42d392}
 .team-logo{width:30px;height:30px;object-fit:contain;flex-shrink:0}
 .score{text-align:right;font-size:19px}
 .meta{color:#91a5bc;font-size:11px;margin-top:12px;border-top:1px solid #263b53;padding-top:10px}
+.tap-hint{display:flex;justify-content:space-between;align-items:center;margin-top:13px;padding-top:11px;border-top:1px solid #263b53;color:#8da6c0;font-size:10px}
+.tap-hint strong{color:#65e3a7;font-size:11px}
+.match.expanded .tap-hint strong{color:#f3d27a}
+.match-details{display:none;margin-top:13px}
+.match.expanded .match-details{display:block}
 .phase{margin-top:12px;background:#0b1929;border:1px solid #29415c;border-radius:11px;padding:12px}
 .phase h4{margin:0 0 10px;font-size:13px}
 .phase-result{color:#65e3a7;font-weight:bold;font-size:13px;margin-bottom:12px}
@@ -383,7 +390,6 @@ function analysisSummary(rows,g){
  const shots=find("Finalizações"),corners=find("Escanteios"),pos=find("Posse de bola");
  const number=v=>parseFloat(String(v).replace("%","").replace(",",".")); 
  const hs=number(shots?.home),as=number(shots?.away);
- const hc=number(corners?.home),ac=number(corners?.away);
  if(Number.isFinite(hs)&&Number.isFinite(as)){
   if(hs>as)return `${g.home} registra mais finalizações até agora.`;
   if(as>hs)return `${g.away} registra mais finalizações até agora.`;
@@ -428,6 +434,7 @@ async function loadLiveAnalysis(g,card){
 }
 async function loadForm(g,card){
  const target=card.querySelector(".phase-content");
+ if(!target)return;
  if(!g.homeId||!g.awayId||!g.path){target.textContent="Histórico recente indisponível nesta fonte.";return}
  try{
   const [hg,ag]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
@@ -441,17 +448,50 @@ async function loadForm(g,card){
 }
 function matchHTML(g,extra=""){
  const date=new Date(g.date);
- return `<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}">
+ return `<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}" role="button" tabindex="0" aria-expanded="false">
  <div class="matchtop"><span>${safe(g.league)}</span><span class="${g.live?"status-live":""}">${g.live?'<span class="live-dot"></span>':""}${safe(g.state)}</span></div>
  <div class="teams">${teamHTML(g.home,g.homeLogo)}<div class="score">${safe(g.hs)}</div>${teamHTML(g.away,g.awayLogo)}<div class="score">${safe(g.as)}</div></div>
  <div class="meta">${Number.isNaN(date.getTime())?"Horário não informado":date.toLocaleDateString("pt-BR")+" · "+date.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
- <div class="live-analysis"><h4>📈 ANÁLISE DA PARTIDA <span class="analysis-status">${g.live?"AO VIVO":g.completed?"FINALIZADA":"AGUARDANDO"}</span></h4><div class="analysis-content loading">Carregando estatísticas...</div></div>
- <div class="phase"><h4>📋 ÚLTIMOS CINCO JOGOS</h4><div class="phase-content loading">Consultando resultados...</div></div>
+ <div class="tap-hint"><span>Toque para ver os detalhes</span><strong class="expand-label">＋ VER ANÁLISE</strong></div>
+ <div class="match-details">
+  <div class="live-analysis"><h4>📈 ANÁLISE DA PARTIDA <span class="analysis-status">${g.live?"AO VIVO":g.completed?"FINALIZADA":"AGUARDANDO"}</span></h4><div class="analysis-content loading">Carregando estatísticas...</div></div>
+  <div class="phase"><h4>📋 ÚLTIMOS CINCO JOGOS</h4><div class="phase-content loading">Consultando resultados...</div></div>
+ </div>
  </article>`;
 }
 function loadCardDetails(g,card){loadLiveAnalysis(g,card);loadForm(g,card)}
 
-/* Mantém os históricos antigos sem criar novas indicações de resultado */
+/* Abre um cartão por vez e carrega os dados quando ele é aberto */
+function bindMatchCards(box,list,isDupla=false){
+ box.querySelectorAll(".match").forEach(card=>{
+  const openCard=()=>{
+   const wasOpen=card.classList.contains("expanded");
+   box.querySelectorAll(".match.expanded").forEach(other=>{
+    other.classList.remove("expanded");
+    other.setAttribute("aria-expanded","false");
+    const label=other.querySelector(".expand-label");
+    if(label)label.textContent="＋ VER ANÁLISE";
+   });
+   if(wasOpen)return;
+   card.classList.add("expanded");
+   card.setAttribute("aria-expanded","true");
+   const label=card.querySelector(".expand-label");
+   if(label)label.textContent="－ FECHAR DETALHES";
+   if(card.dataset.loaded==="yes")return;
+   card.dataset.loaded="yes";
+   const g=list.find(x=>String(x.id)===card.dataset.id);
+   if(!g)return;
+   if(isDupla)loadLiveAnalysis(g,card);
+   else loadCardDetails(g,card);
+  };
+  card.addEventListener("click",openCard);
+  card.addEventListener("keydown",e=>{
+   if(e.key==="Enter"||e.key===" "){e.preventDefault();openCard()}
+  });
+ });
+}
+
+/* Mantém os históricos antigos */
 let duplaRecords=read("radarDuplaHistory",[]);
 if(!Array.isArray(duplaRecords))duplaRecords=[];
 let dailyDuplas=read("radarDuplaDaily",{});
@@ -481,13 +521,10 @@ function renderGames(failed=0){
  const box=$("#matches");
  if(!games.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';return}
  box.innerHTML=(failed?'<div class="empty" style="grid-column:1/-1">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>':"")+games.map(g=>matchHTML(g)).join("");
- box.querySelectorAll(".match").forEach(card=>{
-  const g=games.find(x=>String(x.id)===card.dataset.id);
-  if(g)loadCardDetails(g,card);
- });
+ bindMatchCards(box,games);
 }
 
-/* Seleciona dois destaques por disponibilidade de histórico, não por resultado */
+/* Destaques do dia */
 function renderSavedDupla(saved,currentGames){
  const box=$("#matches");
  const updated=saved.map(old=>{
@@ -504,8 +541,8 @@ function renderSavedDupla(saved,currentGames){
    <div class="phase-result">Comparativo dos últimos cinco jogos</div>
    <div class="muted">Dados históricos disponíveis: ${Math.min(g.histHome?.length||0,5)} jogos de ${safe(g.home)} e ${Math.min(g.histAway?.length||0,5)} de ${safe(g.away)}.</div>
    <div class="history">${renderHistory(g.home,g.histHome||[])}${renderHistory(g.away,g.histAway||[])}</div>`;
-  loadLiveAnalysis(g,card);
  });
+ bindMatchCards(box,updated,true);
  renderDuplaHistory();
 }
 async function renderDupla(){
@@ -523,7 +560,6 @@ async function renderDupla(){
   try{
    const [h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
    if(!h.length||!a.length)return null;
-   const hf=getForm(h),af=getForm(a);
    return {...g,histHome:h,histAway:a,dataScore:h.length+a.length};
   }catch(e){return null}
  }));
@@ -587,7 +623,7 @@ document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{
  $("#refresh").style.display=b.dataset.page==="radar"?"block":"none";
 });
 
-/* Controle: mantém os registros já salvos */
+/* Controle */
 let predictions=read("radarPredictions",[]);
 predictions=predictions.map(p=>({...p,result:p.result||"pending"}));
 function savePredictions(){localStorage.setItem("radarPredictions",JSON.stringify(predictions))}
@@ -627,7 +663,7 @@ $("#clearPredictions").onclick=()=>{
  }
 };
 
-/* Metas de economia: mantém a chave original */
+/* Metas de economia */
 let goal=read("radarGoal",{name:"Minha meta",target:0,saved:0});
 function renderGoal(){
  const target=Math.max(0,Number(goal.target)||0),saved=Math.max(0,Number(goal.saved)||0);
