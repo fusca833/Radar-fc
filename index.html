@@ -130,6 +130,13 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 .warnbox{background:var(--c1);border:1px solid #b63d4a;border-radius:10px;padding:10px;margin-bottom:10px;color:var(--tx2);font-size:12px;line-height:1.6}
 .toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--c3);border:1px solid var(--gbd);color:var(--tx);padding:12px 16px;border-radius:12px;font-size:13px;z-index:50;max-width:92%;text-align:center;display:none;box-shadow:0 6px 24px rgba(0,0,0,.35)}
 .toast.show{display:block}
+#dayBar{display:none;max-width:1000px;margin:0 auto 14px;padding:0 16px}
+body.on-radar #dayBar.has{display:block}
+#dayBar .daybox{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--c1);border:1px solid var(--b1);border-radius:12px;padding:10px 14px}
+#dayBar .daytit{font-size:10px;color:var(--mu)}
+#dayBar .dayscore{font-size:24px;font-weight:bold;margin-top:2px}
+#dayBar .daydet{font-size:11px;color:var(--mu);text-align:right;line-height:1.6}
+#dayBar .daynote{font-size:9px;color:var(--dim);margin-top:5px;padding-left:2px}
 @media(max-width:600px){
  header{padding-top:18px}
  .matches{grid-template-columns:1fr}
@@ -139,12 +146,13 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 }
 </style>
 </head>
-<body>
+<body class="on-radar">
 <div id="toast" class="toast"></div>
 <header>
  <div><h1>⚽ RADAR FC</h1><div class="sub">CENTRAL DE INFORMAÇÕES DO FUTEBOL</div></div>
  <div style="display:flex;gap:8px"><button id="themeBtn" aria-label="Tema">☀️</button><button id="refresh">↻ Atualizar</button></div>
 </header>
+<div id="dayBar"></div>
 <main>
 <section class="page active" id="radar">
  <div class="hero"><h2>O futebol em um só lugar.</h2><p>Partidas, placares ao vivo, estatísticas e fase recente dos clubes.</p></div>
@@ -344,6 +352,8 @@ async function teamAll(path,id){
  const list=await historyCache.get(key);return list.slice().sort((a,b)=>new Date(b.date)-new Date(a.date))
 }
 async function teamHistory(path,id){return(await teamAll(path,id)).slice(0,10)}
+/* histórico só com jogos ANTERIORES à partida (evita usar o próprio resultado no palpite) */
+async function histBefore(path,id,g){const list=await teamAll(path,id),t=g&&g.date?new Date(g.date).getTime():NaN;return(Number.isFinite(t)?list.filter(x=>new Date(x.date).getTime()<t):list).slice(0,10)}
 function getForm(list){const wins=list.filter(g=>g.scored>g.conceded).length,draws=list.filter(g=>g.scored===g.conceded).length,losses=list.filter(g=>g.scored<g.conceded).length,goalsFor=list.reduce((s,g)=>s+g.scored,0),goalsAgainst=list.reduce((s,g)=>s+g.conceded,0);return{wins,draws,losses,points:wins*3+draws,goalDiff:goalsFor-goalsAgainst,goalsFor,goalsAgainst}}
 function resultLabel(g){if(g.scored>g.conceded)return["VITÓRIA","green"];if(g.scored===g.conceded)return["EMPATE","draw"];return["DERROTA","red"]}
 function pct(n,total){return total?Math.round(n/total*100):0}
@@ -450,7 +460,7 @@ function calcProbs(h,a){
 }
 function dcText(p,g){return p.dcKey==="1x"?safe(g.home)+" ou empate":p.dcKey==="x2"?safe(g.away)+" ou empate":safe(g.home)+" ou "+safe(g.away)+" (sem empate)"}
 function probLineHTML(p,g){const fav=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" favorito · "+Math.round(Math.max(p.pH,p.pA))+"%";return`<div class="prob-line">🏆 <b>${fav}</b><br>🎯 Chance dupla: <b>${dcText(p,g)} · ${Math.round(p.dcBest)}%</b><br>⚽ +2,5 gols: ${Math.round(p.o25)}% · Ambos marcam: ${Math.round(p.btts)}%</div>`}
-function enhanceCards(box,list){box.querySelectorAll(".match").forEach(async card=>{const g=list.find(x=>String(x.id)===card.dataset.id);if(!g||!g.homeId||!g.awayId||!g.path||card.querySelector(".prob-line"))return;try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);const p=calcProbs(h,a);if(!p||!card.isConnected||card.querySelector(".prob-line"))return;card.querySelector(".tap-hint").insertAdjacentHTML("beforebegin",probLineHTML(p,g))}catch(e){}})}
+function enhanceCards(box,list){box.querySelectorAll(".match").forEach(async card=>{const g=list.find(x=>String(x.id)===card.dataset.id);if(!g||!g.homeId||!g.awayId||!g.path||card.querySelector(".prob-line"))return;try{const[h,a]=await Promise.all([histBefore(g.path,g.homeId,g),histBefore(g.path,g.awayId,g)]);const p=calcProbs(h,a);if(!p||!card.isConnected||card.querySelector(".prob-line"))return;card.querySelector(".tap-hint").insertAdjacentHTML("beforebegin",probLineHTML(p,g))}catch(e){}})}
 
 /* ABAS DO JOGO */
 function renderDetailTabs(){
@@ -724,7 +734,7 @@ function renderDuplaHistory(){
 }
 function renderDupla(){
  $("#title").textContent="🎯 Múltipla do Dia";$("#filters").style.display="none";$("#duplaHistorySection").style.display="block";$("#count").textContent=games.length+" jogo(s) na data";
- renderMultiBox();renderDuplaHistory()
+ renderMultiBox();renderDuplaHistory();updateDayBar()
 }
 function visibleGames(){
  const q=norm(searchText.trim());
@@ -739,14 +749,50 @@ function renderGames(failed=0){
  $("#title").textContent=selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name||"Partidas";
  $("#count").textContent=(list.length===games.length?games.length:list.length+" de "+games.length)+" jogo(s)";
  $("#duplaHistorySection").style.display="none";const box=$("#matches");
+ updateDayBar();
  if(!games.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';return}
  if(!list.length){box.innerHTML='<div class="empty">Nenhum jogo encontrado com esse filtro.</div>';return}
  box.innerHTML=(failed?'<div class="empty">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>':"")+`<div class="matches">${list.map(g=>matchHTML(g)).join("")}</div>`;bindMatchCards(box,games)
 }
+
+/* BARRA DE ACERTOS DO DIA (todos os jogos da página principal)
+   Palpite considerado em cada jogo: a "chance dupla" mais provável (a mesma que aparece no card).
+   Usa só jogos anteriores à partida para calcular, então não "cola" com o resultado. */
+const pickCache=new Map();let dayBarToken=0;
+async function gamePick(g){
+ if(pickCache.has(String(g.id)))return pickCache.get(String(g.id));
+ if(!g.homeId||!g.awayId||!g.path)return null;
+ try{
+  const[h,a]=await Promise.all([histBefore(g.path,g.homeId,g),histBefore(g.path,g.awayId,g)]);
+  const p=calcProbs(h,a),pick=p?{key:"dc"+p.dcKey,prob:p.dcBest}:null;
+  pickCache.set(String(g.id),pick);return pick
+ }catch(e){return null}
+}
+async function updateDayBar(){
+ const el=$("#dayBar");if(!el)return;
+ const tk=++dayBarToken,list=games.slice();
+ if(!list.length){el.classList.remove("has");return}
+ const picks=await Promise.all(list.map(gamePick));
+ if(tk!==dayBarToken)return;
+ let g=0,r=0,p=0,nodata=0;
+ list.forEach((x,i)=>{
+  const pk=picks[i];if(!pk){nodata++;return}
+  if(x.completed){const hs=getScore(x.hs),as=getScore(x.as);if(Number.isFinite(hs)&&Number.isFinite(as)){if(evalLeg(pk.key,hs,as)==="green")g++;else r++;return}}
+  p++
+ });
+ const total=g+r+p;
+ if(!total){el.classList.remove("has");return}
+ const dayName=day==="today"?"HOJE":day==="tomorrow"?"AMANHÃ":"ONTEM",
+ scope=selected==="all"||selected==="dupla"?"todas as competições":(competitions.find(c=>c.id===selected)?.name||""),
+ cls=g+r===0?"":g>=r?"green":"red";
+ el.innerHTML=`<div class="daybox"><div><div class="daytit">🎯 ACERTOS · ${dayName} · ${safe(scope).toUpperCase()}</div><div class="dayscore ${cls}">${g}/${total}</div></div><div class="daydet"><span class="green">✅ ${g} green</span> · <span class="red">❌ ${r} red</span><br>⏳ ${p} em aberto${nodata?" · "+nodata+" sem dados":""}</div></div><div class="daynote">Palpite considerado: chance dupla de cada jogo (a do card).</div>`;
+ el.classList.add("has")
+}
+
 async function load(){
  if(loading)return;loading=true;const box=$("#matches");
  $("#filters").style.display=selected==="dupla"?"none":"flex";
- if(!games.length)box.innerHTML='<div class="loading">Buscando partidas...</div>';
+ if(!games.length){box.innerHTML='<div class="loading">Buscando partidas...</div>';$("#dayBar").classList.remove("has")}
  const comps=selected==="all"||selected==="dupla"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);
  try{
   const results=await Promise.all(comps.map(async c=>{try{return{games:await fetchScoreboard(c),error:false}}catch(e){return{games:[],error:true}}})),espnGames=results.flatMap(r=>r.games);
@@ -754,10 +800,10 @@ async function load(){
   box.innerHTML='<div class="loading">ESPN indisponível. Tentando outra fonte...</div>';
   try{const alternative=await fetchSportScore();games=alternative.sort((a,b)=>a.live===b.live?new Date(a.date)-new Date(b.date):a.live?-1:1);$("#sourceLabel").textContent="Fonte alternativa: SportScore";checkGoals();
    if(selected==="dupla")renderDupla();else renderGames(0)
-  }catch(error){games=[];$("#sourceLabel").textContent="Fontes indisponíveis";$("#duplaHistorySection").style.display=selected==="dupla"?"block":"none";if(selected==="dupla")renderDupla();else{box.innerHTML='<div class="empty">Não foi possível carregar os jogos pela ESPN nem pela SportScore.<br>Confira sua conexão e toque em Atualizar.</div>';$("#count").textContent="Falha nas consultas"}}
+  }catch(error){games=[];updateDayBar();$("#sourceLabel").textContent="Fontes indisponíveis";$("#duplaHistorySection").style.display=selected==="dupla"?"block":"none";if(selected==="dupla")renderDupla();else{box.innerHTML='<div class="empty">Não foi possível carregar os jogos pela ESPN nem pela SportScore.<br>Confira sua conexão e toque em Atualizar.</div>';$("#count").textContent="Falha nas consultas"}}
  }catch(e){box.innerHTML='<div class="empty">Erro ao carregar partidas. Tente atualizar novamente.</div>'}finally{loading=false}
 }
-function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));$("#refresh").style.display=id==="radar"?"block":"none";$("#bottomNav").style.display=id==="matchPage"?"none":"flex"}
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.body.classList.toggle("on-radar",id==="radar");$("#refresh").style.display=id==="radar"?"block":"none";$("#bottomNav").style.display=id==="matchPage"?"none":"flex"}
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x===b));showPage(b.dataset.page);window.scrollTo(0,0)});
 $("#backToRadar").onclick=()=>showPage("radar");
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".detail-panel").forEach(x=>x.classList.toggle("active",x.id==="tab-"+b.dataset.tab))});
