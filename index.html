@@ -128,8 +128,11 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 .tbl.c td:nth-child(2),.tbl.c th:nth-child(2){text-align:center;white-space:nowrap;min-width:0}
 .tbl tr.hl{background:var(--c1);font-weight:bold}
 .warnbox{background:var(--c1);border:1px solid #b63d4a;border-radius:10px;padding:10px;margin-bottom:10px;color:var(--tx2);font-size:12px;line-height:1.6}
-.toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--c3);border:1px solid var(--gbd);color:var(--tx);padding:12px 16px;border-radius:12px;font-size:13px;z-index:50;max-width:92%;text-align:center;display:none;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--c3);border:1px solid var(--gbd);color:var(--tx);padding:12px 16px;border-radius:12px;font-size:13px;z-index:50;max-width:92%;text-align:center;display:none;box-shadow:0 6px 24px rgba(0,0,0,.35);white-space:pre-line}
 .toast.show{display:block}
+.live-head{display:flex;justify-content:space-between;align-items:center;color:var(--mu);font-size:11px;margin-bottom:10px}
+.live-score{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;font-weight:bold;font-size:14px;margin-bottom:6px}
+.live-score span:first-child{overflow-wrap:anywhere}.live-score span:last-child{text-align:right;overflow-wrap:anywhere}
 #dayBar{display:none;max-width:1000px;margin:0 auto 14px;padding:0 16px}
 body.on-radar #dayBar.has{display:block}
 #dayBar .daybox{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--c1);border:1px solid var(--b1);border-radius:12px;padding:10px 14px}
@@ -179,7 +182,19 @@ body.on-radar #dayBar.has{display:block}
   <div class="section"><h3>📅 Histórico</h3></div>
   <div class="panel" id="duplaHistoryList"><div class="empty">Nenhum destaque arquivado ainda.</div></div>
  </div>
- <footer>Dados esportivos fornecidos pela ESPN e SportScore.<br>Estatísticas dependem da disponibilidade da fonte.<br>Atualização automática a cada 60 segundos.<br><a href="https://sportscore.com" target="_blank" rel="noopener" style="color:var(--mu)">Powered by SportScore</a></footer>
+ <footer>Dados esportivos fornecidos pela ESPN e SportScore.<br>Estatísticas dependem da disponibilidade da fonte.<br>Atualização automática a cada 15 segundos com jogos ao vivo (60 segundos sem jogos ao vivo).<br><a href="https://sportscore.com" target="_blank" rel="noopener" style="color:var(--mu)">Powered by SportScore</a></footer>
+</section>
+<section class="page" id="live">
+ <div class="hero"><h2>📡 Ao Vivo · Probabilidades</h2><p>Chance de gols, escanteios, cartões e chutes no alvo nos jogos que estão rolando agora, de todas as competições. Atualiza sozinho a cada 20 segundos.</p></div>
+ <div class="panel">
+  <button class="full" id="liveAlertBtn">🔔 Avisar probabilidades altas: OFF</button>
+  <label style="display:block;margin-top:12px">Avisar quando a chance for de pelo menos</label>
+  <select id="liveThr"><option value="65">65%</option><option value="70">70%</option><option value="75">75%</option><option value="80">80%</option><option value="85">85%</option><option value="90">90%</option></select>
+  <div class="market-note" id="liveStamp" style="margin-top:0">Buscando jogos ao vivo...</div>
+ </div>
+ <div class="section"><h3>Jogos ao vivo</h3><span class="muted" id="liveCount"></span></div>
+ <div id="liveList"><div class="loading">Buscando jogos ao vivo...</div></div>
+ <footer>Probabilidades estimadas com base no placar, nas estatísticas e no minuto atuais da partida, usando uma média típica do futebol como referência. É uma estimativa simples, sem garantia de resultado. Para o aviso funcionar, deixe o app aberto.</footer>
 </section>
 <section class="page" id="matchPage">
  <div class="detail-back"><button id="backToRadar">← Voltar</button><span class="muted">DETALHES DA PARTIDA</span></div>
@@ -199,13 +214,7 @@ body.on-radar #dayBar.has{display:block}
  <div class="section"><h3>📅 Acertos por dia</h3></div>
  <div class="panel" id="dayHistory"><div class="empty">Ainda não há palpites gravados.</div></div>
 
- <div class="section"><h3>Resumo dos registros</h3></div>
- <div class="stats">
-  <div class="stat"><small>Acertos</small><strong class="green" id="wins">0</strong></div><div class="stat"><small>Erros</small><strong class="red" id="losses">0</strong></div>
-  <div class="stat"><small>Em andamento</small><strong id="pending">0</strong></div><div class="stat"><small>Total registrado</small><strong id="total">0</strong></div>
-  <div class="stat"><small>Taxa de acerto</small><strong id="rate">0%</strong></div>
- </div>
- <div class="panel"><h3>Adicionar registro</h3><label>Descrição do registro</label><input id="prediction" maxlength="80" placeholder="Ex.: Análise do jogo Palmeiras">
+ <div class="panel" style="margin-top:12px"><h3>Adicionar registro</h3><label>Descrição do registro</label><input id="prediction" maxlength="80" placeholder="Ex.: Análise do jogo Palmeiras">
   <label>Resultado inicial</label><select id="result"><option value="pending">Em andamento</option><option value="win">Acerto</option><option value="loss">Erro</option></select>
   <button class="full" id="addPrediction">Salvar registro</button>
  </div>
@@ -270,7 +279,7 @@ body.on-radar #dayBar.has{display:block}
  <footer>Seus registros ficam salvos neste navegador.</footer>
 </section>
 </main>
-<nav class="bottom-nav" id="bottomNav"><button class="active" data-page="radar">⚽ Radar FC</button><button data-page="controle">📊 Meu Controle</button></nav>
+<nav class="bottom-nav" id="bottomNav"><button class="active" data-page="radar">⚽ Radar FC</button><button data-page="live">📡 Ao Vivo</button><button data-page="controle">📊 Meu Controle</button></nav>
 <script>
 const competitions=[
  {id:"all",name:"Todas",path:null},{id:"bra",name:"Brasileirão",path:"bra.1"},{id:"bra2",name:"Série B",path:"bra.2"},
@@ -284,8 +293,9 @@ const competitions=[
  {id:"cdr",name:"Copa del Rey",path:"esp.copa_del_rey"},{id:"coppa",name:"Coppa Italia",path:"ita.coppa_italia"},{id:"dfb",name:"DFB Pokal",path:"ger.dfb_pokal"},
  {id:"sco",name:"Escócia",path:"sco.1"},{id:"bel",name:"Bélgica",path:"bel.1"},{id:"uecl",name:"Conference League",path:"uefa.europa.conf"}
 ];
+const LIVE_COMPS=competitions.filter(c=>c.path);
 let selected="all",day="today",games=[],loading=false,currentMatch=null,currentHistHome=[],currentHistAway=[],currentLiveSummary=null,currentStandings=null,currentH2H=[];
-let searchText="",onlyLive=false,lastFailed=0;
+let searchText="",onlyLive=false,lastFailed=0,pageBefore="radar",lastLoadAt=0;
 const historyCache=new Map(),standCache=new Map(),$=s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch(e){return fallback}};
 const store=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val))}catch(e){}};
@@ -445,16 +455,28 @@ function rostersHTML(summary){
  return`<div class="panel"><h3>👥 Escalações</h3><div class="history">${sorted.map(col).join("")}</div></div>`
 }
 
+function renderDetailHeader(g){
+ const date=formatDate(g.date);
+ $("#detailHeader").innerHTML=`<div class="detail-hero"><div class="detail-league">${safe(g.league)}</div><div class="detail-score"><div class="detail-team">${g.homeLogo?`<img src="${safe(g.homeLogo)}" alt="">`:""}${safe(g.home)}</div><div class="detail-result">${safe(g.hs)} : ${safe(g.as)}</div><div class="detail-team">${g.awayLogo?`<img src="${safe(g.awayLogo)}" alt="">`:""}${safe(g.away)}</div></div><div class="detail-state">${g.live?'<span class="status-live"><span class="live-dot"></span>AO VIVO</span>':safe(g.state)} · ${safe(date)}</div></div>`
+}
 async function openMatch(g){
+ const curPage=document.querySelector(".page.active");if(curPage&&curPage.id!=="matchPage")pageBefore=curPage.id;
  currentMatch=g;currentHistHome=[];currentHistAway=[];currentLiveSummary=null;currentStandings=null;currentH2H=[];showPage("matchPage");window.scrollTo(0,0);
  document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab==="details"));document.querySelectorAll(".detail-panel").forEach(p=>p.classList.toggle("active",p.id==="tab-details"));
- const date=formatDate(g.date);$("#detailHeader").innerHTML=`<div class="detail-hero"><div class="detail-league">${safe(g.league)}</div><div class="detail-score"><div class="detail-team">${g.homeLogo?`<img src="${safe(g.homeLogo)}" alt="">`:""}${safe(g.home)}</div><div class="detail-result">${safe(g.hs)} : ${safe(g.as)}</div><div class="detail-team">${g.awayLogo?`<img src="${safe(g.awayLogo)}" alt="">`:""}${safe(g.away)}</div></div><div class="detail-state">${g.live?'<span class="status-live"><span class="live-dot"></span>AO VIVO</span>':safe(g.state)} · ${safe(date)}</div></div>`;
+ const date=formatDate(g.date);renderDetailHeader(g);
  $("#tab-details").innerHTML=`<div class="panel"><h3>📋 Informações da partida</h3><div class="info-row"><span>Competição</span><strong>${safe(g.league)}</strong></div><div class="info-row"><span>Mandante</span><strong>${safe(g.home)}</strong></div><div class="info-row"><span>Visitante</span><strong>${safe(g.away)}</strong></div><div class="info-row"><span>Data e horário</span><strong>${safe(date)}</strong></div><div class="info-row"><span>Status</span><strong>${safe(g.state)}</strong></div><div class="info-row"><span>Fonte</span><strong>${safe(g.source||"ESPN")}</strong></div></div><div id="rosterBox"></div><div class="panel"><h3>ℹ️ Sobre os dados</h3><p class="muted" style="line-height:1.7">As informações são carregadas conforme a disponibilidade dos provedores esportivos. Partidas futuras podem não ter estatísticas ao vivo.</p></div>`;
  $("#tab-tips").innerHTML='<div class="panel"><div class="loading">Calculando frequências históricas...</div></div>';$("#tab-stats").innerHTML='<div class="panel"><div class="loading">Carregando estatísticas...</div></div>';$("#tab-table").innerHTML='<div class="panel"><div class="loading">Carregando classificação...</div></div>';$("#tab-ai").innerHTML='<div class="panel"><div class="loading">Preparando análise automática...</div></div>';
  const tasks=[];
  if(g.homeId&&g.awayId&&g.path)tasks.push(Promise.all([teamAll(g.path,g.homeId),teamAll(g.path,g.awayId)]).then(v=>{currentHistHome=v[0].slice(0,10);currentHistAway=v[1].slice(0,10);currentH2H=v[0].filter(x=>String(x.opponentId)===String(g.awayId))}).catch(()=>{}));
  if(g.path&&g.source!=="SportScore"){tasks.push(fetchLiveSummary(g).then(v=>currentLiveSummary=v).catch(()=>{}));tasks.push(fetchStandings(g).then(v=>currentStandings=v).catch(()=>{}))}
  await Promise.all(tasks);if(currentMatch?.id!==g.id)return;renderDetailTabs()
+}
+/* atualiza sozinho a partida aberta quando ela está ao vivo */
+async function refreshOpenMatch(){
+ const cm=currentMatch;if(!cm||!$("#matchPage").classList.contains("active")||!cm.live)return;
+ const fresh=games.find(x=>String(x.id)===String(cm.id));
+ if(fresh){currentMatch=fresh;renderDetailHeader(fresh)}
+ try{const s=await fetchLiveSummary(currentMatch);if(!currentMatch||String(currentMatch.id)!==String(cm.id))return;currentLiveSummary=s;renderDetailTabs()}catch(e){}
 }
 
 /* PROBABILIDADES
@@ -875,7 +897,7 @@ async function resolveDayPicks(force){
 }
 
 async function load(){
- if(loading)return;loading=true;const box=$("#matches");
+ if(loading)return;loading=true;lastLoadAt=Date.now();const box=$("#matches");
  $("#filters").style.display=selected==="dupla"?"none":"flex";
  if(!games.length){box.innerHTML='<div class="loading">Buscando partidas...</div>';$("#dayBar").classList.remove("has")}
  const comps=selected==="all"||selected==="dupla"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);
@@ -889,109 +911,289 @@ async function load(){
  }catch(e){box.innerHTML='<div class="empty">Erro ao carregar partidas. Tente atualizar novamente.</div>'}finally{loading=false}
 }
 function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.body.classList.toggle("on-radar",id==="radar");$("#refresh").style.display=id==="radar"?"block":"none";$("#bottomNav").style.display=id==="matchPage"?"none":"flex"}
-document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x===b));showPage(b.dataset.page);window.scrollTo(0,0)});
-$("#backToRadar").onclick=()=>showPage("radar");
+function goPage(id){document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===id));showPage(id);if(id==="live"){renderLive();liveTick()}}
+document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{goPage(b.dataset.page);window.scrollTo(0,0)});
+$("#backToRadar").onclick=()=>goPage(pageBefore||"radar");
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".detail-panel").forEach(x=>x.classList.toggle("active",x.id==="tab-"+b.dataset.tab))});
+document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];load()});
 
-/* REGISTROS (MEU CONTROLE) */
-let predictions=read("radarPredictions",[]);if(!Array.isArray(predictions))predictions=[];predictions=predictions.map(p=>({...p,result:p.result||"pending"}));
-function savePredictions(){store("radarPredictions",predictions)}
-function lineChart(vals,label,fmt){
- if(vals.length<2)return'<div class="empty">Registre pelo menos 1 resultado para ver o gráfico.</div>';
- const W=300,H=110,P=8,mn=Math.min(0,...vals),mx=Math.max(0,...vals),rg=(mx-mn)||1,
- x=i=>P+i*(W-2*P)/(vals.length-1),y=v=>H-P-(v-mn)/rg*(H-2*P),
- pts=vals.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" "),last=vals[vals.length-1];
- return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><line x1="${P}" x2="${W-P}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" style="stroke:var(--b1)" stroke-dasharray="4 4"/><polyline points="${pts}" fill="none" style="stroke:${last>=0?"var(--gn)":"var(--rd)"}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/></svg><div class="muted">${label}: <strong class="${last>=0?"green":"red"}">${fmt(last)}</strong></div>`
+/* PÁGINA AO VIVO: probabilidades de gols, escanteios, cartões e chutes no alvo */
+let liveGames=[],liveSums=new Map(),liveLoaded=false,liveBusy=false,lastLiveAt=0,liveUpdated=null;
+let liveNotified=read("radarLiveNotified",{});if(!liveNotified||typeof liveNotified!=="object"||Array.isArray(liveNotified))liveNotified={};
+async function fetchLiveScoreboard(c){
+ const r=await limitedFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?limit=100`,{cache:"no-store"});
+ if(!r.ok)throw Error("x");const d=await r.json();
+ return(d.events||[]).map(e=>parseEvent(e,c.name,c.path)).filter(g=>g.live)
+}
+async function liveSummary(g){
+ const r=await limitedFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${g.path}/summary?event=${encodeURIComponent(g.id)}`,{cache:"no-store"});
+ if(!r.ok)throw Error("x");return r.json()
+}
+function liveMinute(g){
+ const s=String(g.state||"");
+ if(/halftime|half time|intervalo|^\s*ht\s*$/i.test(s))return 45;
+ const m=s.match(/(\d{1,3})\s*'\s*(?:\+\s*(\d{1,2}))?/);
+ if(m)return Math.min(130,Number(m[1])+(Number(m[2])||0));
+ const t=new Date(g.date).getTime();
+ if(Number.isFinite(t)){let e=(Date.now()-t)/60000;if(e>60)e-=15;return Math.max(1,Math.min(95,Math.round(e)))}
+ return 45
+}
+function poisAtLeast(k,m){
+ if(k<=0)return 100;
+ let s=0,t=Math.exp(-m);
+ for(let i=0;i<k;i++){s+=t;t=t*m/(i+1)}
+ return Math.max(0,Math.min(100,(1-s)*100))
+}
+function liveModel(g,sum){
+ const min=liveMinute(g),rem=min>90?3:Math.max(2,93-min);
+ const hs=getScore(g.hs),as=getScore(g.as),goals=(Number.isFinite(hs)?hs:0)+(Number.isFinite(as)?as:0);
+ const rows=sum?getStatsRows(sum,g):[];
+ const num=v=>{const n=parseFloat(String(v).replace("%",""));return Number.isFinite(n)?n:null};
+ const tot=label=>{const r=rows.find(x=>x.label===label);if(!r)return null;const a=num(r.home),b=num(r.away);if(a===null&&b===null)return null;return(a||0)+(b||0)};
+ const corners=tot("Escanteios"),yel=tot("Amarelos"),red=tot("Vermelhos"),sot=tot("No alvo");
+ const cards=yel===null?null:yel+(red||0);
+ const rate=(cur,pr)=>(cur+pr*30)/(min+30);
+ const lab=(cur,k)=>String(cur+k-0.5).replace(".",",");
+ const mk=(key,title,cur,pr,ks)=>{const rt=rate(cur,pr),mean=rt*rem;return{key,title,cur,proj:cur+mean,rt,items:ks.map(k=>({label:"Mais de "+lab(cur,k),p:poisAtLeast(k,mean)}))}};
+ const markets=[],missing=[];
+ const gm=mk("gols","⚽ Gols",goals,2.7/90,[1,2]);
+ gm.items.unshift({label:"Gol nos próx. 10 min",p:(1-Math.exp(-gm.rt*Math.min(10,rem)))*100});
+ markets.push(gm);
+ if(corners!==null)markets.push(mk("esc","🚩 Escanteios",corners,10/90,[1,2,3]));else missing.push("escanteios");
+ if(cards!==null)markets.push(mk("car","🟨 Cartões",cards,4.2/90,[1,2,3]));else missing.push("cartões");
+ if(sot!==null)markets.push(mk("sot","🎯 Chutes no alvo",sot,8/90,[1,2,3]));else missing.push("chutes no alvo");
+ let top=0;markets.forEach(x=>x.items.forEach(i=>{if(i.p>top)top=i.p}));
+ return{min,rem,goals,markets,missing,top}
+}
+function computeModels(){
+ return liveGames.map(g=>({g,m:liveModel(g,liveSums.get(String(g.id))||null)}))
+}
+async function liveTick(force){
+ if(liveBusy)return;
+ if(!force&&Date.now()-lastLiveAt<15000)return;
+ liveBusy=true;lastLiveAt=Date.now();
+ try{
+  const res=await Promise.all(LIVE_COMPS.map(c=>fetchLiveScoreboard(c).catch(()=>null)));
+  const ok=res.filter(Boolean);
+  if(ok.length){
+   const seen=new Map();ok.flat().forEach(g=>{if(!seen.has(g.id))seen.set(g.id,g)});
+   liveGames=[...seen.values()];liveLoaded=true;liveUpdated=new Date();
+   const sums=await Promise.all(liveGames.map(g=>liveSummary(g).catch(()=>null)));
+   liveSums=new Map();liveGames.forEach((g,i)=>{if(sums[i])liveSums.set(String(g.id),sums[i])});
+   checkLiveAlerts()
+  }
+ }catch(e){}finally{liveBusy=false}
+ renderLive()
+}
+function checkLiveAlerts(){
+ const ids=new Set(liveGames.map(g=>String(g.id)));
+ Object.keys(liveNotified).forEach(k=>{if(!ids.has(k.split("|")[0]))delete liveNotified[k]});
+ if(!settings.liveAlert){store("radarLiveNotified",liveNotified);return}
+ const thr=Number(settings.liveThr)||75,hits=[];
+ computeModels().forEach(({g,m})=>m.markets.forEach(mk=>mk.items.forEach(i=>{
+  if(i.p<thr)return;const k=g.id+"|"+mk.key+"|"+i.label;if(liveNotified[k])return;
+  liveNotified[k]=1;hits.push({g,mk,i,min:m.min})
+ })));
+ store("radarLiveNotified",liveNotified);
+ if(!hits.length)return;
+ hits.sort((a,b)=>b.i.p-a.i.p);
+ beep();try{if(navigator.vibrate)navigator.vibrate([200,100,200,100,200])}catch(e){}
+ const h=hits[0];
+ toast("📡 "+h.g.home+" x "+h.g.away+"\n"+h.mk.title+" · "+h.i.label+": "+Math.round(h.i.p)+"%"+(hits.length>1?" (+"+(hits.length-1)+" aviso(s))":""),6000);
+ try{
+  if("Notification" in window&&Notification.permission==="granted"){
+   hits.slice(0,3).forEach(x=>new Notification("📡 "+x.g.home+" x "+x.g.away,{body:x.mk.title+" · "+x.i.label+": "+Math.round(x.i.p)+"% (min "+x.min+"')",tag:x.g.id+x.mk.key}))
+  }
+ }catch(e){}
+}
+function renderLive(){
+ const list=$("#liveList");if(!list)return;
+ const b=$("#liveAlertBtn");
+ b.textContent="🔔 Avisar probabilidades altas: "+(settings.liveAlert?"ON":"OFF");
+ b.classList.toggle("active",!!settings.liveAlert);
+ $("#liveThr").value=String(settings.liveThr||75);
+ $("#liveCount").textContent=liveLoaded?liveGames.length+" jogo(s)":"";
+ $("#liveStamp").textContent=liveUpdated?"Atualizado às "+liveUpdated.toLocaleTimeString("pt-BR"):"Buscando jogos ao vivo...";
+ if(!liveLoaded)return;
+ if(!liveGames.length){list.innerHTML='<div class="empty">Nenhum jogo ao vivo agora.</div>';return}
+ const thr=Number(settings.liveThr)||75;
+ const models=computeModels().sort((a,b)=>b.m.top-a.m.top);
+ list.innerHTML='<div class="matches">'+models.map(({g,m})=>`<article class="match live-match" data-id="${safe(g.id)}" role="button" tabindex="0">
+  <div class="live-head"><span>${safe(g.league)}</span><span class="status-live"><span class="live-dot"></span>${safe(g.state)}</span></div>
+  <div class="live-score"><span>${safe(g.home)}</span><span>${safe(g.hs)} x ${safe(g.as)}</span><span>${safe(g.away)}</span></div>
+  ${m.markets.map(mk=>`<div class="frequency-title">${mk.title} · projeção final ≈ ${mk.proj.toFixed(1).replace(".",",")}</div><div class="market-grid">${mk.items.map(i=>`<div class="market-item" style="${i.p>=thr?"border:1px solid var(--gbd)":""}"><small>${safe(i.label)}</small><b class="${i.p>=thr?"green":""}">${Math.round(i.p)}%</b></div>`).join("")}</div>`).join("")}
+  ${m.missing.length?`<div class="market-note">Sem dados ainda de: ${m.missing.join(", ")}.</div>`:""}
+  <div class="tap-hint"><span>Toque para abrir a partida</span><strong>VER DETALHES →</strong></div></article>`).join("")+'</div>';
+ list.querySelectorAll(".match").forEach(card=>{
+  const open=()=>{const g=liveGames.find(x=>String(x.id)===card.dataset.id);if(g)openMatch(g)};
+  card.addEventListener("click",open);
+  card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})
+ })
+}
+$("#liveAlertBtn").onclick=()=>{
+ settings.liveAlert=!settings.liveAlert;store("radarSettings",settings);
+ if(settings.liveAlert){
+  unlockAudio();beep();
+  try{if("Notification" in window&&Notification.permission==="default")Notification.requestPermission()}catch(e){}
+  toast("🔔 Avisos ativados! Deixe o app aberto.",4500);liveTick(true)
+ }
+ renderLive()
+};
+$("#liveThr").onchange=e=>{settings.liveThr=Number(e.target.value)||75;store("radarSettings",settings);renderLive()};
+
+/* MEU CONTROLE */
+let predictions=read("radarPredictions",[]);if(!Array.isArray(predictions))predictions=[];
+let bank=read("radarBank",[]);if(!Array.isArray(bank))bank=[];
+let goal=read("radarGoal",{});if(!goal||typeof goal!=="object"||Array.isArray(goal))goal={};
+const resLbl={pending:"⏳ Em andamento",win:"✅ Acerto",loss:"❌ Erro"};
+const betLbl={pending:"⏳ Em andamento",win:"✅ Green",loss:"❌ Red"};
+function chartSVG(vals){
+ if(vals.length<2)return'<div class="empty">Dados insuficientes para o gráfico.</div>';
+ const W=300,H=110,p=8,mn=Math.min(0,...vals),mx=Math.max(0,...vals),rg=(mx-mn)||1;
+ const x=i=>p+i*(W-2*p)/(vals.length-1),y=v=>H-p-(v-mn)/rg*(H-2*p);
+ const pts=vals.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" "),last=vals[vals.length-1];
+ return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><line x1="${p}" x2="${W-p}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--b1)" stroke-dasharray="3"/><polyline points="${pts}" fill="none" stroke="${last>=0?"var(--gn)":"var(--rd)"}" stroke-width="2.5" stroke-linejoin="round"/></svg><div class="market-note">Atual: <strong>${last>=0?"+":""}${Number.isInteger(last)?last:money(last)}</strong></div>`
 }
 function renderCharts(){
- let acc=0;const ps=[0];predictions.forEach(p=>{if(p.result==="win"){acc++;ps.push(acc)}else if(p.result==="loss"){acc--;ps.push(acc)}});
- $("#chartPred").innerHTML=lineChart(ps,"Saldo atual",v=>(v>0?"+":"")+v);
- let pr=0;const bs=[0];bank.forEach(b=>{if(b.result==="win"){pr+=b.stake*(b.odd-1);bs.push(pr)}else if(b.result==="loss"){pr-=b.stake;bs.push(pr)}});
- $("#chartBank").innerHTML=lineChart(bs,"Lucro acumulado",v=>money(v))
+ let acc=0;const pv=predictions.filter(p=>p.result!=="pending").map(p=>acc+=p.result==="win"?1:-1);
+ $("#chartPred").innerHTML=chartSVG(pv);
+ acc=0;const bv=bank.filter(b=>b.result!=="pending").slice().sort((a,b)=>betTs(a)-betTs(b)).map(b=>acc+=betProfit(b));
+ $("#chartBank").innerHTML=chartSVG(bv)
 }
 function renderPredictions(){
- const wins=predictions.filter(p=>p.result==="win").length,losses=predictions.filter(p=>p.result==="loss").length,pending=predictions.filter(p=>p.result==="pending").length,resolved=wins+losses;
- $("#wins").textContent=wins;$("#losses").textContent=losses;$("#pending").textContent=pending;$("#total").textContent=predictions.length;$("#rate").textContent=resolved?Math.round(wins/resolved*100)+"%":"0%";
  const box=$("#predictionList");
- if(!predictions.length){box.innerHTML='<div class="empty">Nenhum registro ainda.</div>';renderCharts();return}
- box.innerHTML=predictions.slice().reverse().map(p=>{const status=p.result==="win"?"Acerto":p.result==="loss"?"Erro":"Em andamento",css=p.result==="win"?"green":p.result==="loss"?"red":"";return`<div class="record"><div><strong>${safe(p.name)}</strong><div class="${css}">${status} · ${safe(p.date||"")}</div></div><div class="record-actions">${p.result!=="pending"?`<button data-status="pending" data-id="${safe(p.id)}">Em andamento</button>`:""}${p.result!=="win"?`<button data-status="win" data-id="${safe(p.id)}">Acerto</button>`:""}${p.result!=="loss"?`<button data-status="loss" data-id="${safe(p.id)}">Erro</button>`:""}<button data-delete="${safe(p.id)}">Excluir</button></div></div>`}).join("");
- box.querySelectorAll("[data-status]").forEach(b=>b.onclick=()=>{const p=predictions.find(x=>x.id===b.dataset.id);if(p){p.result=b.dataset.status;savePredictions();renderPredictions()}});
- box.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>{predictions=predictions.filter(p=>p.id!==b.dataset.delete);savePredictions();renderPredictions()});
+ box.innerHTML=predictions.length?predictions.slice().reverse().map(p=>`<div class="record"><div><strong>${safe(p.text)}</strong><br><span class="muted">${safe(p.date)} · ${resLbl[p.result]||""}</span></div><div class="record-actions"><button data-pr="win" data-id="${p.id}">✅</button><button data-pr="loss" data-id="${p.id}">❌</button><button data-pr="pending" data-id="${p.id}">⏳</button><button data-pr="del" data-id="${p.id}">🗑</button></div></div>`).join(""):'<div class="empty">Nenhum registro ainda.</div>';
  renderCharts()
 }
-$("#addPrediction").onclick=()=>{const name=$("#prediction").value.trim();if(!name){alert("Digite a descrição do registro.");return}predictions.push({id:String(Date.now())+Math.random().toString(16).slice(2),name,result:$("#result").value,date:new Date().toLocaleDateString("pt-BR")});savePredictions();$("#prediction").value="";renderPredictions()};
-$("#clearPredictions").onclick=()=>{if(!predictions.length)return;if(confirm("Deseja apagar todo o histórico de registros?")){predictions=[];savePredictions();renderPredictions()}};
-
-/* CONTROLE DE BANCA */
-let bank=read("radarBank",[]);if(!Array.isArray(bank))bank=[];
-function saveBank(){store("radarBank",bank)}
-function renderBank(){
- let staked=0,profit=0,open=0,resolvedStake=0;
- bank.forEach(b=>{staked+=b.stake;if(b.result==="win"){profit+=b.stake*(b.odd-1);resolvedStake+=b.stake}else if(b.result==="loss"){profit-=b.stake;resolvedStake+=b.stake}else open+=b.stake});
- $("#bkStaked").textContent=money(staked);$("#bkOpen").textContent=money(open);
- const pe=$("#bkProfit");pe.textContent=money(profit);pe.className="sm "+(profit>0?"green":profit<0?"red":"");
- const roi=resolvedStake?profit/resolvedStake*100:0,re=$("#bkRoi");re.textContent=(roi>0?"+":"")+roi.toFixed(1).replace(".",",")+"%";re.className="sm "+(roi>0?"green":roi<0?"red":"");
- renderRisk();
- const box=$("#bkList");
- if(!bank.length){box.innerHTML='<div class="empty">Nenhuma aposta registrada.</div>';renderCharts();return}
- box.innerHTML=bank.slice().reverse().map(b=>{
-  const res=b.result==="win"?b.stake*(b.odd-1):b.result==="loss"?-b.stake:0,status=b.result==="win"?"Green":b.result==="loss"?"Red":"Em andamento",css=b.result==="win"?"green":b.result==="loss"?"red":"";
-  return`<div class="record"><div><strong>${safe(b.name)}</strong><div class="muted">${money(b.stake)} · odd ${String(b.odd).replace(".",",")} · ${safe(b.date||"")}</div><div class="${css}">${status}${b.result!=="pending"?" · "+(res>0?"+":"")+money(res):""}</div></div><div class="record-actions">${b.result!=="pending"?`<button data-bst="pending" data-id="${safe(b.id)}">Em andamento</button>`:""}${b.result!=="win"?`<button data-bst="win" data-id="${safe(b.id)}">Green</button>`:""}${b.result!=="loss"?`<button data-bst="loss" data-id="${safe(b.id)}">Red</button>`:""}<button data-bdel="${safe(b.id)}">Excluir</button></div></div>`
- }).join("");
- box.querySelectorAll("[data-bst]").forEach(b=>b.onclick=()=>{const x=bank.find(y=>y.id===b.dataset.id);if(x){x.result=b.dataset.bst;saveBank();renderBank();const rs=riskState();if(rs.msgs.length)toast(rs.msgs[0],5000)}});
- box.querySelectorAll("[data-bdel]").forEach(b=>b.onclick=()=>{bank=bank.filter(y=>y.id!==b.dataset.bdel);saveBank();renderBank()});
- renderCharts()
-}
-$("#bkAdd").onclick=()=>{
- const name=$("#bkName").value.trim()||"Aposta",stake=pn($("#bkStake").value),odd=pn($("#bkOdd").value);
- if(!Number.isFinite(stake)||stake<=0){alert("Digite um valor apostado válido.");return}
- if(!Number.isFinite(odd)||odd<=1){alert("Digite uma odd válida (maior que 1).");return}
- const rs=riskState();
- if(rs.blocked&&!confirm("🛑 Você já atingiu um limite de perda.\n\n"+rs.msgs.join("\n")+"\n\nQuer registrar esta aposta mesmo assim?"))return;
- bank.push({id:String(Date.now())+Math.random().toString(16).slice(2),name,stake,odd,result:$("#bkResult").value,date:new Date().toLocaleDateString("pt-BR"),ts:Date.now()});
- saveBank();$("#bkName").value="";$("#bkStake").value="";$("#bkOdd").value="";renderBank();
- const rs2=riskState();if(rs2.msgs.length)toast(rs2.msgs[0],5000)
+$("#predictionList").onclick=e=>{
+ const b=e.target.closest("[data-pr]");if(!b)return;const id=b.dataset.id;
+ if(b.dataset.pr==="del")predictions=predictions.filter(p=>String(p.id)!==id);
+ else{const p=predictions.find(x=>String(x.id)===id);if(p)p.result=b.dataset.pr}
+ store("radarPredictions",predictions);renderPredictions()
 };
-$("#bkClear").onclick=()=>{if(!bank.length)return;if(confirm("Deseja apagar todas as apostas da banca?")){bank=[];saveBank();renderBank()}};
+$("#addPrediction").onclick=()=>{
+ const t=$("#prediction").value.trim();if(!t){toast("Digite uma descrição.",2000);return}
+ predictions.push({id:Date.now(),text:t,result:$("#result").value,date:new Date().toLocaleDateString("pt-BR")});
+ store("radarPredictions",predictions);$("#prediction").value="";renderPredictions();toast("Registro salvo",1800)
+};
+$("#clearPredictions").onclick=()=>{if(predictions.length&&confirm("Apagar todos os registros?")){predictions=[];store("radarPredictions",predictions);renderPredictions()}};
 
-/* METAS */
-let goal=read("radarGoal",{name:"Minha meta",target:0,saved:0});
-function renderGoal(){const target=Math.max(0,Number(goal.target)||0),saved=Math.max(0,Number(goal.saved)||0),percent=target?Math.min(100,saved/target*100):0;$("#goalLabel").textContent=goal.name||"Minha meta";$("#goalAmount").textContent=money(saved)+" / "+money(target);$("#goalBar").style.width=percent+"%";$("#goalPercent").textContent=Math.round(percent)+"% concluído";$("#goalRemaining").textContent=target&&saved>=target?"Meta alcançada!":"Faltam "+money(Math.max(0,target-saved));$("#goalName").value=goal.name||"";$("#goalTarget").value=goal.target||"";$("#goalSaved").value=goal.saved||""}
-$("#saveGoal").onclick=()=>{const name=$("#goalName").value.trim()||"Minha meta",target=Number($("#goalTarget").value),saved=Number($("#goalSaved").value);if(!Number.isFinite(target)||!Number.isFinite(saved)||target<0||saved<0){alert("Digite valores válidos para a meta.");return}goal={name,target,saved};store("radarGoal",goal);renderGoal()};
+function renderBank(){
+ let staked=0,profit=0,open=0,settled=0;
+ bank.forEach(b=>{staked+=b.stake;if(b.result==="pending")open+=b.stake;else{settled+=b.stake;profit+=betProfit(b)}});
+ $("#bkStaked").textContent=money(staked);
+ const bp=$("#bkProfit");bp.textContent=money(profit);bp.className="sm "+(profit>0?"green":profit<0?"red":"");
+ $("#bkOpen").textContent=money(open);
+ const roi=settled?profit/settled*100:0;$("#bkRoi").textContent=roi.toFixed(1).replace(".",",")+"%";
+ $("#bkList").innerHTML=bank.length?bank.slice().reverse().map(b=>`<div class="record"><div><strong>${safe(b.name)}</strong><br><span class="muted">${safe(b.date)} · ${money(b.stake)} · odd ${String(b.odd).replace(".",",")} · ${betLbl[b.result]||""}${b.result!=="pending"?" · "+money(betProfit(b)):""}</span></div><div class="record-actions"><button data-bk="win" data-id="${b.id}">✅</button><button data-bk="loss" data-id="${b.id}">❌</button><button data-bk="pending" data-id="${b.id}">⏳</button><button data-bk="del" data-id="${b.id}">🗑</button></div></div>`).join(""):'<div class="empty">Nenhuma aposta registrada.</div>';
+ renderCharts();renderRisk()
+}
+$("#bkList").onclick=e=>{
+ const b=e.target.closest("[data-bk]");if(!b)return;const id=b.dataset.id;
+ if(b.dataset.bk==="del")bank=bank.filter(x=>String(x.id)!==id);
+ else{const x=bank.find(y=>String(y.id)===id);if(x)x.result=b.dataset.bk}
+ store("radarBank",bank);renderBank();const rs=riskState();if(rs.blocked)toast(rs.msgs[0],5000)
+};
+$("#bkAdd").onclick=()=>{
+ const name=$("#bkName").value.trim(),stake=pn($("#bkStake").value),odd=pn($("#bkOdd").value);
+ if(!name){toast("Digite uma descrição.",2000);return}
+ if(!(stake>0)){toast("Informe um valor apostado válido.",2200);return}
+ if(!(odd>1)){toast("A odd precisa ser maior que 1.",2200);return}
+ bank.push({id:Date.now(),name,stake,odd,result:$("#bkResult").value,date:new Date().toLocaleDateString("pt-BR"),ts:Date.now()});
+ store("radarBank",bank);["#bkName","#bkStake","#bkOdd"].forEach(s=>$(s).value="");
+ renderBank();const rs=riskState();toast(rs.msgs.length?rs.msgs[0]:"Aposta salva",rs.msgs.length?5000:1800)
+};
+$("#bkClear").onclick=()=>{if(bank.length&&confirm("Apagar todas as apostas?")){bank=[];store("radarBank",bank);renderBank()}};
+
+function renderGoal(){
+ const t=Number(goal.target)||0,s=Number(goal.saved)||0,p=t>0?Math.min(100,s/t*100):0;
+ $("#goalLabel").textContent=goal.name||"Minha meta";
+ $("#goalAmount").textContent=money(s)+" / "+money(t);
+ $("#goalBar").style.width=p+"%";
+ $("#goalPercent").textContent=Math.round(p)+"% concluído";
+ $("#goalRemaining").textContent=t>0&&s>=t?"🎉 Meta atingida!":"Faltam "+money(Math.max(0,t-s))
+}
+$("#saveGoal").onclick=()=>{
+ const t=pn($("#goalTarget").value),s=pn($("#goalSaved").value);
+ goal={name:$("#goalName").value.trim(),target:Number.isFinite(t)&&t>0?t:0,saved:Number.isFinite(s)&&s>0?s:0};
+ store("radarGoal",goal);renderGoal();toast("🎯 Meta salva",1800)
+};
+function loadGoalInputs(){$("#goalName").value=goal.name||"";$("#goalTarget").value=goal.target||"";$("#goalSaved").value=goal.saved||""}
 
 /* BACKUP */
-const BACKUP_KEYS=["radarMultiplas","radarPredictions","radarGoal","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarFavs","radarBank","radarSettings","radarDayPicks"];
-function backupText(){saveDayPicksNow();const data={};BACKUP_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=v}catch(e){}});return JSON.stringify({app:"radarfc",v:1,date:new Date().toISOString(),data})}
+const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarPredictions","radarBank","radarGoal"];
+function backupText(){const data={};BK_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=JSON.parse(v)}catch(e){}});return JSON.stringify({app:"radarfc",v:1,data})}
 $("#bkCopy").onclick=()=>copyText(backupText());
-if(navigator.share){$("#bkShare").style.display="block";$("#bkShare").onclick=()=>{navigator.share({title:"Backup Radar FC",text:backupText()}).catch(()=>{})}}
+if(navigator.share){
+ const sb=$("#bkShare");sb.style.display="block";
+ sb.onclick=()=>{navigator.share({title:"Backup Radar FC",text:backupText()}).catch(()=>{})}
+}
 $("#bkRestore").onclick=()=>{
- const raw=$("#bkText").value.trim();if(!raw){alert("Cole o texto do backup primeiro.");return}
- let obj;try{obj=JSON.parse(raw)}catch(e){alert("Backup inválido. Copie o texto completo.");return}
- if(!obj||obj.app!=="radarfc"||!obj.data||typeof obj.data!=="object"){alert("Esse texto não é um backup do Radar FC.");return}
- if(!confirm("Isso vai substituir os dados atuais pelos do backup. Continuar?"))return;
- try{BACKUP_KEYS.forEach(k=>{if(typeof obj.data[k]==="string"){JSON.parse(obj.data[k]);localStorage.setItem(k,obj.data[k])}})}catch(e){alert("O backup parece estar corrompido.");return}
- alert("Backup restaurado! O app vai recarregar.");location.reload()
+ const raw=$("#bkText").value.trim();
+ if(!raw){toast("Cole o backup primeiro.",2200);return}
+ let obj;
+ try{obj=JSON.parse(raw);if(!obj||obj.app!=="radarfc"||!obj.data||typeof obj.data!=="object")throw Error("x")}catch(e){toast("Backup inválido.",3000);return}
+ if(!confirm("Restaurar este backup? Os dados atuais serão substituídos."))return;
+ try{
+  BK_KEYS.forEach(k=>{if(k in obj.data)localStorage.setItem(k,JSON.stringify(obj.data[k]))});
+  toast("♻️ Backup restaurado. Recarregando...",2000);
+  setTimeout(()=>location.reload(),1200)
+ }catch(e){toast("Não foi possível restaurar.",3000)}
 };
 
-/* ÍCONE PARA TELA INICIAL DO IPHONE + AVISO DE INSTALAÇÃO */
-try{const cv=document.createElement("canvas");cv.width=cv.height=180;const cx=cv.getContext("2d");cx.fillStyle="#08111f";cx.fillRect(0,0,180,180);cx.font="100px serif";cx.textAlign="center";cx.textBaseline="middle";cx.fillText("⚽",90,98);$("#touchIcon").href=cv.toDataURL("image/png")}catch(e){}
-if(window.navigator.standalone===true)$("#installPanel").style.display="none";
+/* ÍCONE DO IPHONE (gerado na hora, sem arquivo externo) */
+function makeIcon(){
+ try{
+  const c=document.createElement("canvas");c.width=c.height=180;
+  const x=c.getContext("2d");
+  x.fillStyle="#08111f";x.fillRect(0,0,180,180);
+  x.fillStyle="#65e3a7";x.beginPath();x.arc(90,90,58,0,Math.PI*2);x.fill();
+  x.fillStyle="#08111f";x.font="bold 62px Arial";x.textAlign="center";x.textBaseline="middle";x.fillText("FC",90,95);
+  $("#touchIcon").href=c.toDataURL("image/png")
+ }catch(e){}
+}
 
-/* EVENTOS GERAIS */
-document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];load()});
-$("#refresh").onclick=()=>{archiveExpiredDuplas();games=[];load();resolveMultiplas();resolveDayPicks(true)};
-applyTheme();updateAlertBtn();loadRiskInputs();
-renderLeagues();renderPredictions();renderBank();renderGoal();archiveExpiredDuplas();renderDuplaHistory();renderDayHistory();load();resolveMultiplas();resolveDayPicks(true);
-{const rs0=riskState();if(rs0.msgs.length)setTimeout(()=>toast(rs0.msgs[0],5000),900)}
-let lastLocalDate=dateKey();
+/* ATUALIZAÇÃO AUTOMÁTICA
+   15 s com jogo ao vivo, 60 s sem jogo ao vivo. A tela de detalhes de um jogo ao vivo também atualiza. */
+$("#refresh").onclick=()=>{games=[];load()};
+setInterval(async()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg!=="radar"&&pg!=="matchPage")return;
+ const every=games.some(g=>g.live)?15000:60000;
+ if(loading||Date.now()-lastLoadAt<every-500)return;
+ await load();
+ if(pg==="matchPage")refreshOpenMatch()
+},5000);
+/* Ao Vivo: a cada 20 s (também com a página fechada, se os avisos estiverem ligados) */
 setInterval(()=>{
- const now=dateKey();
- if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();if(day==="today"){games=[];load()}renderDuplaHistory();renderRisk();renderDayHistory()}
- const radarActive=$("#radar").classList.contains("active");
- if(!document.hidden&&day==="today"&&selected!=="dupla"&&(radarActive||settings.goalAlert)&&!multiBusy)load();
- resolveMultiplas();resolveDayPicks()
-},60000);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden){const now=dateKey();if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();renderDuplaHistory();renderRisk();renderDayHistory()}if(day==="today"&&selected!=="dupla"&&$("#radar").classList.contains("active"))load()}});
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="live"||settings.liveAlert)liveTick()
+},20000);
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="radar"&&!loading&&Date.now()-lastLoadAt>15000)load();
+ if(pg==="live"||settings.liveAlert)liveTick()
+});
+
+/* INICIALIZAÇÃO */
+applyTheme();
+updateAlertBtn();
+makeIcon();
+renderLeagues();
+showPage("radar");
+loadRiskInputs();
+loadGoalInputs();
+renderPredictions();
+renderBank();
+renderGoal();
+renderDayHistory();
+renderLive();
+load();
+setTimeout(()=>{resolveMultiplas();resolveDayPicks(true)},4000);
+if(settings.liveAlert)setTimeout(()=>liveTick(true),6000);
 </script>
 </body>
 </html>
