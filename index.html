@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -96,6 +95,17 @@ label{font-size:12px;color:#b6c9d9}
 .metric{background:#14263b;border:1px solid #29415c;border-radius:8px;padding:9px 5px;text-align:center}
 .metric small{display:block;font-size:9px;color:#91a5bc}
 .metric strong{display:block;font-size:17px;margin-top:5px}
+.frequency-title{font-size:11px;font-weight:bold;color:#b6c9d9;margin:12px 0 7px}
+.frequency-list{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0}
+.frequency-item{background:#14263b;border:1px solid #29415c;border-radius:8px;padding:8px 3px;text-align:center;min-width:0}
+.frequency-item small{display:block;color:#91a5bc;font-size:9px}
+.frequency-item strong{display:block;font-size:15px;margin:5px 0 3px}
+.frequency-item span{font-size:9px;color:#b6c9d9}
+.outcome-list{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
+.outcome-item{padding:9px 4px;border-radius:8px;background:#14263b;border:1px solid #29415c;text-align:center}
+.outcome-item small{display:block;font-size:9px;color:#91a5bc}
+.outcome-item strong{display:block;font-size:17px;margin:5px 0}
+.frequency-note{font-size:10px;line-height:1.5;color:#91a5bc;margin-top:9px}
 @media(max-width:520px){header{padding-top:18px}.matches{grid-template-columns:1fr}.history{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -335,17 +345,42 @@ function resultLabel(g){
  return ["DERROTA","loss"];
 }
 
+/* Frequências históricas de gols e resultados */
+function frequencyHTML(list){
+ const total=list.length;
+ if(!total)return '<div class="frequency-note">Sem jogos suficientes para calcular frequências.</div>';
+
+ const totals=list.map(g=>g.scored+g.conceded);
+ const ranges=[
+  {label:"0 gols",count:totals.filter(n=>n===0).length},
+  {label:"1 gol",count:totals.filter(n=>n===1).length},
+  {label:"2 gols",count:totals.filter(n=>n===2).length},
+  {label:"3 gols",count:totals.filter(n=>n===3).length},
+  {label:"4+ gols",count:totals.filter(n=>n>=4).length}
+ ];
+ const f=getForm(list);
+ const pct=n=>Math.round(n/total*100);
+ return `
+ <div class="frequency-title">⚽ GOLS TOTAIS NAS PARTIDAS ANTERIORES</div>
+ <div class="frequency-list">
+ ${ranges.map(x=>`<div class="frequency-item"><small>${x.label}</small><strong>${x.count}</strong><span>${pct(x.count)}%</span></div>`).join("")}
+ </div>
+ <div class="frequency-title">📊 RESULTADOS ANTERIORES</div>
+ <div class="outcome-list">
+  <div class="outcome-item"><small class="win">VITÓRIAS</small><strong class="win">${f.wins}</strong><small>${pct(f.wins)}%</small></div>
+  <div class="outcome-item"><small class="draw">EMPATES</small><strong class="draw">${f.draws}</strong><small>${pct(f.draws)}%</small></div>
+  <div class="outcome-item"><small class="loss">DERROTAS</small><strong class="loss">${f.losses}</strong><small>${pct(f.losses)}%</small></div>
+ </div>
+ <div class="frequency-note">Frequências calculadas com base em ${total} jogo(s) concluído(s) deste time. São dados históricos, não garantias sobre a próxima partida.</div>`;
+}
+
 /* Estatísticas históricas automáticas */
 function renderHistory(team,list){
  const f=getForm(list);
  const total=list.length;
  const scored=list.reduce((s,g)=>s+g.scored,0);
  const conceded=list.reduce((s,g)=>s+g.conceded,0);
- const goals=list.map(g=>g.scored+g.conceded);
- const two=goals.filter(n=>n>=2).length;
- const three=goals.filter(n=>n>=3).length;
  const avg=n=>total?(n/total).toFixed(1).replace(".",","):"—";
- const pct=n=>total?Math.round(n/total*100)+"%":"—";
 
  return `<div class="history-team">
  <strong>${safe(team)}</strong>
@@ -355,9 +390,8 @@ function renderHistory(team,list){
   <div class="metric"><small>GOLS SOFRIDOS</small><strong>${avg(conceded)}</strong></div>
   <div class="metric"><small>GOLS TOTAIS</small><strong>${avg(scored+conceded)}</strong></div>
  </div>
- <div class="game-result">Partidas com 2 ou mais gols: <strong>${two}/${total} (${pct(two)})</strong></div>
- <div class="game-result">Partidas com 3 ou mais gols: <strong>${three}/${total} (${pct(three)})</strong></div>
- <div class="game-result"><strong>Resultados anteriores</strong></div>
+ ${frequencyHTML(list)}
+ <div class="frequency-title">ÚLTIMOS RESULTADOS</div>
  ${list.map(g=>{
   const [label,css]=resultLabel(g);
   return `<div class="game-result"><span class="${css}">${label}</span><br>${safe(g.opponent)}<br>${g.scored} x ${g.conceded}</div>`;
@@ -481,21 +515,15 @@ async function loadForm(g,card){
    target.textContent="Ainda não há resultados anteriores disponíveis.";
    return;
   }
-  const hf=getForm(hg),af=getForm(ag);
-  const hAvg=hg.reduce((s,x)=>s+x.scored+x.conceded,0)/hg.length;
-  const aAvg=ag.reduce((s,x)=>s+x.scored+x.conceded,0)/ag.length;
-  let message="As equipes apresentam médias históricas próximas.";
-  if(hAvg>aAvg)message=`${g.home} teve maior média de gols totais nos últimos jogos.`;
-  if(aAvg>hAvg)message=`${g.away} teve maior média de gols totais nos últimos jogos.`;
   target.innerHTML=`
-   <div class="phase-result">📊 COMPARAÇÃO ESTATÍSTICA</div>
-   <div class="analysis-summary">${safe(message)}</div>
+   <div class="phase-result">📊 COMPARAÇÃO ESTATÍSTICA HISTÓRICA</div>
+   <div class="analysis-summary">Compare os registros anteriores de cada equipe. Os percentuais abaixo mostram a frequência nos últimos jogos concluídos.</div>
    <div class="history">
     ${renderHistory(g.home,hg)}
     ${renderHistory(g.away,ag)}
    </div>
-   <div class="muted" style="margin-top:10px">
-    Dados dos últimos jogos concluídos. As médias descrevem o histórico e não garantem resultados futuros.
+   <div class="frequency-note" style="margin-top:10px">
+    As estatísticas usam até cinco partidas anteriores de cada equipe. Amostras pequenas não permitem garantir o que acontecerá no próximo jogo.
    </div>`;
  }catch(e){
   target.textContent="Não foi possível carregar os resultados anteriores.";
