@@ -17,7 +17,7 @@ button{background:#14263b;color:white;border:1px solid #29415c;border-radius:10p
 main{max-width:1000px;margin:auto;padding:0 16px 100px}
 .page{display:none}.page.active{display:block}
 .hero{background:linear-gradient(120deg,#123b35,#14263b);border:1px solid #28604f;padding:20px;border-radius:16px;margin-bottom:18px}
-.hero h2{margin:0 0 7px;font-size:19px}.hero p{margin:0;color:#b6c9d9;font-size:13px}
+.hero h2{margin:0 0 7px;font-size:19px}.hero p{margin:0;color:#b6c9d9;font-size:13px;line-height:1.5}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
 button.active{background:#176344;border-color:#42d392}
 .leagues{display:flex;gap:8px;overflow:auto;padding:4px 0 14px}
@@ -26,6 +26,7 @@ button.active{background:#176344;border-color:#42d392}
 .section h3{font-size:16px;margin:0}
 .matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
 .match,.panel{background:#101e30;border:1px solid #263b53;border-radius:15px;padding:15px}
+.match{position:relative;overflow:hidden}
 .match.live-match{border-color:#b63d4a}
 .matchtop{display:flex;justify-content:space-between;color:#91a5bc;font-size:11px;margin-bottom:15px;gap:8px}
 .status-live{color:#ff737d;font-weight:bold}
@@ -36,7 +37,7 @@ button.active{background:#176344;border-color:#42d392}
 .team-logo{width:30px;height:30px;object-fit:contain;flex-shrink:0}
 .score{text-align:right;font-size:19px}
 .meta{color:#91a5bc;font-size:11px;margin-top:12px;border-top:1px solid #263b53;padding-top:10px}
-.phase{margin-top:14px;background:#0b1929;border:1px solid #29415c;border-radius:11px;padding:12px}
+.phase{margin-top:12px;background:#0b1929;border:1px solid #29415c;border-radius:11px;padding:12px}
 .phase h4{margin:0 0 10px;font-size:13px}
 .phase-result{color:#65e3a7;font-weight:bold;font-size:13px;margin-bottom:12px}
 .history{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -114,12 +115,12 @@ label{font-size:12px;color:#b6c9d9}
   </div>
   <div class="panel" id="duplaHistoryList"><div class="empty">Nenhum resultado registrado ainda.</div></div>
  </div>
- <footer>Dados esportivos fornecidos pela ESPN e SportScore.<br>Estatísticas ao vivo dependem da disponibilidade da fonte.<br>Atualização automática a cada 60 segundos.<br><a href="https://sportscore.com" target="_blank" rel="noopener" style="color:#91a5bc">Powered by SportScore</a></footer>
+ <footer>Dados esportivos fornecidos pela ESPN e SportScore.<br>Estatísticas dependem da disponibilidade da fonte.<br>Atualização automática a cada 60 segundos.<br><a href="https://sportscore.com" target="_blank" rel="noopener" style="color:#91a5bc">Powered by SportScore</a></footer>
 </section>
 
 <section class="page" id="controle">
- <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus palpites e sua evolução nas metas.</p></div>
- <div class="section"><h3>Resumo dos palpites</h3></div>
+ <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus registros e sua evolução nas metas.</p></div>
+ <div class="section"><h3>Resumo dos registros</h3></div>
  <div class="stats">
   <div class="stat"><small>Acertos</small><strong class="green" id="wins">0</strong></div>
   <div class="stat"><small>Erros</small><strong class="red" id="losses">0</strong></div>
@@ -128,12 +129,12 @@ label{font-size:12px;color:#b6c9d9}
   <div class="stat"><small>Taxa de acerto</small><strong id="rate">0%</strong></div>
  </div>
  <div class="panel">
-  <h3>Adicionar palpite</h3>
-  <label>Descrição do palpite</label>
-  <input id="prediction" maxlength="80" placeholder="Ex.: Palmeiras vence">
+  <h3>Adicionar registro</h3>
+  <label>Descrição do registro</label>
+  <input id="prediction" maxlength="80" placeholder="Ex.: Análise do jogo Palmeiras">
   <label>Resultado inicial</label>
   <select id="result"><option value="pending">Em andamento</option><option value="win">Acerto</option><option value="loss">Erro</option></select>
-  <button class="full" id="addPrediction">Salvar palpite</button>
+  <button class="full" id="addPrediction">Salvar registro</button>
  </div>
  <div class="section"><h3>Histórico</h3><button id="clearPredictions">Limpar</button></div>
  <div class="panel" id="predictionList"><div class="empty">Nenhum registro ainda.</div></div>
@@ -173,14 +174,12 @@ const competitions=[
  {id:"uel",name:"Europa League",path:"uefa.europa"}
 ];
 let selected="all",day="today",games=[],loading=false;
-const historyCache=new Map(),analysisCache=new Map();
+const historyCache=new Map();
 const $=s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch(e){return fallback}};
 const money=n=>(Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 
-function safe(s){
- return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
+function safe(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function dateKey(offset){
  const d=new Date();d.setDate(d.getDate()+offset);
  return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
@@ -193,7 +192,6 @@ function getScore(v){
  return Number.isFinite(n)?n:NaN;
 }
 function getTeamLogo(t){return t?.logo||t?.logos?.[0]?.href||""}
-
 function getStatus(e,c){
  const t=(c.status||e.status||{}).type||{};
  const state=String(t.state||"").toLowerCase();
@@ -219,7 +217,7 @@ function parseEvent(e,league,path){
  };
 }
 function renderLeagues(){
- const options=[{id:"dupla",name:"⚽ Dupla do Dia"},...competitions];
+ const options=[{id:"dupla",name:"📊 Destaques do Dia"},...competitions];
  $("#leagues").innerHTML=options.map(c=>`<button class="${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`).join("");
  document.querySelectorAll("[data-league]").forEach(b=>b.onclick=()=>{
   selected=b.dataset.league;renderLeagues();games=[];load();
@@ -284,7 +282,7 @@ async function fetchSportScore(){
  return data.matches.filter(m=>sportLeagueAllowed(m.competition)).map(parseSportMatch);
 }
 
-/* Histórico recente */
+/* Histórico recente dos clubes */
 async function teamHistory(path,id){
  const key=path+":"+id;
  if(!historyCache.has(key)){
@@ -314,7 +312,7 @@ function getForm(list){
  const losses=list.filter(g=>g.scored<g.conceded).length;
  const goalsFor=list.reduce((s,g)=>s+g.scored,0);
  const goalsAgainst=list.reduce((s,g)=>s+g.conceded,0);
- return {wins,draws,losses,points:wins*3+draws,goalDiff:goalsFor-goalsAgainst};
+ return {wins,draws,losses,points:wins*3+draws,goalDiff:goalsFor-goalsAgainst,goalsFor,goalsAgainst};
 }
 function formValue(f){return f.points*100+f.goalDiff}
 function resultLabel(g){
@@ -334,21 +332,14 @@ function teamHTML(name,logo){
  return `<div class="team-name">${img}<span>${safe(name)}</span></div>`;
 }
 
-/* NOVA ANÁLISE DAS PARTIDAS */
+/* Estatísticas da partida */
 const statNames={
- possessionPct:"Posse de bola",
- possession:"Posse de bola",
- totalShots:"Finalizações",
- shots:"Finalizações",
- shotsOnTarget:"No alvo",
- wonCorners:"Escanteios",
- cornerKicks:"Escanteios",
- foulsCommitted:"Faltas",
- yellowCards:"Amarelos",
- redCards:"Vermelhos",
- offsides:"Impedimentos",
- saves:"Defesas",
- blockedShots:"Chutes bloqueados"
+ possessionPct:"Posse de bola",possession:"Posse de bola",
+ totalShots:"Finalizações",shots:"Finalizações",
+ shotsOnTarget:"No alvo",wonCorners:"Escanteios",
+ cornerKicks:"Escanteios",foulsCommitted:"Faltas",
+ yellowCards:"Amarelos",redCards:"Vermelhos",
+ offsides:"Impedimentos",saves:"Defesas",blockedShots:"Chutes bloqueados"
 };
 function normalizeStatName(name){
  const n=String(name||"").toLowerCase().replace(/[^a-z]/g,"");
@@ -358,16 +349,12 @@ function normalizeStatName(name){
   shotsontarget:"shotsOnTarget",ontarget:"shotsOnTarget",
   woncorners:"wonCorners",cornerkicks:"cornerKicks",corners:"wonCorners",
   foulscommitted:"foulsCommitted",yellowcards:"yellowCards",
-  redcards:"redCards",offsides:"offsides",saves:"saves",
-  blockedshots:"blockedShots"
+  redcards:"redCards",offsides:"offsides",saves:"saves",blockedshots:"blockedShots"
  };
  return aliases[n]||name;
 }
 function getStatValue(stats,key){
- const item=(stats||[]).find(s=>{
-  const n=normalizeStatName(s.name||s.abbreviation||s.label);
-  return n===key;
- });
+ const item=(stats||[]).find(s=>normalizeStatName(s.name||s.abbreviation||s.label)===key);
  return item?(item.displayValue??item.value??"Não disponível"):"Não disponível";
 }
 function getStatsRows(summary,g){
@@ -377,61 +364,48 @@ function getStatsRows(summary,g){
  if(!home&&!away)return null;
  const hs=home?.statistics||[],as=away?.statistics||[];
  const keys=["possessionPct","totalShots","shotsOnTarget","wonCorners","yellowCards","redCards","foulsCommitted","offsides","saves"];
- return keys.map(key=>({
-  label:statNames[key],
-  home:getStatValue(hs,key),
-  away:getStatValue(as,key)
- })).filter(row=>row.home!=="Não disponível"||row.away!=="Não disponível");
+ return keys.map(key=>({label:statNames[key],home:getStatValue(hs,key),away:getStatValue(as,key)}))
+ .filter(row=>row.home!=="Não disponível"||row.away!=="Não disponível");
 }
-function getScoringEvents(summary,g){
+function getScoringEvents(summary){
  const plays=summary?.plays||summary?.commentary||[];
  if(!Array.isArray(plays))return [];
  return plays.filter(p=>p.scoringPlay===true||p.type?.text?.toLowerCase?.().includes("goal"))
-  .map(p=>{
-   const team=p.team?.displayName||p.team?.name||p.participants?.[0]?.athlete?.displayName||"Gol";
-   const clock=p.clock?.displayValue||p.time||p.period?.displayValue||"";
-   const detail=p.text||p.shortText||"Gol";
-   return `${clock} ${team}: ${detail}`;
-  }).slice(-8);
+ .map(p=>{
+  const team=p.team?.displayName||p.team?.name||"Gol";
+  const clock=p.clock?.displayValue||p.time||"";
+  return `${clock} ${team}: ${p.text||p.shortText||"Gol"}`;
+ }).slice(-8);
 }
 function analysisSummary(rows,g){
- if(!rows?.length)return "Ainda não há estatísticas suficientes para analisar o andamento desta partida.";
+ if(!rows?.length)return "Ainda não há estatísticas suficientes para analisar esta partida.";
  const find=label=>rows.find(r=>r.label===label);
  const shots=find("Finalizações"),corners=find("Escanteios"),pos=find("Posse de bola");
  const number=v=>parseFloat(String(v).replace("%","").replace(",",".")); 
  const hs=number(shots?.home),as=number(shots?.away);
  const hc=number(corners?.home),ac=number(corners?.away);
  if(Number.isFinite(hs)&&Number.isFinite(as)){
-  if(hs>as||(hs===as&&Number.isFinite(hc)&&Number.isFinite(ac)&&hc>ac))
-   return `${g.home} registra mais finalizações${Number.isFinite(hc)&&Number.isFinite(ac)?` e ${hc>ac?"mais":hc<ac?"menos":"o mesmo número de"} escanteios`:""} até agora.`;
-  if(as>hs||(hs===as&&Number.isFinite(hc)&&Number.isFinite(ac)&&ac>hc))
-   return `${g.away} registra mais finalizações${Number.isFinite(hc)&&Number.isFinite(ac)?` e ${ac>hc?"mais":ac<hc?"menos":"o mesmo número de"} escanteios`:""} até agora.`;
-  return "As equipes apresentam números próximos de finalizações até agora.";
+  if(hs>as)return `${g.home} registra mais finalizações até agora.`;
+  if(as>hs)return `${g.away} registra mais finalizações até agora.`;
+  return "As equipes apresentam números próximos de finalizações.";
  }
- if(pos)return `Posse de bola registrada: ${g.home} (${pos.home}) e ${g.away} (${pos.away}).`;
- return "Estatísticas disponíveis exibidas acima. Ainda não há dados suficientes para um resumo.";
-}
-function renderAnalysis(card,html){
- const target=card.querySelector(".analysis-content");
- if(target)target.innerHTML=html;
+ if(pos)return `Posse de bola: ${g.home} (${pos.home}) e ${g.away} (${pos.away}).`;
+ return "Estatísticas disponíveis exibidas acima.";
 }
 async function loadLiveAnalysis(g,card){
  const target=card.querySelector(".analysis-content");
  if(!target)return;
  if(!g.path||g.source==="SportScore"){
-  target.innerHTML='<div class="muted">Estatísticas detalhadas indisponíveis nesta fonte.</div>';
-  return;
+  target.innerHTML='<div class="muted">Estatísticas detalhadas indisponíveis nesta fonte.</div>';return;
  }
  target.innerHTML='<div class="muted">Consultando estatísticas da partida...</div>';
  try{
   const response=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${g.path}/summary?event=${encodeURIComponent(g.id)}`,{cache:"no-store"});
   if(!response.ok)throw Error("Estatísticas indisponíveis");
   const summary=await response.json();
-  const rows=getStatsRows(summary,g);
-  const events=getScoringEvents(summary,g);
+  const rows=getStatsRows(summary,g),events=getScoringEvents(summary);
   if(!rows?.length&&!events.length){
-   target.innerHTML='<div class="muted">A ESPN ainda não disponibilizou estatísticas detalhadas para este jogo.</div>';
-   return;
+   target.innerHTML='<div class="muted">A ESPN ainda não disponibilizou estatísticas detalhadas para este jogo.</div>';return;
   }
   let html=`<div class="analysis-grid">
    <div class="analysis-team">${safe(g.home)}<strong>${safe(g.hs)}</strong></div>
@@ -446,29 +420,25 @@ async function loadLiveAnalysis(g,card){
    </div>`).join("");
    html+=`<div class="analysis-summary">📊 ${safe(analysisSummary(rows,g))}</div>`;
   }
-  if(events.length){
-   html+=`<div class="analysis-events"><strong>⚽ Gols e lances registrados</strong><br>${events.map(s=>safe(s)).join("<br>")}</div>`;
-  }
-  renderAnalysis(card,html);
+  if(events.length)html+=`<div class="analysis-events"><strong>⚽ Gols e lances registrados</strong><br>${events.map(s=>safe(s)).join("<br>")}</div>`;
+  target.innerHTML=html;
  }catch(e){
   target.innerHTML='<div class="muted">Não foi possível consultar as estatísticas agora. Tente atualizar.</div>';
  }
 }
-
 async function loadForm(g,card){
  const target=card.querySelector(".phase-content");
- if(!g.homeId||!g.awayId||!g.path){target.textContent="Histórico recente indisponível nesta fonte alternativa.";return}
+ if(!g.homeId||!g.awayId||!g.path){target.textContent="Histórico recente indisponível nesta fonte.";return}
  try{
   const [hg,ag]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
   if(!hg.length||!ag.length){target.textContent="Ainda não há resultados anteriores disponíveis.";return}
   const hf=getForm(hg),af=getForm(ag);
-  let message="Os times estão em fase semelhante.";
-  if(formValue(hf)>formValue(af))message=`${g.home} tem a melhor fase recente.`;
-  if(formValue(af)>formValue(hf))message=`${g.away} tem a melhor fase recente.`;
+  let message="Os times estão em fase recente semelhante.";
+  if(formValue(hf)>formValue(af))message=`${g.home} apresenta melhor pontuação nos últimos jogos.`;
+  if(formValue(af)>formValue(hf))message=`${g.away} apresenta melhor pontuação nos últimos jogos.`;
   target.innerHTML=`<div class="phase-result">${safe(message)}</div><div class="history">${renderHistory(g.home,hg)}${renderHistory(g.away,ag)}</div>`;
  }catch(e){target.textContent="Não foi possível carregar os resultados anteriores."}
 }
-
 function matchHTML(g,extra=""){
  const date=new Date(g.date);
  return `<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}">
@@ -476,58 +446,32 @@ function matchHTML(g,extra=""){
  <div class="teams">${teamHTML(g.home,g.homeLogo)}<div class="score">${safe(g.hs)}</div>${teamHTML(g.away,g.awayLogo)}<div class="score">${safe(g.as)}</div></div>
  <div class="meta">${Number.isNaN(date.getTime())?"Horário não informado":date.toLocaleDateString("pt-BR")+" · "+date.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</div>
  <div class="live-analysis"><h4>📈 ANÁLISE DA PARTIDA <span class="analysis-status">${g.live?"AO VIVO":g.completed?"FINALIZADA":"AGUARDANDO"}</span></h4><div class="analysis-content loading">Carregando estatísticas...</div></div>
- <div class="phase"><h4>${extra?"ANÁLISE DA DUPLA DO DIA":"FASE RECENTE DOS TIMES"}</h4><div class="phase-content loading">${extra?"Analisando...":"Consultando últimos resultados..."}</div></div>
+ <div class="phase"><h4>📋 ÚLTIMOS CINCO JOGOS</h4><div class="phase-content loading">Consultando resultados...</div></div>
  </article>`;
 }
-function loadCardDetails(g,card){
- loadLiveAnalysis(g,card);
- loadForm(g,card);
-}
+function loadCardDetails(g,card){loadLiveAnalysis(g,card);loadForm(g,card)}
 
-/* Histórico e seleção fixa da Dupla do Dia */
+/* Mantém os históricos antigos sem criar novas indicações de resultado */
 let duplaRecords=read("radarDuplaHistory",[]);
 if(!Array.isArray(duplaRecords))duplaRecords=[];
 let dailyDuplas=read("radarDuplaDaily",{});
 if(!dailyDuplas||typeof dailyDuplas!=="object"||Array.isArray(dailyDuplas))dailyDuplas={};
-
 function saveDuplaData(){
  localStorage.setItem("radarDuplaHistory",JSON.stringify(duplaRecords));
  localStorage.setItem("radarDuplaDaily",JSON.stringify(dailyDuplas));
-}
-function getDuplaOutcome(g,side){
- const hs=getScore(g.hs),as=getScore(g.as);
- if(!g.completed||!Number.isFinite(hs)||!Number.isFinite(as))return "pending";
- if(hs===as)return "draw";
- return (side==="home"?hs>as:as>hs)?"green":"red";
-}
-function updateDuplaRecord(g,side){
- let record=duplaRecords.find(r=>String(r.id)===String(g.id));
- if(!record){
-  record={id:String(g.id),date:g.date||"",home:g.home,away:g.away,
-   picked:side==="home"?g.home:g.away,side,result:"pending",league:g.league||""};
-  duplaRecords.push(record);
- }
- if(record.result==="pending")record.result=getDuplaOutcome(g,record.side);
- saveDuplaData();
- return record;
 }
 function renderDuplaHistory(){
  const greens=duplaRecords.filter(r=>r.result==="green").length;
  const reds=duplaRecords.filter(r=>r.result==="red").length;
  const draws=duplaRecords.filter(r=>r.result==="draw").length;
- $("#duplaGreen").textContent=greens;
- $("#duplaRed").textContent=reds;
- $("#duplaDraw").textContent=draws;
+ $("#duplaGreen").textContent=greens;$("#duplaRed").textContent=reds;$("#duplaDraw").textContent=draws;
  const box=$("#duplaHistoryList");
- if(!duplaRecords.length){box.innerHTML='<div class="empty">Nenhum resultado registrado ainda.</div>';return}
+ if(!duplaRecords.length){box.innerHTML='<div class="empty">Nenhum resultado antigo registrado ainda.</div>';return}
  const labels={green:"GREEN",red:"RED",draw:"EMPATE",pending:"PENDENTE"};
  const classes={green:"green",red:"red",draw:"draw",pending:""};
  box.innerHTML=duplaRecords.slice().reverse().map(r=>{
   const date=r.date?new Date(r.date).toLocaleDateString("pt-BR"):"Data não informada";
-  return `<div class="dupla-record"><strong>${safe(r.home)} x ${safe(r.away)}</strong><br>
-   <span class="muted">${safe(r.league)} · ${date}</span><br>
-   Indicação: <strong>${safe(r.picked)}</strong><br>
-   Resultado: <span class="dupla-status ${classes[r.result]||""}">${labels[r.result]||"PENDENTE"}</span></div>`;
+  return `<div class="dupla-record"><strong>${safe(r.home)} x ${safe(r.away)}</strong><br><span class="muted">${safe(r.league)} · ${date}</span><br>Registro anterior: <strong>${safe(r.picked||"")}</strong><br>Resultado: <span class="dupla-status ${classes[r.result]||""}">${labels[r.result]||"PENDENTE"}</span></div>`;
  }).join("");
 }
 function renderGames(failed=0){
@@ -536,82 +480,60 @@ function renderGames(failed=0){
  $("#duplaHistorySection").style.display="none";
  const box=$("#matches");
  if(!games.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';return}
- box.innerHTML=(failed?`<div class="empty" style="grid-column:1/-1">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>`:"")+games.map(g=>matchHTML(g)).join("");
+ box.innerHTML=(failed?'<div class="empty" style="grid-column:1/-1">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>':"")+games.map(g=>matchHTML(g)).join("");
  box.querySelectorAll(".match").forEach(card=>{
   const g=games.find(x=>String(x.id)===card.dataset.id);
   if(g)loadCardDetails(g,card);
  });
 }
 
-/* Renderiza somente os dois jogos que já foram salvos para a data */
+/* Seleciona dois destaques por disponibilidade de histórico, não por resultado */
 function renderSavedDupla(saved,currentGames){
  const box=$("#matches");
  const updated=saved.map(old=>{
   const fresh=currentGames.find(g=>String(g.id)===String(old.id));
-  return fresh?{...old,...fresh,side:old.side,histHome:old.histHome,histAway:old.histAway}:old;
+  return fresh?{...old,...fresh,histHome:old.histHome,histAway:old.histAway}:old;
  });
  dailyDuplas[dateKey(offsetDay())]=updated;
- updated.forEach(g=>updateDuplaRecord(g,g.side));
  saveDuplaData();
- $("#count").textContent="2 jogos do dia";
+ $("#count").textContent=updated.length+" destaque(s) do dia";
  box.innerHTML=updated.map(g=>matchHTML(g,"pick")).join("");
  box.querySelectorAll(".match").forEach((card,i)=>{
   const g=updated[i],target=card.querySelector(".phase-content");
-  const picked=g.side==="home"?g.home:g.away;
-  const points=g.side==="home"?g.homePoints:g.awayPoints;
-  const otherPoints=g.side==="home"?g.awayPoints:g.homePoints;
-  const outcome=getDuplaOutcome(g,g.side);
-  const label=outcome==="green"?"GREEN":outcome==="red"?"RED":outcome==="draw"?"EMPATE":g.live?"EM ANDAMENTO":"AGUARDANDO JOGO";
-  target.innerHTML=`<span class="pick-tag">JOGO FIXO DO DIA</span>
-   <div class="phase-result">INDICAÇÃO DO RADAR: ${safe(picked)}</div>
-   <div class="muted">Pontuação da fase recente: ${points} x ${otherPoints}</div>
-   <div class="muted" style="margin:8px 0;font-weight:bold">${label}</div>
+  target.innerHTML=`<span class="pick-tag">📊 DESTAQUE ESTATÍSTICO</span>
+   <div class="phase-result">Comparativo dos últimos cinco jogos</div>
+   <div class="muted">Dados históricos disponíveis: ${Math.min(g.histHome?.length||0,5)} jogos de ${safe(g.home)} e ${Math.min(g.histAway?.length||0,5)} de ${safe(g.away)}.</div>
    <div class="history">${renderHistory(g.home,g.histHome||[])}${renderHistory(g.away,g.histAway||[])}</div>`;
   loadLiveAnalysis(g,card);
  });
  renderDuplaHistory();
 }
 async function renderDupla(){
- $("#title").textContent="⚽ Dupla do Dia";
+ $("#title").textContent="📊 Destaques do Dia";
  $("#duplaHistorySection").style.display="block";
- const box=$("#matches");
- const key=dateKey(offsetDay());
- const saved=dailyDuplas[key];
- if(Array.isArray(saved)&&saved.length===2){
-  renderSavedDupla(saved,games);
-  return;
- }
+ const box=$("#matches"),key=dateKey(offsetDay()),saved=dailyDuplas[key];
+ if(Array.isArray(saved)&&saved.length===2){renderSavedDupla(saved,games);return}
  if(!games.length){
   box.innerHTML='<div class="empty">Não encontramos partidas para esta data.</div>';
-  $("#count").textContent="0 jogos";
-  renderDuplaHistory();
-  return;
+  $("#count").textContent="0 jogos";renderDuplaHistory();return;
  }
- box.innerHTML='<div class="loading">Analisando os jogos para escolher os dois destaques...</div>';
- const candidates=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed);
+ box.innerHTML='<div class="loading">Analisando os dados disponíveis dos jogos...</div>';
+ const candidates=games.filter(g=>g.homeId&&g.awayId&&g.path);
  const evaluated=await Promise.all(candidates.map(async g=>{
   try{
    const [h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
    if(!h.length||!a.length)return null;
    const hf=getForm(h),af=getForm(a);
-   const hv=formValue(hf),av=formValue(af);
-   if(hv===av)return null;
-   const side=hv>av?"home":"away";
-   return {...g,histHome:h,histAway:a,side,
-    homePoints:hf.points,awayPoints:af.points,rank:Math.max(hv,av)};
+   return {...g,histHome:h,histAway:a,dataScore:h.length+a.length};
   }catch(e){return null}
  }));
- const chosen=evaluated.filter(Boolean).sort((a,b)=>b.rank-a.rank).slice(0,2);
+ const chosen=evaluated.filter(Boolean).sort((a,b)=>b.dataScore-a.dataScore).slice(0,2);
  if(chosen.length!==2){
-  box.innerHTML='<div class="empty">Ainda não encontramos dois jogos com histórico suficiente e diferença de fase. Vamos manter a seleção em espera, sem inventar partidas.</div>';
-  $("#count").textContent="Aguardando jogos confiáveis";
-  renderDuplaHistory();
-  return;
+  box.innerHTML='<div class="empty">Ainda não há dois jogos com histórico suficiente. A seleção ficará aguardando dados, sem inventar partidas.</div>';
+  $("#count").textContent="Aguardando dados";
+  renderDuplaHistory();return;
  }
- dailyDuplas[key]=chosen;
- chosen.forEach(g=>updateDuplaRecord(g,g.side));
- saveDuplaData();
- renderSavedDupla(chosen,games);
+ dailyDuplas[key]=chosen;saveDuplaData();renderSavedDupla(chosen,games);
 }
 
 async function load(){
@@ -619,9 +541,7 @@ async function load(){
  loading=true;
  const box=$("#matches");
  box.innerHTML='<div class="loading">Buscando partidas...</div>';
- const comps=selected==="all"||selected==="dupla"
-  ?competitions.filter(c=>c.path)
-  :competitions.filter(c=>c.id===selected);
+ const comps=selected==="all"||selected==="dupla"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);
  try{
   const results=await Promise.all(comps.map(async c=>{
    try{return {games:await fetchScoreboard(c),error:false}}
@@ -631,8 +551,7 @@ async function load(){
   if(espnGames.length){
    games=espnGames.sort((a,b)=>a.live===b.live?new Date(a.date)-new Date(b.date):a.live?-1:1);
    $("#sourceLabel").textContent="Fonte: ESPN";
-   if(selected==="dupla")await renderDupla();
-   else renderGames(results.filter(r=>r.error).length);
+   if(selected==="dupla")await renderDupla();else renderGames(results.filter(r=>r.error).length);
    return;
   }
   box.innerHTML='<div class="loading">ESPN indisponível. Tentando outra fonte...</div>';
@@ -641,28 +560,24 @@ async function load(){
    games=alternative.sort((a,b)=>a.live===b.live?new Date(a.date)-new Date(b.date):a.live?-1:1);
    $("#sourceLabel").textContent="Fonte alternativa: SportScore";
    if(selected==="dupla"){
-    box.innerHTML='<div class="empty">A fonte alternativa não fornece o histórico necessário para escolher a Dupla do Dia. Os jogos fixos salvos continuam preservados.</div>';
     const saved=dailyDuplas[dateKey(offsetDay())];
     if(Array.isArray(saved)&&saved.length===2)renderSavedDupla(saved,[]);
-    else renderDuplaHistory();
-    $("#duplaHistorySection").style.display="block";
+    else box.innerHTML='<div class="empty">A fonte alternativa não fornece histórico detalhado suficiente para os destaques do dia.</div>';
+    $("#duplaHistorySection").style.display="block";renderDuplaHistory();
    }else renderGames(0);
   }catch(error){
-   games=[];
-   $("#sourceLabel").textContent="Fontes indisponíveis";
+   games=[];$("#sourceLabel").textContent="Fontes indisponíveis";
    $("#duplaHistorySection").style.display=selected==="dupla"?"block":"none";
    const saved=dailyDuplas[dateKey(offsetDay())];
-   if(selected==="dupla"&&Array.isArray(saved)&&saved.length===2){
-    renderSavedDupla(saved,[]);
-   }else{
+   if(selected==="dupla"&&Array.isArray(saved)&&saved.length===2)renderSavedDupla(saved,[]);
+   else{
     box.innerHTML='<div class="empty">Não foi possível carregar os jogos pela ESPN nem pela SportScore.<br>Confira sua conexão e toque em Atualizar.</div>';
     $("#count").textContent="Falha nas consultas";
    }
    if(selected==="dupla")renderDuplaHistory();
   }
- }catch(e){
-  box.innerHTML='<div class="empty">Erro ao carregar partidas. Tente atualizar novamente.</div>';
- }finally{loading=false}
+ }catch(e){box.innerHTML='<div class="empty">Erro ao carregar partidas. Tente atualizar novamente.</div>'}
+ finally{loading=false}
 }
 
 /* Navegação */
@@ -672,7 +587,7 @@ document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{
  $("#refresh").style.display=b.dataset.page==="radar"?"block":"none";
 });
 
-/* Controle de palpites */
+/* Controle: mantém os registros já salvos */
 let predictions=read("radarPredictions",[]);
 predictions=predictions.map(p=>({...p,result:p.result||"pending"}));
 function savePredictions(){localStorage.setItem("radarPredictions",JSON.stringify(predictions))}
@@ -696,24 +611,23 @@ function renderPredictions(){
   if(p){p.result=b.dataset.status;savePredictions();renderPredictions()}
  });
  box.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>{
-  predictions=predictions.filter(p=>p.id!==b.dataset.delete);
-  savePredictions();renderPredictions();
+  predictions=predictions.filter(p=>p.id!==b.dataset.delete);savePredictions();renderPredictions();
  });
 }
 $("#addPrediction").onclick=()=>{
  const name=$("#prediction").value.trim();
- if(!name){alert("Digite a descrição do palpite.");return}
+ if(!name){alert("Digite a descrição do registro.");return}
  predictions.push({id:String(Date.now())+Math.random().toString(16).slice(2),name,result:$("#result").value,date:new Date().toLocaleDateString("pt-BR")});
  savePredictions();$("#prediction").value="";renderPredictions();
 };
 $("#clearPredictions").onclick=()=>{
  if(!predictions.length)return;
- if(confirm("Deseja apagar todo o histórico de palpites?")){
+ if(confirm("Deseja apagar todo o histórico de registros?")){
   predictions=[];savePredictions();renderPredictions();
  }
 };
 
-/* Metas de economia */
+/* Metas de economia: mantém a chave original */
 let goal=read("radarGoal",{name:"Minha meta",target:0,saved:0});
 function renderGoal(){
  const target=Math.max(0,Number(goal.target)||0),saved=Math.max(0,Number(goal.saved)||0);
