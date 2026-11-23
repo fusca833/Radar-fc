@@ -125,7 +125,9 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 .tbl th,.tbl td{padding:7px 4px;text-align:center;border-bottom:1px solid var(--b2);white-space:nowrap}
 .tbl th{color:var(--mu);font-weight:normal;font-size:10px}
 .tbl td:nth-child(2),.tbl th:nth-child(2){text-align:left;white-space:normal;min-width:110px}
+.tbl.c td:nth-child(2),.tbl.c th:nth-child(2){text-align:center;white-space:nowrap;min-width:0}
 .tbl tr.hl{background:var(--c1);font-weight:bold}
+.warnbox{background:var(--c1);border:1px solid #b63d4a;border-radius:10px;padding:10px;margin-bottom:10px;color:var(--tx2);font-size:12px;line-height:1.6}
 .toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--c3);border:1px solid var(--gbd);color:var(--tx);padding:12px 16px;border-radius:12px;font-size:13px;z-index:50;max-width:92%;text-align:center;display:none;box-shadow:0 6px 24px rgba(0,0,0,.35)}
 .toast.show{display:block}
 @media(max-width:600px){
@@ -164,6 +166,9 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
    <div class="dupla-stat"><small>RED</small><strong class="red" id="duplaRed">0</strong></div>
    <div class="dupla-stat"><small>EM ABERTO</small><strong id="duplaDraw">0</strong></div>
   </div>
+  <div class="section"><h3>📐 Calibração das probabilidades</h3></div>
+  <div class="panel" id="calibBox"><div class="empty">Ainda não há palpites encerrados.</div></div>
+  <div class="section"><h3>📅 Histórico</h3></div>
   <div class="panel" id="duplaHistoryList"><div class="empty">Nenhum destaque arquivado ainda.</div></div>
  </div>
  <footer>Dados esportivos fornecidos pela ESPN e SportScore.<br>Estatísticas dependem da disponibilidade da fonte.<br>Atualização automática a cada 60 segundos.<br><a href="https://sportscore.com" target="_blank" rel="noopener" style="color:var(--mu)">Powered by SportScore</a></footer>
@@ -181,7 +186,7 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
  <section class="detail-panel" id="tab-ai"></section>
 </section>
 <section class="page" id="controle">
- <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus registros, sua banca e sua evolução nas metas.</p></div>
+ <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus registros, sua banca, seus limites e sua evolução nas metas.</p></div>
  <div class="section"><h3>Resumo dos registros</h3></div>
  <div class="stats">
   <div class="stat"><small>Acertos</small><strong class="green" id="wins">0</strong></div><div class="stat"><small>Erros</small><strong class="red" id="losses">0</strong></div>
@@ -211,6 +216,17 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
  </div>
  <div class="section"><h3>Apostas</h3><button id="bkClear">Limpar</button></div>
  <div class="panel" id="bkList"><div class="empty">Nenhuma aposta registrada.</div></div>
+
+ <div class="section"><h3>🛡️ Limites e metas</h3></div>
+ <div class="panel">
+  <p class="muted" style="line-height:1.7;margin-top:0">Defina quanto você aceita perder e quanto quer ganhar. O app avisa quando você chegar perto. Deixe vazio para desativar. A semana conta os últimos 7 dias.</p>
+  <label>Limite de perda por dia (R$)</label><input id="rkDayLoss" type="text" inputmode="decimal" placeholder="Ex.: 30">
+  <label>Limite de perda por semana (R$)</label><input id="rkWeekLoss" type="text" inputmode="decimal" placeholder="Ex.: 100">
+  <label>Meta de lucro por dia (R$)</label><input id="rkDayGoal" type="text" inputmode="decimal" placeholder="Ex.: 40">
+  <label>Meta de lucro por semana (R$)</label><input id="rkWeekGoal" type="text" inputmode="decimal" placeholder="Ex.: 150">
+  <button class="full" id="rkSave">Salvar limites</button>
+  <div id="riskStatus" style="margin-top:12px"></div>
+ </div>
 
  <div class="section"><h3>📈 Evolução</h3></div>
  <div class="panel"><h3>Acertos − erros</h3><div id="chartPred"></div></div>
@@ -245,9 +261,11 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 <nav class="bottom-nav" id="bottomNav"><button class="active" data-page="radar">⚽ Radar FC</button><button data-page="controle">📊 Meu Controle</button></nav>
 <script>
 const competitions=[
- {id:"all",name:"Todas",path:null},{id:"bra",name:"Brasileirão",path:"bra.1"},{id:"eng",name:"Premier League",path:"eng.1"},
- {id:"esp",name:"La Liga",path:"esp.1"},{id:"ita",name:"Serie A",path:"ita.1"},{id:"ger",name:"Bundesliga",path:"ger.1"},
- {id:"fra",name:"Ligue 1",path:"fra.1"},{id:"ucl",name:"Champions League",path:"uefa.champions"},{id:"uel",name:"Europa League",path:"uefa.europa"}
+ {id:"all",name:"Todas",path:null},{id:"bra",name:"Brasileirão",path:"bra.1"},{id:"bra2",name:"Série B",path:"bra.2"},
+ {id:"cdb",name:"Copa do Brasil",path:"bra.copa_do_brazil"},{id:"lib",name:"Libertadores",path:"conmebol.libertadores"},{id:"sul",name:"Sul-Americana",path:"conmebol.sudamericana"},
+ {id:"eng",name:"Premier League",path:"eng.1"},{id:"esp",name:"La Liga",path:"esp.1"},{id:"ita",name:"Serie A",path:"ita.1"},{id:"ger",name:"Bundesliga",path:"ger.1"},
+ {id:"fra",name:"Ligue 1",path:"fra.1"},{id:"por",name:"Liga Portugal",path:"por.1"},{id:"ned",name:"Eredivisie",path:"ned.1"},{id:"mls",name:"MLS",path:"usa.1"},
+ {id:"ucl",name:"Champions League",path:"uefa.champions"},{id:"uel",name:"Europa League",path:"uefa.europa"}
 ];
 let selected="all",day="today",games=[],loading=false,currentMatch=null,currentHistHome=[],currentHistAway=[],currentLiveSummary=null,currentStandings=null,currentH2H=[];
 let searchText="",onlyLive=false,lastFailed=0;
@@ -308,11 +326,11 @@ async function fetchScoreboard(comp){
 }
 function dateFromISO(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return"";return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")}
 const SPORT_SCORE_URL="https://sportscore.com/api/v1/fixtures/";
-function sportLeagueAllowed(name){if(selected==="all"||selected==="dupla")return true;const n=String(name||"").toLowerCase(),terms={bra:["brazilian serie a","brasileirão","brasileirao"],eng:["premier league"],esp:["la liga","laliga","spanish la liga"],ita:["serie a"],ger:["bundesliga"],fra:["ligue 1"],ucl:["champions league","uefa champions"],uel:["europa league","uefa europa"]};return(terms[selected]||[]).some(x=>n.includes(x))}
+function sportLeagueAllowed(name){if(selected==="all"||selected==="dupla")return true;const n=String(name||"").toLowerCase(),terms={bra:["brazilian serie a","brasileirão","brasileirao"],bra2:["brazilian serie b","série b","serie b"],cdb:["copa do brasil"],lib:["libertadores"],sul:["sudamericana","sul-americana"],eng:["premier league"],esp:["la liga","laliga","spanish la liga"],ita:["serie a"],ger:["bundesliga"],fra:["ligue 1"],por:["primeira liga","liga portugal"],ned:["eredivisie"],mls:["major league soccer","mls"],ucl:["champions league","uefa champions"],uel:["europa league","uefa europa"]};return(terms[selected]||[]).some(x=>n.includes(x))}
 function parseSportMatch(m,index){const status=String(m.status||"").toLowerCase(),live=["live","inprogress","in_progress","playing","1h","2h","ht"].includes(status),completed=["finished","completed","ft","ended"].includes(status);return{id:"sport-"+index+"-"+String(m.home||"").replace(/\W/g,""),league:m.competition||"Futebol",path:null,home:m.home||"Time a definir",away:m.away||"Time a definir",homeLogo:m.home_logo||"",awayLogo:m.away_logo||"",hs:m.home_score??"-",as:m.away_score??"-",live,completed,state:live?"AO VIVO":completed?"Encerrado":m.status_text||"Agendado",date:m.time||"",source:"SportScore"}}
 async function fetchSportScore(){const response=await fetch(SPORT_SCORE_URL+"?sport=football&date="+dateISO()+"&limit=100",{cache:"no-store"});if(!response.ok)throw Error("SportScore HTTP "+response.status);const data=await response.json();if(!Array.isArray(data.matches))throw Error("Formato inesperado");return data.matches.filter(m=>sportLeagueAllowed(m.competition)).map(parseSportMatch)}
 
-/* HISTÓRICO DOS TIMES */
+/* HISTÓRICO DOS TIMES (agora guarda se o jogo foi em casa ou fora) */
 async function teamAll(path,id){
  const key=path+":"+id;
  if(!historyCache.has(key)){
@@ -320,7 +338,7 @@ async function teamAll(path,id){
    const response=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`,{cache:"no-store"});
    if(!response.ok)throw Error("Histórico indisponível");
    const data=await response.json();
-   return(data.events||[]).map(e=>{const c=e.competitions?.[0]||{},teams=c.competitors||[],me=teams.find(t=>String(t.team?.id)===String(id)),other=teams.find(t=>String(t.team?.id)!==String(id)),status=c.status?.type||e.status?.type||{};return{date:e.date,opponent:other?.team?.displayName||"Adversário",opponentId:other?.team?.id,scored:getScore(me?.score),conceded:getScore(other?.score),completed:status.completed===true||status.state==="post"}}).filter(g=>g.completed&&Number.isFinite(g.scored)&&Number.isFinite(g.conceded))
+   return(data.events||[]).map(e=>{const c=e.competitions?.[0]||{},teams=c.competitors||[],me=teams.find(t=>String(t.team?.id)===String(id)),other=teams.find(t=>String(t.team?.id)!==String(id)),status=c.status?.type||e.status?.type||{};return{date:e.date,opponent:other?.team?.displayName||"Adversário",opponentId:other?.team?.id,home:me?.homeAway==="home",scored:getScore(me?.score),conceded:getScore(other?.score),completed:status.completed===true||status.state==="post"}}).filter(g=>g.completed&&Number.isFinite(g.scored)&&Number.isFinite(g.conceded))
   })().catch(e=>{historyCache.delete(key);throw e}))
  }
  const list=await historyCache.get(key);return list.slice().sort((a,b)=>new Date(b.date)-new Date(a.date))
@@ -338,7 +356,7 @@ function renderHistory(team,list){
  const f=getForm(list),total=list.length,avg=n=>total?(n/total).toFixed(1).replace(".",","):"—";
  return`<div class="history-team"><strong>${safe(team)}</strong><div class="muted">Últimos ${total} jogos · V ${f.wins} · E ${f.draws} · D ${f.losses}</div>
  <div class="metric-grid"><div class="metric"><small>GOLS MARCADOS</small><strong>${avg(f.goalsFor)}</strong></div><div class="metric"><small>GOLS SOFRIDOS</small><strong>${avg(f.goalsAgainst)}</strong></div><div class="metric"><small>GOLS TOTAIS</small><strong>${avg(f.goalsFor+f.goalsAgainst)}</strong></div></div>
- ${frequencyHTML(list)}<div class="frequency-title">ÚLTIMOS RESULTADOS</div>${list.map(g=>{const[l,c]=resultLabel(g);return`<div class="dupla-record"><span class="${c}">${l}</span><br>${safe(g.opponent)}<br>${g.scored} x ${g.conceded}</div>`}).join("")}</div>`
+ ${frequencyHTML(list)}<div class="frequency-title">ÚLTIMOS RESULTADOS</div>${list.map(g=>{const[l,c]=resultLabel(g);return`<div class="dupla-record"><span class="${c}">${l}</span> <span class="muted">${g.home?"(casa)":"(fora)"}</span><br>${safe(g.opponent)}<br>${g.scored} x ${g.conceded}</div>`}).join("")}</div>`
 }
 function teamHTML(name,logo){
  const img=logo?`<img class="team-logo" src="${safe(logo)}" alt="" onerror="this.style.display='none'">`:"",on=favs.includes(name);
@@ -358,6 +376,8 @@ function aiAnalysis(g,h,a,summary){
  const out=[];if(h.length){const f=getForm(h),avg=(f.goalsFor/h.length).toFixed(1).replace(".",",");out.push(`${g.home}: nos últimos ${h.length} jogos, registrou ${f.wins} vitória(s), ${f.draws} empate(s) e ${f.losses} derrota(s). Média de ${avg} gol(s) marcado(s) por partida.`)}else out.push(`Não há histórico recente suficiente disponível para ${g.home}.`);
  if(a.length){const f=getForm(a),avg=(f.goalsFor/a.length).toFixed(1).replace(".",",");out.push(`${g.away}: nos últimos ${a.length} jogos, registrou ${f.wins} vitória(s), ${f.draws} empate(s) e ${f.losses} derrota(s). Média de ${avg} gol(s) marcado(s) por partida.`)}else out.push(`Não há histórico recente suficiente disponível para ${g.away}.`);
  if(h.length&&a.length){const th=h.reduce((s,x)=>s+x.scored+x.conceded,0)/h.length,ta=a.reduce((s,x)=>s+x.scored+x.conceded,0)/a.length;out.push(`A média de gols totais nas partidas recentes foi ${th.toFixed(1).replace(".",",")} nos jogos de ${g.home} e ${ta.toFixed(1).replace(".",",")} nos jogos de ${g.away}.`)}
+ if(h.length>=3){const hh=h.filter(x=>x.home);if(hh.length>=2){const f=getForm(hh);out.push(`Em casa, ${g.home} fez ${f.wins}V ${f.draws}E ${f.losses}D nos últimos ${hh.length} jogos como mandante.`)}}
+ if(a.length>=3){const aa=a.filter(x=>!x.home);if(aa.length>=2){const f=getForm(aa);out.push(`Fora, ${g.away} fez ${f.wins}V ${f.draws}E ${f.losses}D nos últimos ${aa.length} jogos como visitante.`)}}
  if(g.live&&summary){const shots=getStatsRows(summary,g).find(r=>r.label==="Finalizações");if(shots)out.push(`No jogo em andamento, as finalizações registradas são ${g.home}: ${shots.home} e ${g.away}: ${shots.away}.`)}return out
 }
 
@@ -406,16 +426,26 @@ async function openMatch(g){
  await Promise.all(tasks);if(currentMatch?.id!==g.id)return;renderDetailTabs()
 }
 
-/* PROBABILIDADES */
+/* PROBABILIDADES
+   Agora com 2 ajustes:
+   1) jogos mais recentes valem mais (peso 0,9 elevado à posição: o mais novo vale 1, o seguinte 0,9, etc.)
+   2) jogos no mesmo mando valem 1,5x (time da casa: jogos em casa; visitante: jogos fora) */
+function wfrac(list,fn,venueHome){
+ let s=0,t=0;
+ list.forEach((x,i)=>{const w=Math.pow(0.9,i)*(x.home===venueHome?1.5:1);t+=w;if(fn(x))s+=w});
+ return t?s/t*100:0
+}
 function calcProbs(h,a){
  if(h.length<3||a.length<3)return null;
- const pctOf=(list,fn)=>list.filter(fn).length/list.length*100,fh=getForm(h),fa=getForm(a),nh=h.length,na=a.length;
- const pH=(fh.wins/nh+fa.losses/na)/2*100,pD=(fh.draws/nh+fa.draws/na)/2*100,pA=(fa.wins/na+fh.losses/nh)/2*100;
+ const hw=wfrac(h,x=>x.scored>x.conceded,true),hd=wfrac(h,x=>x.scored===x.conceded,true),hl=wfrac(h,x=>x.scored<x.conceded,true);
+ const aw=wfrac(a,x=>x.scored>x.conceded,false),ad=wfrac(a,x=>x.scored===x.conceded,false),al=wfrac(a,x=>x.scored<x.conceded,false);
+ const pH=(hw+al)/2,pD=(hd+ad)/2,pA=(aw+hl)/2;
  const d1x=pH+pD,dx2=pA+pD,d12=pH+pA,dcBest=Math.max(d1x,dx2,d12),dcKey=dcBest===d1x?"1x":dcBest===dx2?"x2":"12";
- const o25=(pctOf(h,x=>x.scored+x.conceded>=3)+pctOf(a,x=>x.scored+x.conceded>=3))/2;
- const btts=(pctOf(h,x=>x.scored>0&&x.conceded>0)+pctOf(a,x=>x.scored>0&&x.conceded>0))/2;
- const o15=(pctOf(h,x=>x.scored+x.conceded>=2)+pctOf(a,x=>x.scored+x.conceded>=2))/2;
- const u35=(pctOf(h,x=>x.scored+x.conceded<=3)+pctOf(a,x=>x.scored+x.conceded<=3))/2;
+ const both=fn=>(wfrac(h,fn,true)+wfrac(a,fn,false))/2;
+ const o25=both(x=>x.scored+x.conceded>=3);
+ const btts=both(x=>x.scored>0&&x.conceded>0);
+ const o15=both(x=>x.scored+x.conceded>=2);
+ const u35=both(x=>x.scored+x.conceded<=3);
  return{pH,pD,pA,d1x,dx2,d12,dcBest,dcKey,o25,o15,u35,btts}
 }
 function dcText(p,g){return p.dcKey==="1x"?safe(g.home)+" ou empate":p.dcKey==="x2"?safe(g.away)+" ou empate":safe(g.home)+" ou "+safe(g.away)+" (sem empate)"}
@@ -444,7 +474,7 @@ function renderDetailTabs(){
     ${item("Mais de 2,5",p.o25,p.o25>=50)}${item("Menos de 2,5",100-p.o25,p.o25<50)}</div></div>
    <div class="market-team"><strong>Ambos marcam</strong><div class="market-grid" style="grid-template-columns:repeat(2,1fr)">
     ${item("Sim",p.btts,p.btts>=50)}${item("Não",100-p.btts,p.btts<50)}</div></div>
-   <div class="market-note">Probabilidades estimadas a partir do retrospecto dos últimos jogos concluídos de cada time (${h.length} e ${a.length} jogos). Amostra limitada: não considera escalações, lesões ou mando de campo. Não é garantia de resultado.</div>
+   <div class="market-note">Probabilidades estimadas a partir dos últimos jogos concluídos de cada time (${h.length} e ${a.length} jogos), dando mais peso aos jogos recentes e aos jogos no mesmo mando (casa/fora). Amostra limitada: não considera escalações nem lesões. Não é garantia de resultado.</div>
   </div>`;
  }else{
   marketHTML=`<div class="market-data"><h3>🎯 Mercado de Probabilidades</h3><div class="market-note">As probabilidades serão exibidas quando os dois times tiverem pelo menos 3 jogos concluídos disponíveis.</div></div>`;
@@ -497,6 +527,33 @@ function archiveExpiredDuplas(){
  });
  if(changed)saveDuplaData()
 }
+
+/* LIMITES E METAS (calculados a partir da banca) */
+function betTs(b){if(b.ts)return b.ts;const m=String(b.date||"").match(/^(\d{2})\/(\d{2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1],12).getTime():0}
+function betProfit(b){return b.result==="win"?b.stake*(b.odd-1):b.result==="loss"?-b.stake:0}
+function riskState(){
+ const r=settings.risk||{},now=new Date(),sod=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),wk=sod-6*86400000;
+ let day=0,week=0;
+ bank.forEach(b=>{const t=betTs(b),p=betProfit(b);if(t>=sod)day+=p;if(t>=wk)week+=p});
+ const msgs=[];let blocked=false;
+ const loss=(label,val,lim)=>{if(!(lim>0))return;const l=-val;if(l>=lim){blocked=true;msgs.push("🛑 Limite de perda "+label+" atingido ("+money(l)+" de "+money(lim)+"). Faça uma pausa.")}else if(l>=lim*0.8)msgs.push("⚠️ Você já usou "+Math.round(l/lim*100)+"% do limite de perda "+label+".")};
+ const goalf=(label,val,g)=>{if(g>0&&val>=g)msgs.push("🎯 Meta de lucro "+label+" batida ("+money(val)+"). Considere parar por aqui.")};
+ loss("do dia",day,r.dayLoss);loss("da semana",week,r.weekLoss);goalf("do dia",day,r.dayGoal);goalf("da semana",week,r.weekGoal);
+ return{day,week,msgs,blocked,r}
+}
+function riskBannerHTML(){const rs=riskState();return rs.msgs.length?`<div class="warnbox">${rs.msgs.map(safe).join("<br>")}</div>`:""}
+function renderRisk(){
+ const el=$("#riskStatus");if(!el)return;
+ const rs=riskState(),r=rs.r,out=[];
+ const row=(label,val,lim,isLoss)=>{const p=Math.min(100,Math.max(0,val/lim*100)),col=isLoss?(p>=100?"#e5484d":p>=80?"#f5a524":"var(--gbd)"):"var(--gbd)";return`<div style="margin:10px 0"><div class="muted" style="margin:0">${label}: <strong>${money(Math.max(0,val))}</strong> de ${money(lim)} (${Math.round(p)}%)</div><div class="progress" style="margin:6px 0"><div style="width:${p}%;background:${col}"></div></div></div>`};
+ if(r.dayLoss>0)out.push(row("Perda hoje",-rs.day,r.dayLoss,true));
+ if(r.weekLoss>0)out.push(row("Perda na semana",-rs.week,r.weekLoss,true));
+ if(r.dayGoal>0)out.push(row("Lucro hoje",rs.day,r.dayGoal,false));
+ if(r.weekGoal>0)out.push(row("Lucro na semana",rs.week,r.weekGoal,false));
+ el.innerHTML=out.length?out.join("")+(rs.msgs.length?`<div class="warnbox" style="margin-top:6px">${rs.msgs.map(safe).join("<br>")}</div>`:""):'<div class="market-note">Defina limites acima para acompanhar o progresso aqui.</div>'
+}
+function loadRiskInputs(){const r=settings.risk||{};$("#rkDayLoss").value=r.dayLoss||"";$("#rkWeekLoss").value=r.weekLoss||"";$("#rkDayGoal").value=r.dayGoal||"";$("#rkWeekGoal").value=r.weekGoal||""}
+$("#rkSave").onclick=()=>{const g=id=>{const v=pn($(id).value);return Number.isFinite(v)&&v>0?v:0};settings.risk={dayLoss:g("#rkDayLoss"),weekLoss:g("#rkWeekLoss"),dayGoal:g("#rkDayGoal"),weekGoal:g("#rkWeekGoal")};store("radarSettings",settings);renderRisk();toast("🛡️ Limites salvos",2000)};
 
 /* MÚLTIPLA DO DIA */
 let multiplas=read("radarMultiplas",{});if(!multiplas||typeof multiplas!=="object"||Array.isArray(multiplas))multiplas={};
@@ -569,7 +626,7 @@ function multiHTML(m){
  ${m.legs.map((l,i)=>`<div class="dupla-record"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.league)} · ${safe(formatDate(l.date))}</span><br>🎯 ${safe(l.label)} · <strong>${Math.round(l.prob)}%</strong> · odd justa ${(100/l.prob).toFixed(2).replace(".",",")}${l.score?" · placar "+safe(l.score):""} ${tag[l.result]}${l.result==="pending"?`<br><button class="legbtn" data-swap="${i}">🔄 Trocar jogo</button>`:""}</div>`).join("")}
  <div style="background:var(--c3);border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px"><label>💵 Odd da casa (opcional)</label><input id="multiOdd" type="text" inputmode="decimal" placeholder="Ex.: 3,20" value="${m.odd?String(m.odd).replace(".",","):""}"><div id="multiEV" class="market-note" style="margin-top:0">${evHTML(m)}</div></div>
  <button class="full" id="multiCopy" style="margin-top:10px">📋 Copiar múltipla</button>
- <div class="market-note">Probabilidades estimadas pelo retrospecto dos últimos 10 jogos de cada time. A "odd justa" é só uma referência calculada pela probabilidade, não é a odd de nenhuma casa de apostas. Quanto mais jogos na múltipla, menor a chance de acertar todos. Não é garantia de resultado.</div></div>`
+ <div class="market-note">Probabilidades estimadas pelo retrospecto dos últimos 10 jogos de cada time, com mais peso aos jogos recentes e ao mando de campo. A "odd justa" é só uma referência calculada pela probabilidade, não é a odd de nenhuma casa de apostas. Quanto mais jogos na múltipla, menor a chance de acertar todos. Não é garantia de resultado.</div></div>`
 }
 function renderMultiResult(){
  const el=$("#multiResult");if(!el)return;const key=multiKey(),m=multiplas[key];if(m)resolveFromGames(m);
@@ -622,22 +679,45 @@ async function generateMulti(){
 function renderMultiBox(){
  const key=dateKey(offsetDay());
  $("#matches").innerHTML=`<div class="dupla-wrap"><div class="dupla-heading"><strong>🎯 MÚLTIPLA DO DIA</strong><span>${fmtKey(key)}</span></div>
+ ${riskBannerHTML()}
  <div class="mode-switch"><button data-mmode="reliable" class="${multiMode==="reliable"?"active":""}">✅ Múltipla confiável</button><button data-mmode="ai" class="${multiMode==="ai"?"active":""}">🤖 Fazer com IA</button></div>
  <div id="multiControls"></div></div><div id="multiResult"></div>`;
  document.querySelectorAll("[data-mmode]").forEach(b=>b.onclick=()=>{multiMode=b.dataset.mmode;document.querySelectorAll("[data-mmode]").forEach(x=>x.classList.toggle("active",x===b));renderMultiControls();renderMultiResult()});
  renderMultiControls();renderMultiResult()
 }
+
+/* CALIBRAÇÃO: compara a probabilidade prevista com o que realmente aconteceu */
+function renderCalibration(){
+ const box=$("#calibBox");if(!box)return;
+ const legs=[];Object.values(multiplas).forEach(m=>(m.legs||[]).forEach(l=>{if(l.result==="green"||l.result==="red")legs.push(l)}));
+ const n=legs.length;
+ if(!n){box.innerHTML='<div class="empty">Ainda não há palpites encerrados. A calibração aparece depois dos primeiros resultados.</div>';return}
+ const f0=v=>Math.round(v),sg=v=>(v>0?"+":"")+f0(v);
+ const hit=legs.filter(l=>l.result==="green").length,avgP=legs.reduce((s,l)=>s+Number(l.prob||0),0)/n,real=hit/n*100,diff=real-avgP;
+ const bks=[[0,60,"até 59%"],[60,70,"60–69%"],[70,80,"70–79%"],[80,90,"80–89%"],[90,101,"90%+"]];
+ const rows=bks.map(([lo,hi,lb])=>{const L=legs.filter(l=>l.prob>=lo&&l.prob<hi);if(!L.length)return"";const p=L.reduce((s,l)=>s+Number(l.prob||0),0)/L.length,r=L.filter(l=>l.result==="green").length/L.length*100,d=r-p;return`<tr><td>${lb}</td><td>${L.length}</td><td>${f0(p)}%</td><td>${f0(r)}%</td><td class="${d>=0?"green":"red"}">${sg(d)}</td></tr>`}).join("");
+ let verdict;
+ if(n<20)verdict=`Só ${n} palpite(s) encerrado(s) até agora. Com tão poucos dados a leitura ainda não é confiável: espere pelo menos 20 a 30.`;
+ else if(diff<=-5)verdict=`O app está sendo otimista: acertou ${f0(Math.abs(diff))} pontos percentuais abaixo do que prometeu. Trate as probabilidades mostradas como mais altas do que a realidade.`;
+ else if(diff>=5)verdict=`O app está sendo conservador: acertou ${f0(diff)} pontos percentuais acima do que prometeu.`;
+ else verdict="As probabilidades estão bem próximas do resultado real até agora.";
+ box.innerHTML=`<div class="dupla-stats"><div class="dupla-stat"><small>PREVISTO (MÉDIA)</small><strong>${f0(avgP)}%</strong></div><div class="dupla-stat"><small>ACERTO REAL</small><strong class="${diff>=0?"green":"red"}">${f0(real)}%</strong></div><div class="dupla-stat"><small>DIFERENÇA</small><strong class="${diff>=0?"green":"red"}">${sg(diff)}</strong></div></div>
+ <div class="tbl-wrap"><table class="tbl c"><tr><th>Faixa</th><th>Palpites</th><th>Previsto</th><th>Real</th><th>Dif.</th></tr>${rows}</table></div>
+ <div class="market-note" style="font-size:12px">${safe(verdict)}</div>
+ <div class="market-note">Cada palpite conta separado, não a múltipla inteira. Se o "Real" fica bem abaixo do "Previsto", as probabilidades estão infladas.</div>`
+}
 function renderDuplaHistory(){
  archiveExpiredDuplas();
  const keys=Object.keys(multiplas).sort().reverse(),st=keys.map(k=>multiStatus(multiplas[k])),g=st.filter(x=>x==="green").length,r=st.filter(x=>x==="red").length,pe=st.filter(x=>x==="pending").length;
  $("#duplaGreen").textContent=g;$("#duplaRed").textContent=r;$("#duplaDraw").textContent=pe;
+ renderCalibration();
  const box=$("#duplaHistoryList"),all=duplaArchive.slice().sort((a,b)=>b.dateKey.localeCompare(a.dateKey));
  if(!keys.length&&!all.length&&!duplaRecords.length){box.innerHTML='<div class="empty">As múltiplas geradas aparecerão aqui, com green ou red automático depois dos jogos.</div>';return}
  const tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
  const multi=keys.map((k,i)=>{const m=multiplas[k],comb=m.legs.reduce((x,l)=>x*l.prob/100,1),date=fmtKey(k);return`<div class="dupla-record"><strong>📅 ${date} · ${safe(multiTitle(m))} · ${(comb*100).toFixed(0)}%</strong> ${tag[st[i]]}${m.legs.map(l=>`<div style="padding:7px 0;border-top:1px solid var(--b2);margin-top:7px"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.label)} · ${Math.round(l.prob)}%${l.score?" · placar "+safe(l.score):""}</span> ${tag[l.result]}</div>`).join("")}</div>`}).join("");
  const rt=arr=>{const gg=arr.filter(k=>multiStatus(multiplas[k])==="green").length,rr=arr.filter(k=>multiStatus(multiplas[k])==="red").length;return rr+gg?Math.round(gg/(gg+rr)*100)+"% ("+gg+" de "+(gg+rr)+")":"sem resultados ainda"};
  const rel=keys.filter(k=>multiplas[k].level==="reliable"),ia=keys.filter(k=>multiplas[k].level!=="reliable");
- const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
+ const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto das múltiplas:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
  const archived=all.map(dayRecord=>{const date=dayRecord.dateKey.replace(/^(\d{4})(\d{2})(\d{2})$/,"$3/$2/$1");return`<div class="dupla-record"><strong>📅 ${date} (destaques antigos)</strong>${dayRecord.matches.map(m=>`<div style="padding:9px 0;border-top:1px solid var(--b2);margin-top:8px"><strong>${safe(m.home)} x ${safe(m.away)}</strong><br><span class="muted">${safe(m.league||"Futebol")}</span><br>Placar: ${safe(m.hs)} x ${safe(m.as)}<br><span>${safe(m.result)}</span></div>`).join("")}</div>`}).join("");
  const manual=duplaRecords.slice().reverse().map(r=>{const date=r.date?new Date(r.date).toLocaleDateString("pt-BR"):"Data não informada",result=r.result==="green"||r.result==="win"?"Vitória":r.result==="red"||r.result==="loss"?"Derrota":r.result==="draw"?"Empate":"Pendente";return`<div class="dupla-record"><strong>${safe(r.home)} x ${safe(r.away)}</strong><br><span class="muted">${safe(r.league)} · ${date}</span><br>Resultado registrado: <strong>${result}</strong></div>`}).join("");
  box.innerHTML=rate+multi+archived+manual
@@ -720,13 +800,14 @@ function renderBank(){
  $("#bkStaked").textContent=money(staked);$("#bkOpen").textContent=money(open);
  const pe=$("#bkProfit");pe.textContent=money(profit);pe.className="sm "+(profit>0?"green":profit<0?"red":"");
  const roi=resolvedStake?profit/resolvedStake*100:0,re=$("#bkRoi");re.textContent=(roi>0?"+":"")+roi.toFixed(1).replace(".",",")+"%";re.className="sm "+(roi>0?"green":roi<0?"red":"");
+ renderRisk();
  const box=$("#bkList");
  if(!bank.length){box.innerHTML='<div class="empty">Nenhuma aposta registrada.</div>';renderCharts();return}
  box.innerHTML=bank.slice().reverse().map(b=>{
   const res=b.result==="win"?b.stake*(b.odd-1):b.result==="loss"?-b.stake:0,status=b.result==="win"?"Green":b.result==="loss"?"Red":"Em andamento",css=b.result==="win"?"green":b.result==="loss"?"red":"";
   return`<div class="record"><div><strong>${safe(b.name)}</strong><div class="muted">${money(b.stake)} · odd ${String(b.odd).replace(".",",")} · ${safe(b.date||"")}</div><div class="${css}">${status}${b.result!=="pending"?" · "+(res>0?"+":"")+money(res):""}</div></div><div class="record-actions">${b.result!=="pending"?`<button data-bst="pending" data-id="${safe(b.id)}">Em andamento</button>`:""}${b.result!=="win"?`<button data-bst="win" data-id="${safe(b.id)}">Green</button>`:""}${b.result!=="loss"?`<button data-bst="loss" data-id="${safe(b.id)}">Red</button>`:""}<button data-bdel="${safe(b.id)}">Excluir</button></div></div>`
  }).join("");
- box.querySelectorAll("[data-bst]").forEach(b=>b.onclick=()=>{const x=bank.find(y=>y.id===b.dataset.id);if(x){x.result=b.dataset.bst;saveBank();renderBank()}});
+ box.querySelectorAll("[data-bst]").forEach(b=>b.onclick=()=>{const x=bank.find(y=>y.id===b.dataset.id);if(x){x.result=b.dataset.bst;saveBank();renderBank();const rs=riskState();if(rs.msgs.length)toast(rs.msgs[0],5000)}});
  box.querySelectorAll("[data-bdel]").forEach(b=>b.onclick=()=>{bank=bank.filter(y=>y.id!==b.dataset.bdel);saveBank();renderBank()});
  renderCharts()
 }
@@ -734,8 +815,11 @@ $("#bkAdd").onclick=()=>{
  const name=$("#bkName").value.trim()||"Aposta",stake=pn($("#bkStake").value),odd=pn($("#bkOdd").value);
  if(!Number.isFinite(stake)||stake<=0){alert("Digite um valor apostado válido.");return}
  if(!Number.isFinite(odd)||odd<=1){alert("Digite uma odd válida (maior que 1).");return}
- bank.push({id:String(Date.now())+Math.random().toString(16).slice(2),name,stake,odd,result:$("#bkResult").value,date:new Date().toLocaleDateString("pt-BR")});
- saveBank();$("#bkName").value="";$("#bkStake").value="";$("#bkOdd").value="";renderBank()
+ const rs=riskState();
+ if(rs.blocked&&!confirm("🛑 Você já atingiu um limite de perda.\n\n"+rs.msgs.join("\n")+"\n\nQuer registrar esta aposta mesmo assim?"))return;
+ bank.push({id:String(Date.now())+Math.random().toString(16).slice(2),name,stake,odd,result:$("#bkResult").value,date:new Date().toLocaleDateString("pt-BR"),ts:Date.now()});
+ saveBank();$("#bkName").value="";$("#bkStake").value="";$("#bkOdd").value="";renderBank();
+ const rs2=riskState();if(rs2.msgs.length)toast(rs2.msgs[0],5000)
 };
 $("#bkClear").onclick=()=>{if(!bank.length)return;if(confirm("Deseja apagar todas as apostas da banca?")){bank=[];saveBank();renderBank()}};
 
@@ -765,17 +849,18 @@ if(window.navigator.standalone===true)$("#installPanel").style.display="none";
 /* EVENTOS GERAIS */
 document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];load()});
 $("#refresh").onclick=()=>{archiveExpiredDuplas();games=[];load();resolveMultiplas()};
-applyTheme();updateAlertBtn();
+applyTheme();updateAlertBtn();loadRiskInputs();
 renderLeagues();renderPredictions();renderBank();renderGoal();archiveExpiredDuplas();renderDuplaHistory();load();resolveMultiplas();
+{const rs0=riskState();if(rs0.msgs.length)setTimeout(()=>toast(rs0.msgs[0],5000),900)}
 let lastLocalDate=dateKey();
 setInterval(()=>{
  const now=dateKey();
- if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();if(day==="today"){games=[];load()}renderDuplaHistory()}
+ if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();if(day==="today"){games=[];load()}renderDuplaHistory();renderRisk()}
  const radarActive=$("#radar").classList.contains("active");
  if(!document.hidden&&day==="today"&&selected!=="dupla"&&(radarActive||settings.goalAlert)&&!multiBusy)load();
  resolveMultiplas()
 },60000);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden){const now=dateKey();if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();renderDuplaHistory()}if(day==="today"&&selected!=="dupla"&&$("#radar").classList.contains("active"))load()}});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){const now=dateKey();if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();renderDuplaHistory();renderRisk()}if(day==="today"&&selected!=="dupla"&&$("#radar").classList.contains("active"))load()}});
 </script>
 </body>
 </html>
