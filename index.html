@@ -137,6 +137,10 @@ body.on-radar #dayBar.has{display:block}
 #dayBar .dayscore{font-size:24px;font-weight:bold;margin-top:2px}
 #dayBar .daydet{font-size:11px;color:var(--mu);text-align:right;line-height:1.6}
 #dayBar .daynote{font-size:9px;color:var(--dim);margin-top:5px;padding-left:2px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.chips button{font-size:12px;padding:8px 12px}
+.insight{padding:10px 12px;border:1px solid var(--b1);border-radius:10px;background:var(--c1);font-size:12px;line-height:1.6;margin-bottom:8px;color:var(--tx2)}
+.insight:last-child{margin-bottom:0}
 @media(max-width:600px){
  header{padding-top:18px}
  .matches{grid-template-columns:1fr}
@@ -169,6 +173,7 @@ body.on-radar #dayBar.has{display:block}
  <div id="matches"><div class="loading">Carregando partidas...</div></div>
  <div id="duplaHistorySection" style="display:none">
   <div class="section"><h3>📊 Histórico das múltiplas</h3></div>
+  <div class="market-note" style="margin:-4px 0 8px">Este histórico zera todo dia à meia-noite. O resumo de cada dia fica salvo em Meu Controle.</div>
   <div class="dupla-stats">
    <div class="dupla-stat"><small>GREEN</small><strong class="green" id="duplaGreen">0</strong></div>
    <div class="dupla-stat"><small>RED</small><strong class="red" id="duplaRed">0</strong></div>
@@ -176,7 +181,7 @@ body.on-radar #dayBar.has{display:block}
   </div>
   <div class="section"><h3>📐 Calibração das probabilidades</h3></div>
   <div class="panel" id="calibBox"><div class="empty">Ainda não há palpites encerrados.</div></div>
-  <div class="section"><h3>📅 Histórico</h3></div>
+  <div class="section"><h3>📅 Histórico de hoje</h3></div>
   <div class="panel" id="duplaHistoryList"><div class="empty">Nenhum destaque arquivado ainda.</div></div>
  </div>
  <footer>Dados esportivos fornecidos pela ESPN e SportScore.<br>Estatísticas dependem da disponibilidade da fonte.<br>Atualização automática a cada 60 segundos.<br><a href="https://sportscore.com" target="_blank" rel="noopener" style="color:var(--mu)">Powered by SportScore</a></footer>
@@ -194,7 +199,9 @@ body.on-radar #dayBar.has{display:block}
  <section class="detail-panel" id="tab-ai"></section>
 </section>
 <section class="page" id="controle">
- <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus registros, sua banca, seus limites e sua evolução nas metas.</p></div>
+ <div class="hero"><h2>📊 Meu Controle</h2><p>Painel com seus palpites, múltiplas, banca e insights. Toque no período para atualizar tudo.</p></div>
+
+ <div id="dash"></div>
 
  <div class="section"><h3>📅 Acertos por dia</h3></div>
  <div class="panel" id="dayHistory"><div class="empty">Ainda não há palpites gravados.</div></div>
@@ -220,6 +227,7 @@ body.on-radar #dayBar.has{display:block}
   <div class="stat"><small>ROI</small><strong class="sm" id="bkRoi">0%</strong></div>
  </div>
  <div class="panel"><h3>Registrar aposta</h3>
+  <div class="chips" style="margin-bottom:8px"><button data-qs="10">R$ 10</button><button data-qs="20">R$ 20</button><button data-qs="50">R$ 50</button><button data-qs="100">R$ 100</button><button id="bkFromMulti">🎯 Usar múltipla de hoje</button></div>
   <label>Descrição</label><input id="bkName" maxlength="80" placeholder="Ex.: Múltipla confiável 23/11">
   <label>Valor apostado (R$)</label><input id="bkStake" type="text" inputmode="decimal" placeholder="Ex.: 20">
   <label>Odd</label><input id="bkOdd" type="text" inputmode="decimal" placeholder="Ex.: 2,10">
@@ -272,12 +280,27 @@ body.on-radar #dayBar.has{display:block}
 </main>
 <nav class="bottom-nav" id="bottomNav"><button class="active" data-page="radar">⚽ Radar FC</button><button data-page="controle">📊 Meu Controle</button></nav>
 <script>
+/* LIGAS: as "principais" entram em Principais e na Múltipla do Dia. As marcadas x:true só aparecem quando você escolhe a liga ou "Todas as ligas".
+   Se algum código de liga não existir na ESPN, o app simplesmente ignora (não dá erro). */
 const competitions=[
- {id:"all",name:"Todas",path:null},{id:"bra",name:"Brasileirão",path:"bra.1"},{id:"bra2",name:"Série B",path:"bra.2"},
+ {id:"all",name:"Principais",path:null},{id:"full",name:"🌍 Todas as ligas",path:null},
+ {id:"bra",name:"Brasileirão",path:"bra.1"},{id:"bra2",name:"Série B",path:"bra.2"},
  {id:"cdb",name:"Copa do Brasil",path:"bra.copa_do_brazil"},{id:"lib",name:"Libertadores",path:"conmebol.libertadores"},{id:"sul",name:"Sul-Americana",path:"conmebol.sudamericana"},
  {id:"eng",name:"Premier League",path:"eng.1"},{id:"esp",name:"La Liga",path:"esp.1"},{id:"ita",name:"Serie A",path:"ita.1"},{id:"ger",name:"Bundesliga",path:"ger.1"},
  {id:"fra",name:"Ligue 1",path:"fra.1"},{id:"por",name:"Liga Portugal",path:"por.1"},{id:"ned",name:"Eredivisie",path:"ned.1"},{id:"mls",name:"MLS",path:"usa.1"},
- {id:"ucl",name:"Champions League",path:"uefa.champions"},{id:"uel",name:"Europa League",path:"uefa.europa"}
+ {id:"ucl",name:"Champions League",path:"uefa.champions"},{id:"uel",name:"Europa League",path:"uefa.europa"},
+ {id:"uecl",name:"Conference League",path:"uefa.europa.conf",x:true},
+ {id:"eng2",name:"Championship",path:"eng.2",x:true},{id:"fa",name:"FA Cup",path:"eng.fa",x:true},{id:"lc",name:"Copa da Liga Inglesa",path:"eng.league_cup",x:true},
+ {id:"esp2",name:"La Liga 2",path:"esp.2",x:true},{id:"cdr",name:"Copa del Rey",path:"esp.copa_del_rey",x:true},
+ {id:"ita2",name:"Serie B (Itália)",path:"ita.2",x:true},{id:"cit",name:"Coppa Italia",path:"ita.coppa_italia",x:true},
+ {id:"ger2",name:"2. Bundesliga",path:"ger.2",x:true},{id:"dfb",name:"Copa da Alemanha",path:"ger.dfb_pokal",x:true},
+ {id:"fra2",name:"Ligue 2",path:"fra.2",x:true},{id:"sco",name:"Escócia",path:"sco.1",x:true},{id:"bel",name:"Bélgica",path:"bel.1",x:true},{id:"tur",name:"Turquia",path:"tur.1",x:true},
+ {id:"mex",name:"Liga MX",path:"mex.1",x:true},{id:"arg",name:"Argentina",path:"arg.1",x:true},{id:"col",name:"Colômbia",path:"col.1",x:true},{id:"chi",name:"Chile",path:"chi.1",x:true},
+ {id:"uru",name:"Uruguai",path:"uru.1",x:true},{id:"ecu",name:"Equador",path:"ecu.1",x:true},{id:"par",name:"Paraguai",path:"par.1",x:true},{id:"per",name:"Peru",path:"per.1",x:true},
+ {id:"sau",name:"Arábia Saudita",path:"sau.1",x:true},{id:"jpn",name:"Japão (J1)",path:"jpn.1",x:true},{id:"aus",name:"A-League",path:"aus.1",x:true},
+ {id:"ccc",name:"Champions Concacaf",path:"concacaf.champions",x:true},{id:"rec",name:"Recopa",path:"conmebol.recopa",x:true},
+ {id:"nat",name:"Nations League",path:"uefa.nations",x:true},{id:"elim",name:"Eliminatórias Sul-Americanas",path:"fifa.worldq.conmebol",x:true},
+ {id:"wc",name:"Copa do Mundo",path:"fifa.world",x:true},{id:"fri",name:"Amistosos",path:"fifa.friendly",x:true}
 ];
 let selected="all",day="today",games=[],loading=false,currentMatch=null,currentHistHome=[],currentHistAway=[],currentLiveSummary=null,currentStandings=null,currentH2H=[];
 let searchText="",onlyLive=false,lastFailed=0;
@@ -331,28 +354,30 @@ function parseEvent(e,league,path){
  return{id:String(e.id),league,path,home:h.team?.displayName||h.team?.name||"Time a definir",away:a.team?.displayName||a.team?.name||"Time a definir",homeId:h.team?.id,awayId:a.team?.id,homeLogo:getTeamLogo(h.team),awayLogo:getTeamLogo(a.team),hs:h.score?.displayValue??h.score??"-",as:a.score?.displayValue??a.score??"-",live:status.live,completed:status.completed,state:status.label,date:e.date};
 }
 function renderLeagues(){const options=[{id:"dupla",name:"🎯 Múltipla do Dia"},...competitions];$("#leagues").innerHTML=options.map(c=>`<button class="${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`).join("");document.querySelectorAll("[data-league]").forEach(b=>b.onclick=()=>{selected=b.dataset.league;renderLeagues();games=[];load()})}
-/* CORREÇÃO DE FUSO: busca o dia e o dia seguinte e filtra pela data LOCAL (jogos da noite no Brasil entram no dia certo) */
+
+/* LIMITADOR DE CONSULTAS (no máximo 6 ao mesmo tempo, para o app não travar com muitas ligas) */
+let activeReq=0;const reqQueue=[];
+function limitedFetch(url,opts){return new Promise((resolve,reject)=>{const run=()=>{activeReq++;fetch(url,opts).then(resolve,reject).finally(()=>{activeReq--;const n=reqQueue.shift();if(n)n()})};if(activeReq<6)run();else reqQueue.push(run)})}
+
+/* Busca o dia e o dia seguinte e filtra pela data LOCAL (jogos da noite no Brasil entram no dia certo).
+   Código de liga inexistente (erro 400/404) é ignorado sem avisar. */
 async function fetchScoreboard(comp){
  const date=dateKey(offsetDay()),next=dateKey(offsetDay()+1),base=`https://site.api.espn.com/apis/site/v2/sports/soccer/${comp.path}/scoreboard`;
  const urls=[`${base}?dates=${date}&limit=100`,`${base}?dates=${next}&limit=100`];
  const seen=new Map();let ok=0,lastError=null;
- const res=await Promise.all(urls.map(async u=>{try{const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);const d=await r.json();if(!Array.isArray(d.events))throw Error("Resposta sem partidas");return d.events}catch(e){lastError=e;return null}}));
+ const res=await Promise.all(urls.map(async u=>{try{const r=await limitedFetch(u,{cache:"no-store"});if(r.status===400||r.status===404)return[];if(!r.ok)throw Error("HTTP "+r.status);const d=await r.json();if(!Array.isArray(d.events))throw Error("Resposta sem partidas");return d.events}catch(e){lastError=e;return null}}));
  res.forEach(evs=>{if(!evs)return;ok++;evs.forEach(e=>{if(e.date&&dateFromISO(e.date)===date&&!seen.has(String(e.id)))seen.set(String(e.id),e)})});
  if(!ok&&lastError)throw lastError;
  if(!seen.size&&day==="today"){
-  try{const r=await fetch(`${base}?limit=100`,{cache:"no-store"});if(r.ok){const d=await r.json();(d.events||[]).forEach(e=>{if(e.date&&dateFromISO(e.date)===date&&!seen.has(String(e.id)))seen.set(String(e.id),e)})}}catch(e){}
+  try{const r=await limitedFetch(`${base}?limit=100`,{cache:"no-store"});if(r.ok){const d=await r.json();(d.events||[]).forEach(e=>{if(e.date&&dateFromISO(e.date)===date&&!seen.has(String(e.id)))seen.set(String(e.id),e)})}}catch(e){}
  }
  return[...seen.values()].map(e=>parseEvent(e,comp.name,comp.path))
 }
 function dateFromISO(value){const d=new Date(value);if(Number.isNaN(d.getTime()))return"";return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")}
 const SPORT_SCORE_URL="https://sportscore.com/api/v1/fixtures/";
-function sportLeagueAllowed(name){if(selected==="all"||selected==="dupla")return true;const n=String(name||"").toLowerCase(),terms={bra:["brazilian serie a","brasileirão","brasileirao"],bra2:["brazilian serie b","série b","serie b"],cdb:["copa do brasil"],lib:["libertadores"],sul:["sudamericana","sul-americana"],eng:["premier league"],esp:["la liga","laliga","spanish la liga"],ita:["serie a"],ger:["bundesliga"],fra:["ligue 1"],por:["primeira liga","liga portugal"],ned:["eredivisie"],mls:["major league soccer","mls"],ucl:["champions league","uefa champions"],uel:["europa league","uefa europa"]};return(terms[selected]||[]).some(x=>n.includes(x))}
+function sportLeagueAllowed(name){if(selected==="all"||selected==="dupla"||selected==="full")return true;const n=String(name||"").toLowerCase(),terms={bra:["brazilian serie a","brasileirão","brasileirao"],bra2:["brazilian serie b","série b","serie b"],cdb:["copa do brasil"],lib:["libertadores"],sul:["sudamericana","sul-americana"],eng:["premier league"],esp:["la liga","laliga","spanish la liga"],ita:["serie a"],ger:["bundesliga"],fra:["ligue 1"],por:["primeira liga","liga portugal"],ned:["eredivisie"],mls:["major league soccer","mls"],ucl:["champions league","uefa champions"],uel:["europa league","uefa europa"]};return(terms[selected]||[]).some(x=>n.includes(x))}
 function parseSportMatch(m,index){const status=String(m.status||"").toLowerCase(),live=["live","inprogress","in_progress","playing","1h","2h","ht"].includes(status),completed=["finished","completed","ft","ended"].includes(status);return{id:"sport-"+index+"-"+String(m.home||"").replace(/\W/g,""),league:m.competition||"Futebol",path:null,home:m.home||"Time a definir",away:m.away||"Time a definir",homeLogo:m.home_logo||"",awayLogo:m.away_logo||"",hs:m.home_score??"-",as:m.away_score??"-",live,completed,state:live?"AO VIVO":completed?"Encerrado":m.status_text||"Agendado",date:m.time||"",source:"SportScore"}}
 async function fetchSportScore(){const response=await fetch(SPORT_SCORE_URL+"?sport=football&date="+dateISO()+"&limit=100",{cache:"no-store"});if(!response.ok)throw Error("SportScore HTTP "+response.status);const data=await response.json();if(!Array.isArray(data.matches))throw Error("Formato inesperado");return data.matches.filter(m=>sportLeagueAllowed(m.competition)).map(parseSportMatch)}
-
-/* LIMITADOR DE CONSULTAS (no máximo 6 ao mesmo tempo, para o app não travar na aba "Todas") */
-let activeReq=0;const reqQueue=[];
-function limitedFetch(url,opts){return new Promise((resolve,reject)=>{const run=()=>{activeReq++;fetch(url,opts).then(resolve,reject).finally(()=>{activeReq--;const n=reqQueue.shift();if(n)n()})};if(activeReq<6)run();else reqQueue.push(run)})}
 
 /* HISTÓRICO DOS TIMES (guarda se o jogo foi em casa ou fora) */
 async function teamAll(path,id){
@@ -584,11 +609,13 @@ function renderRisk(){
  el.innerHTML=out.length?out.join("")+(rs.msgs.length?`<div class="warnbox" style="margin-top:6px">${rs.msgs.map(safe).join("<br>")}</div>`:""):'<div class="market-note">Defina limites acima para acompanhar o progresso aqui.</div>'
 }
 function loadRiskInputs(){const r=settings.risk||{};$("#rkDayLoss").value=r.dayLoss||"";$("#rkWeekLoss").value=r.weekLoss||"";$("#rkDayGoal").value=r.dayGoal||"";$("#rkWeekGoal").value=r.weekGoal||""}
-$("#rkSave").onclick=()=>{const g=id=>{const v=pn($(id).value);return Number.isFinite(v)&&v>0?v:0};settings.risk={dayLoss:g("#rkDayLoss"),weekLoss:g("#rkWeekLoss"),dayGoal:g("#rkDayGoal"),weekGoal:g("#rkWeekGoal")};store("radarSettings",settings);renderRisk();toast("🛡️ Limites salvos",2000)};
+$("#rkSave").onclick=()=>{const g=id=>{const v=pn($(id).value);return Number.isFinite(v)&&v>0?v:0};settings.risk={dayLoss:g("#rkDayLoss"),weekLoss:g("#rkWeekLoss"),dayGoal:g("#rkDayGoal"),weekGoal:g("#rkWeekGoal")};store("radarSettings",settings);renderRisk();renderDash();toast("🛡️ Limites salvos",2000)};
 
 /* MÚLTIPLA DO DIA */
 let multiplas=read("radarMultiplas",{});if(!multiplas||typeof multiplas!=="object"||Array.isArray(multiplas))multiplas={};
-function saveMultiplas(){store("radarMultiplas",multiplas)}
+/* resumo compacto das múltiplas de dias anteriores (o histórico visível zera à meia-noite, o resumo fica aqui) */
+let multiLog=read("radarMultiLog",[]);if(!Array.isArray(multiLog))multiLog=[];
+function saveMultiplas(){store("radarMultiplas",multiplas);renderDash()}
 const multiLevels={
  safe:{name:"Segura",min:80,markets:["dc","o15","u35"],desc:"Palpites com 80% ou mais de probabilidade (chance dupla e gols)."},
  mid:{name:"Moderada",min:65,markets:["dc","o15","u35","win"],desc:"Palpites com 65% ou mais, incluindo favoritos para vencer."},
@@ -616,6 +643,21 @@ async function buildMulti(cfg,exclude=[]){
 function evalLeg(k,hs,as){const ok={dc1x:hs>=as,dcx2:as>=hs,dc12:hs!==as,o15:hs+as>=2,u35:hs+as<=3,winH:hs>as,winA:as>hs}[k];return ok?"green":"red"}
 function multiStatus(m){if(m.legs.some(l=>l.result==="red"))return"red";if(m.legs.length&&m.legs.every(l=>l.result==="green"))return"green";return"pending"}
 function resolveFromGames(m){let changed=false;m.legs.forEach(l=>{if(l.result!=="pending")return;const g=games.find(x=>String(x.id)===String(l.id)&&x.completed),hs=g?getScore(g.hs):NaN,as=g?getScore(g.as):NaN;if(g&&Number.isFinite(hs)&&Number.isFinite(as)){l.result=evalLeg(l.key,hs,as);l.score=hs+" x "+as;changed=true}});if(changed)saveMultiplas()}
+/* ZERA À MEIA-NOITE: múltiplas de dias anteriores saem do histórico visível e viram um resumo salvo em Meu Controle.
+   Se ainda houver jogo pendente (acabou depois da meia-noite), espera o resultado antes de arquivar. */
+function archiveOldMultiplas(){
+ const today=dateKey();let ch=false;
+ Object.keys(multiplas).forEach(k=>{
+  if(k.slice(0,8)>=today)return;
+  const m=multiplas[k];if(!m||!Array.isArray(m.legs))return;
+  const last=Math.max(0,...m.legs.map(l=>new Date(l.date).getTime()||0)),open=m.legs.some(l=>l.result==="pending");
+  if(open&&Date.now()<last+3*86400000)return;
+  multiLog.push({k,level:m.level,st:multiStatus(m),odd:m.odd||null,legs:m.legs.map(l=>({p:l.prob,r:l.result}))});
+  delete multiplas[k];ch=true
+ });
+ const lim=dateKey(-90),before=multiLog.length;multiLog=multiLog.filter(e=>String(e.k).slice(0,8)>=lim);
+ if(ch||multiLog.length!==before){store("radarMultiLog",multiLog);saveMultiplas();renderDuplaHistory();if(selected==="dupla")renderMultiResult()}
+}
 async function resolveMultiplas(){
  if(resolvingMulti)return;resolvingMulti=true;let changed=false;
  try{
@@ -626,7 +668,7 @@ async function resolveMultiplas(){
    try{const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/scoreboard?dates=${ymd}&limit=100`,{cache:"no-store"});if(!r.ok)continue;const d=await r.json();(d.events||[]).forEach(e=>{const c=e.competitions?.[0]||{};if(!getStatus(e,c).completed)return;const t=c.competitors||[],hs=getScore(t.find(x=>x.homeAway==="home")?.score),as=getScore(t.find(x=>x.homeAway==="away")?.score);if(!Number.isFinite(hs)||!Number.isFinite(as))return;groups[k].forEach(l=>{if(String(l.id)===String(e.id)&&l.result==="pending"){l.result=evalLeg(l.key,hs,as);l.score=hs+" x "+as;changed=true}})})}catch(e){}
   }
  }finally{resolvingMulti=false}
- if(changed){saveMultiplas();renderDuplaHistory();if(selected==="dupla")renderMultiResult()}
+ if(changed){saveMultiplas();renderDuplaHistory();if(selected==="dupla")renderMultiResult();archiveOldMultiplas()}
 }
 function evHTML(m){
  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1),o=Number(m.odd);
@@ -717,10 +759,11 @@ function renderMultiBox(){
  renderMultiControls();renderMultiResult()
 }
 
-/* CALIBRAÇÃO: compara a probabilidade prevista com o que realmente aconteceu */
+/* CALIBRAÇÃO: compara a probabilidade prevista com o que realmente aconteceu (usa as múltiplas de hoje + o resumo salvo dos dias anteriores) */
 function renderCalibration(){
  const box=$("#calibBox");if(!box)return;
  const legs=[];Object.values(multiplas).forEach(m=>(m.legs||[]).forEach(l=>{if(l.result==="green"||l.result==="red")legs.push(l)}));
+ multiLog.forEach(e=>(e.legs||[]).forEach(l=>{if(l.r==="green"||l.r==="red")legs.push({prob:l.p,result:l.r})}));
  const n=legs.length;
  if(!n){box.innerHTML='<div class="empty">Ainda não há palpites encerrados. A calibração aparece depois dos primeiros resultados.</div>';return}
  const f0=v=>Math.round(v),sg=v=>(v>0?"+":"")+f0(v);
@@ -735,7 +778,7 @@ function renderCalibration(){
  box.innerHTML=`<div class="dupla-stats"><div class="dupla-stat"><small>PREVISTO (MÉDIA)</small><strong>${f0(avgP)}%</strong></div><div class="dupla-stat"><small>ACERTO REAL</small><strong class="${diff>=0?"green":"red"}">${f0(real)}%</strong></div><div class="dupla-stat"><small>DIFERENÇA</small><strong class="${diff>=0?"green":"red"}">${sg(diff)}</strong></div></div>
  <div class="tbl-wrap"><table class="tbl c"><tr><th>Faixa</th><th>Palpites</th><th>Previsto</th><th>Real</th><th>Dif.</th></tr>${rows}</table></div>
  <div class="market-note" style="font-size:12px">${safe(verdict)}</div>
- <div class="market-note">Cada palpite conta separado, não a múltipla inteira. Se o "Real" fica bem abaixo do "Previsto", as probabilidades estão infladas.</div>`
+ <div class="market-note">Cada palpite conta separado, não a múltipla inteira. A calibração acumula os dias anteriores mesmo com o histórico visível zerando. Se o "Real" fica bem abaixo do "Previsto", as probabilidades estão infladas.</div>`
 }
 function renderDuplaHistory(){
  archiveExpiredDuplas();
@@ -743,12 +786,12 @@ function renderDuplaHistory(){
  $("#duplaGreen").textContent=g;$("#duplaRed").textContent=r;$("#duplaDraw").textContent=pe;
  renderCalibration();
  const box=$("#duplaHistoryList"),all=duplaArchive.slice().sort((a,b)=>b.dateKey.localeCompare(a.dateKey));
- if(!keys.length&&!all.length&&!duplaRecords.length){box.innerHTML='<div class="empty">As múltiplas geradas aparecerão aqui, com green ou red automático depois dos jogos.</div>';return}
+ if(!keys.length&&!all.length&&!duplaRecords.length){box.innerHTML='<div class="empty">As múltiplas geradas hoje aparecerão aqui, com green ou red automático depois dos jogos. À meia-noite este histórico zera.</div>';return}
  const tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
  const multi=keys.map((k,i)=>{const m=multiplas[k],comb=m.legs.reduce((x,l)=>x*l.prob/100,1),date=fmtKey(k);return`<div class="dupla-record"><strong>📅 ${date} · ${safe(multiTitle(m))} · ${(comb*100).toFixed(0)}%</strong> ${tag[st[i]]}${m.legs.map(l=>`<div style="padding:7px 0;border-top:1px solid var(--b2);margin-top:7px"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.label)} · ${Math.round(l.prob)}%${l.score?" · placar "+safe(l.score):""}</span> ${tag[l.result]}</div>`).join("")}</div>`}).join("");
  const rt=arr=>{const gg=arr.filter(k=>multiStatus(multiplas[k])==="green").length,rr=arr.filter(k=>multiStatus(multiplas[k])==="red").length;return rr+gg?Math.round(gg/(gg+rr)*100)+"% ("+gg+" de "+(gg+rr)+")":"sem resultados ainda"};
  const rel=keys.filter(k=>multiplas[k].level==="reliable"),ia=keys.filter(k=>multiplas[k].level!=="reliable");
- const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto das múltiplas:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
+ const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto das múltiplas de hoje:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
  const archived=all.map(dayRecord=>{const date=dayRecord.dateKey.replace(/^(\d{4})(\d{2})(\d{2})$/,"$3/$2/$1");return`<div class="dupla-record"><strong>📅 ${date} (destaques antigos)</strong>${dayRecord.matches.map(m=>`<div style="padding:9px 0;border-top:1px solid var(--b2);margin-top:8px"><strong>${safe(m.home)} x ${safe(m.away)}</strong><br><span class="muted">${safe(m.league||"Futebol")}</span><br>Placar: ${safe(m.hs)} x ${safe(m.as)}<br><span>${safe(m.result)}</span></div>`).join("")}</div>`}).join("");
  const manual=duplaRecords.slice().reverse().map(r=>{const date=r.date?new Date(r.date).toLocaleDateString("pt-BR"):"Data não informada",result=r.result==="green"||r.result==="win"?"Vitória":r.result==="red"||r.result==="loss"?"Derrota":r.result==="draw"?"Empate":"Pendente";return`<div class="dupla-record"><strong>${safe(r.home)} x ${safe(r.away)}</strong><br><span class="muted">${safe(r.league)} · ${date}</span><br>Resultado registrado: <strong>${result}</strong></div>`}).join("");
  box.innerHTML=rate+multi+archived+manual
@@ -767,7 +810,7 @@ function renderGames(failed=0){
  lastFailed=failed;
  $("#filters").style.display="flex";
  const list=visibleGames();
- $("#title").textContent=selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name||"Partidas";
+ $("#title").textContent=selected==="all"?"Partidas das principais ligas":selected==="full"?"Partidas de todas as ligas":competitions.find(c=>c.id===selected)?.name||"Partidas";
  $("#count").textContent=(list.length===games.length?games.length:list.length+" de "+games.length)+" jogo(s)";
  $("#duplaHistorySection").style.display="none";const box=$("#matches");
  updateDayBar();
@@ -815,7 +858,7 @@ async function updateDayBar(){
  const total=g+r+p;
  if(!total){el.classList.remove("has");return}
  const dayName=day==="today"?"HOJE":day==="tomorrow"?"AMANHÃ":"ONTEM",
- scope=selected==="all"||selected==="dupla"?"todas as competições":(competitions.find(c=>c.id===selected)?.name||""),
+ scope=selected==="all"||selected==="dupla"?"principais ligas":selected==="full"?"todas as ligas":(competitions.find(c=>c.id===selected)?.name||""),
  cls=g+r===0?"":g>=r?"green":"red";
  el.innerHTML=`<div class="daybox"><div><div class="daytit">🎯 ACERTOS · ${dayName} · ${safe(scope).toUpperCase()}</div><div class="dayscore ${cls}">${g}/${total}</div></div><div class="daydet"><span class="green">✅ ${g} green</span> · <span class="red">❌ ${r} red</span><br>⏳ ${p} em aberto${nodata?" · "+nodata+" sem dados":""}</div></div><div class="daynote">Palpite gravado de cada jogo: a chance dupla mais provável (a do card).</div>`;
  el.classList.add("has")
@@ -823,19 +866,81 @@ async function updateDayBar(){
 
 /* HISTÓRICO DIÁRIO DE ACERTOS (aba Meu Controle) */
 function renderDayHistory(){
+ renderDash();
  const box=$("#dayHistory");if(!box)return;
  const by={},todayK=dateKey();
  Object.values(dayPicks).forEach(r=>{if(!r.dk)return;const o=by[r.dk]||(by[r.dk]={g:0,r:0,p:0});if(r.result==="green")o.g++;else if(r.result==="red")o.r++;else o.p++});
  const keys=Object.keys(by).filter(k=>k<=todayK).sort().reverse();
  if(!keys.length){box.innerHTML='<div class="empty">Ainda não há palpites gravados.<br>Abra a tela principal e o app grava os palpites do dia automaticamente.</div>';return}
- const done=Object.values(dayPicks).filter(r=>r.result==="green"||r.result==="red"),n=done.length,hit=done.filter(r=>r.result==="green").length;
- const avgP=n?done.reduce((s,r)=>s+Number(r.prob||0),0)/n:0,real=n?hit/n*100:0;
- const wkMin=dateKey(-6);let wg=0,wr=0;keys.forEach(k=>{if(k>=wkMin){wg+=by[k].g;wr+=by[k].r}});
- const p0=v=>Math.round(v)+"%",diff=real-avgP;
- const summary=n?`<div class="dupla-stats"><div class="dupla-stat"><small>SEMANA</small><strong class="${wg>=wr?"green":"red"}">${wg+wr?p0(wg/(wg+wr)*100):"—"}</strong></div><div class="dupla-stat"><small>GERAL (${n})</small><strong class="${diff>=0?"green":"red"}">${p0(real)}</strong></div><div class="dupla-stat"><small>PREVISTO</small><strong>${p0(avgP)}</strong></div></div>`:"";
  const rows=keys.slice(0,14).map(k=>{const o=by[k],tot=o.g+o.r+o.p,rate=o.g+o.r?Math.round(o.g/(o.g+o.r)*100)+"%":"—";return`<tr><td>${fmtKey(k).slice(0,5)}</td><td class="${o.g>=o.r?"green":"red"}"><strong>${o.g}/${tot}</strong></td><td class="red">${o.r}</td><td>${o.p}</td><td>${rate}</td></tr>`}).join("");
- const note=n<30?`Só ${n} palpite(s) encerrado(s) até agora. Espere pelo menos 30 para tirar conclusões.`:diff<=-5?"O app está acertando menos do que prevê: trate as probabilidades como mais altas do que a realidade.":diff>=5?"O app está acertando mais do que prevê.":"Previsto e real estão próximos.";
- box.innerHTML=`${summary}<div class="tbl-wrap"><table class="tbl c"><tr><th>Dia</th><th>Acertos</th><th>Red</th><th>Aberto</th><th>Taxa</th></tr>${rows}</table></div><div class="market-note" style="font-size:12px">${safe(note)}</div><div class="market-note">Cada jogo conta um palpite: a chance dupla mais provável, gravada pelo app e nunca alterada depois. Os palpites só passam a ser gravados a partir da versão com esta função. Os resultados dos dias anteriores são conferidos automaticamente.</div>`
+ box.innerHTML=`<div class="tbl-wrap"><table class="tbl c"><tr><th>Dia</th><th>Acertos</th><th>Red</th><th>Aberto</th><th>Taxa</th></tr>${rows}</table></div><div class="market-note">Cada jogo conta um palpite: a chance dupla mais provável, gravada pelo app e nunca alterada depois. Os resultados dos dias anteriores são conferidos automaticamente.</div>`
+}
+
+/* PAINEL DINÂMICO (Meu Controle): muda conforme o período escolhido */
+let ctlPeriod=["1","7","30","all"].includes(settings.ctlPeriod)?settings.ctlPeriod:"7";
+function tsKey(ts){const d=new Date(ts);return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")}
+function periodStart(){return ctlPeriod==="1"?dateKey():ctlPeriod==="7"?dateKey(-6):ctlPeriod==="30"?dateKey(-29):"00000000"}
+function barsSVG(){
+ const days=[];for(let i=13;i>=0;i--)days.push(dateKey(-i));
+ const by={};Object.values(dayPicks).forEach(r=>{if(!r.dk)return;const o=by[r.dk]||(by[r.dk]={g:0,r:0});if(r.result==="green")o.g++;else if(r.result==="red")o.r++});
+ const mx=Math.max(1,...days.map(k=>by[k]?by[k].g+by[k].r:0));
+ const W=300,H=120,P=14,slot=(W-2*P)/days.length,bw=slot-4,yb=H-18;let s="";
+ days.forEach((k,i)=>{
+  const o=by[k]||{g:0,r:0},x=P+i*slot,hg=o.g/mx*(H-34),hr=o.r/mx*(H-34);
+  s+=`<rect x="${x.toFixed(1)}" y="${(yb-hg).toFixed(1)}" width="${bw.toFixed(1)}" height="${hg.toFixed(1)}" rx="2" style="fill:var(--gn)"/><rect x="${x.toFixed(1)}" y="${(yb-hg-hr).toFixed(1)}" width="${bw.toFixed(1)}" height="${hr.toFixed(1)}" rx="2" style="fill:var(--rd)"/><text x="${(x+bw/2).toFixed(1)}" y="${H-5}" font-size="8" text-anchor="middle" style="fill:var(--mu)">${k.slice(6,8)}</text>`
+ });
+ return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><line x1="${P}" x2="${W-P}" y1="${yb}" y2="${yb}" style="stroke:var(--b1)"/>${s}</svg>`
+}
+function renderDash(){
+ const box=$("#dash");if(!box)return;
+ const st=periodStart(),today=dateKey(),p0=v=>Math.round(v)+"%";
+ const done=Object.values(dayPicks).filter(r=>(r.result==="green"||r.result==="red")&&r.dk>=st&&r.dk<=today);
+ const n=done.length,g=done.filter(r=>r.result==="green").length,real=n?g/n*100:0,avgP=n?done.reduce((s,r)=>s+Number(r.prob||0),0)/n:0;
+ const ms=[];multiLog.forEach(e=>ms.push({k:String(e.k).slice(0,8),lv:e.level,st:e.st}));Object.keys(multiplas).forEach(k=>ms.push({k:k.slice(0,8),lv:multiplas[k].level,st:multiStatus(multiplas[k])}));
+ const mp=ms.filter(x=>x.k>=st&&x.k<=today),mg=mp.filter(x=>x.st==="green").length,mr=mp.filter(x=>x.st==="red").length;
+ const bs=bank.filter(b=>tsKey(betTs(b))>=st);let prof=0,rstake=0,rcount=0;
+ bs.forEach(b=>{prof+=betProfit(b);if(b.result==="win"||b.result==="loss"){rstake+=b.stake;rcount++}});
+ const roi=rstake?prof/rstake*100:0;
+ const seq=Object.values(dayPicks).filter(r=>r.result==="green"||r.result==="red").sort((a,b)=>new Date(a.date)-new Date(b.date));
+ let streak=0,stype="";for(let i=seq.length-1;i>=0;i--){if(!stype)stype=seq[i].result;if(seq[i].result===stype)streak++;else break}
+ const LG={};done.forEach(r=>{const o=LG[r.league]||(LG[r.league]={g:0,n:0});o.n++;if(r.result==="green")o.g++});
+ const leagues=Object.entries(LG).map(([name,o])=>({name,n:o.n,rate:o.g/o.n*100})).sort((a,b)=>b.n-a.n);
+ const bands=[[0,70,"até 69%"],[70,80,"70–79%"],[80,90,"80–89%"],[90,101,"90%+"]].map(([lo,hi,lb])=>{const L2=done.filter(r=>r.prob>=lo&&r.prob<hi);return{lb,n:L2.length,p:L2.length?L2.reduce((s,r)=>s+Number(r.prob||0),0)/L2.length:0,r:L2.length?L2.filter(r=>r.result==="green").length/L2.length*100:0}}).filter(b=>b.n);
+ /* INSIGHTS: ideias de melhoria geradas a partir dos seus próprios dados */
+ const ins=[];
+ if(!n)ins.push("📭 Sem palpites encerrados neste período. Abra a tela principal durante o dia: o app grava os palpites e confere os resultados sozinho.");
+ else{
+  if(n<30)ins.push(`📏 Só ${n} palpite(s) encerrado(s) neste período. Com menos de 30, os percentuais oscilam muito: não tire conclusões ainda.`);
+  else if(real<=avgP-5)ins.push(`⚠️ O app prevê ${p0(avgP)} mas está acertando ${p0(real)}. Trate as probabilidades mostradas como mais altas do que a realidade e use um corte mínimo maior.`);
+  else if(real>=avgP+5)ins.push(`✅ O app prevê ${p0(avgP)} e está acertando ${p0(real)}: está sendo conservador.`);
+  else ins.push(`✅ Previsto (${p0(avgP)}) e real (${p0(real)}) estão próximos.`);
+  const lg=leagues.filter(x=>x.n>=5).sort((a,b)=>b.rate-a.rate);
+  if(lg.length>=2)ins.push(`🏆 Melhor liga: ${lg[0].name} (${p0(lg[0].rate)} em ${lg[0].n} jogos). Pior: ${lg[lg.length-1].name} (${p0(lg[lg.length-1].rate)} em ${lg[lg.length-1].n}). Considere focar nas ligas onde o app acerta mais.`);
+  const bad=bands.find(b=>b.n>=8&&b.r<b.p-10);
+  if(bad)ins.push(`📉 Na faixa ${bad.lb}, o app prevê ${p0(bad.p)} mas acerta ${p0(bad.r)}. Não confie nessa faixa.`);
+ }
+ if(stype==="red"&&streak>=3)ins.push(`🧊 ${streak} palpites errados seguidos. Uma pausa ajuda a evitar apostar por impulso para recuperar.`);
+ if(stype==="green"&&streak>=5)ins.push(`🔥 ${streak} acertos seguidos. Cuidado para não aumentar o valor apostado por empolgação.`);
+ if(rcount>=10&&roi<0)ins.push(`💸 ROI de ${roi.toFixed(1).replace(".",",")}% em ${rcount} apostas resolvidas. Reveja o valor apostado e as odds que você aceita.`);
+ if(mg+mr>=5&&mg/(mg+mr)<0.3)ins.push(`🎯 Só ${p0(mg/(mg+mr)*100)} das múltiplas deram green. Quanto mais jogos, menor a chance de acertar todos: prefira poucas pernas.`);
+ riskState().msgs.forEach(m=>ins.push(m));
+ const tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
+ const recent=ms.slice().sort((a,b)=>b.k.localeCompare(a.k)).slice(0,7);
+ const best=leagues.filter(x=>x.n>=3).sort((a,b)=>b.rate-a.rate)[0];
+ box.innerHTML=`<div class="chips">${[["1","Hoje"],["7","7 dias"],["30","30 dias"],["all","Tudo"]].map(([v,l])=>`<button class="${ctlPeriod===v?"active":""}" data-per="${v}">${l}</button>`).join("")}</div>
+ <div class="stats">
+  <div class="stat"><small>Palpites certos</small><strong class="${n?(real>=avgP?"green":"red"):""}">${n?g+"/"+n:"—"}</strong><small>${n?p0(real)+" · previsto "+p0(avgP):"sem jogos encerrados"}</small></div>
+  <div class="stat"><small>Múltiplas green</small><strong>${mg+mr?mg+"/"+(mg+mr):"—"}</strong><small>${mg+mr?p0(mg/(mg+mr)*100):"sem resultados"}</small></div>
+  <div class="stat"><small>Lucro da banca</small><strong class="sm ${prof>0?"green":prof<0?"red":""}">${money(prof)}</strong><small>${bs.length} aposta(s)</small></div>
+  <div class="stat"><small>ROI</small><strong class="sm ${roi>0?"green":roi<0?"red":""}">${rstake?(roi>0?"+":"")+roi.toFixed(1).replace(".",",")+"%":"—"}</strong><small>${rcount} resolvida(s)</small></div>
+  <div class="stat"><small>Sequência atual</small><strong class="sm ${stype==="green"?"green":stype==="red"?"red":""}">${streak?(stype==="green"?"🔥 ":"🧊 ")+streak:"—"}</strong><small>${stype==="green"?"acertos seguidos":stype==="red"?"erros seguidos":"sem dados"}</small></div>
+  <div class="stat"><small>Melhor liga</small><strong class="sm">${best?safe(best.name):"—"}</strong><small>${best?p0(best.rate)+" em "+best.n+" jogos":"mín. 3 jogos"}</small></div>
+ </div>
+ <div class="panel"><h3>📊 Acertos por dia · 14 dias</h3>${barsSVG()}<div class="muted">Verde = green · vermelho = red (palpites de todos os jogos)</div></div>
+ ${leagues.length?`<div class="panel" style="margin-top:12px"><h3>🌍 Por liga · ${ctlPeriod==="1"?"hoje":ctlPeriod==="all"?"tudo":ctlPeriod+" dias"}</h3><div class="tbl-wrap"><table class="tbl c"><tr><th>Liga</th><th>Palpites</th><th>Acerto</th></tr>${leagues.slice(0,10).map(l=>`<tr><td>${safe(l.name)}</td><td>${l.n}</td><td class="${l.rate>=avgP?"green":"red"}">${p0(l.rate)}</td></tr>`).join("")}</table></div></div>`:""}
+ ${recent.length?`<div class="panel" style="margin-top:12px"><h3>🎯 Múltiplas recentes</h3>${recent.map(x=>`<div class="info-row"><span>${fmtKey(x.k).slice(0,5)} · ${safe(multiTitle({level:x.lv}))}</span><strong>${tag[x.st]||tag.pending}</strong></div>`).join("")}</div>`:""}
+ <div class="panel" style="margin-top:12px"><h3>💡 Insights</h3>${ins.map(x=>`<div class="insight">${safe(x)}</div>`).join("")}</div>`;
+ box.querySelectorAll("[data-per]").forEach(b=>b.onclick=()=>{ctlPeriod=b.dataset.per;settings.ctlPeriod=ctlPeriod;store("radarSettings",settings);renderDash()})
 }
 
 /* CONFERE PALPITES ANTIGOS (dias em que o app não ficou aberto) */
@@ -873,7 +978,7 @@ async function load(){
  if(loading)return;loading=true;const box=$("#matches");
  $("#filters").style.display=selected==="dupla"?"none":"flex";
  if(!games.length){box.innerHTML='<div class="loading">Buscando partidas...</div>';$("#dayBar").classList.remove("has")}
- const comps=selected==="all"||selected==="dupla"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);
+ const comps=selected==="full"?competitions.filter(c=>c.path):selected==="all"||selected==="dupla"?competitions.filter(c=>c.path&&!c.x):competitions.filter(c=>c.id===selected);
  try{
   const results=await Promise.all(comps.map(async c=>{try{return{games:await fetchScoreboard(c),error:false}}catch(e){return{games:[],error:true}}})),espnGames=results.flatMap(r=>r.games);
   if(espnGames.length){games=espnGames.sort((a,b)=>a.live===b.live?new Date(a.date)-new Date(b.date):a.live?-1:1);$("#sourceLabel").textContent="Fonte: ESPN";checkGoals();if(selected==="dupla")renderDupla();else renderGames(results.filter(r=>r.error).length);return}
@@ -926,7 +1031,7 @@ function renderBank(){
  $("#bkStaked").textContent=money(staked);$("#bkOpen").textContent=money(open);
  const pe=$("#bkProfit");pe.textContent=money(profit);pe.className="sm "+(profit>0?"green":profit<0?"red":"");
  const roi=resolvedStake?profit/resolvedStake*100:0,re=$("#bkRoi");re.textContent=(roi>0?"+":"")+roi.toFixed(1).replace(".",",")+"%";re.className="sm "+(roi>0?"green":roi<0?"red":"");
- renderRisk();
+ renderRisk();renderDash();
  const box=$("#bkList");
  if(!bank.length){box.innerHTML='<div class="empty">Nenhuma aposta registrada.</div>';renderCharts();return}
  box.innerHTML=bank.slice().reverse().map(b=>{
@@ -948,6 +1053,14 @@ $("#bkAdd").onclick=()=>{
  const rs2=riskState();if(rs2.msgs.length)toast(rs2.msgs[0],5000)
 };
 $("#bkClear").onclick=()=>{if(!bank.length)return;if(confirm("Deseja apagar todas as apostas da banca?")){bank=[];saveBank();renderBank()}};
+/* atalhos para registrar aposta */
+document.querySelectorAll("[data-qs]").forEach(b=>b.onclick=()=>{$("#bkStake").value=b.dataset.qs});
+$("#bkFromMulti").onclick=()=>{
+ const t=dateKey(),m=multiplas[t+"c"]||multiplas[t];
+ if(!m){toast("Nenhuma múltipla gerada hoje.",3000);return}
+ $("#bkName").value="Múltipla "+multiTitle(m)+" "+fmtKey(t).slice(0,5);
+ if(m.odd)$("#bkOdd").value=String(m.odd).replace(".",",");else toast("Digite a odd da casa.",2500)
+};
 
 /* METAS */
 let goal=read("radarGoal",{name:"Minha meta",target:0,saved:0});
@@ -955,38 +1068,7 @@ function renderGoal(){const target=Math.max(0,Number(goal.target)||0),saved=Math
 $("#saveGoal").onclick=()=>{const name=$("#goalName").value.trim()||"Minha meta",target=Number($("#goalTarget").value),saved=Number($("#goalSaved").value);if(!Number.isFinite(target)||!Number.isFinite(saved)||target<0||saved<0){alert("Digite valores válidos para a meta.");return}goal={name,target,saved};store("radarGoal",goal);renderGoal()};
 
 /* BACKUP */
-const BACKUP_KEYS=["radarMultiplas","radarPredictions","radarGoal","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarFavs","radarBank","radarSettings","radarDayPicks"];
-function backupText(){saveDayPicksNow();const data={};BACKUP_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=v}catch(e){}});return JSON.stringify({app:"radarfc",v:1,date:new Date().toISOString(),data})}
+const BACKUP_KEYS=["radarMultiplas","radarMultiLog","radarPredictions","radarGoal","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarFavs","radarBank","radarSettings","radarDayPicks"];
+function backupText(){saveDayPicksNow();store("radarMultiLog",multiLog);const data={};BACKUP_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=v}catch(e){}});return JSON.stringify({app:"radarfc",v:1,date:new Date().toISOString(),data})}
 $("#bkCopy").onclick=()=>copyText(backupText());
-if(navigator.share){$("#bkShare").style.display="block";$("#bkShare").onclick=()=>{navigator.share({title:"Backup Radar FC",text:backupText()}).catch(()=>{})}}
-$("#bkRestore").onclick=()=>{
- const raw=$("#bkText").value.trim();if(!raw){alert("Cole o texto do backup primeiro.");return}
- let obj;try{obj=JSON.parse(raw)}catch(e){alert("Backup inválido. Copie o texto completo.");return}
- if(!obj||obj.app!=="radarfc"||!obj.data||typeof obj.data!=="object"){alert("Esse texto não é um backup do Radar FC.");return}
- if(!confirm("Isso vai substituir os dados atuais pelos do backup. Continuar?"))return;
- try{BACKUP_KEYS.forEach(k=>{if(typeof obj.data[k]==="string"){JSON.parse(obj.data[k]);localStorage.setItem(k,obj.data[k])}})}catch(e){alert("O backup parece estar corrompido.");return}
- alert("Backup restaurado! O app vai recarregar.");location.reload()
-};
-
-/* ÍCONE PARA TELA INICIAL DO IPHONE + AVISO DE INSTALAÇÃO */
-try{const cv=document.createElement("canvas");cv.width=cv.height=180;const cx=cv.getContext("2d");cx.fillStyle="#08111f";cx.fillRect(0,0,180,180);cx.font="100px serif";cx.textAlign="center";cx.textBaseline="middle";cx.fillText("⚽",90,98);$("#touchIcon").href=cv.toDataURL("image/png")}catch(e){}
-if(window.navigator.standalone===true)$("#installPanel").style.display="none";
-
-/* EVENTOS GERAIS */
-document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];load()});
-$("#refresh").onclick=()=>{archiveExpiredDuplas();games=[];load();resolveMultiplas();resolveDayPicks(true)};
-applyTheme();updateAlertBtn();loadRiskInputs();
-renderLeagues();renderPredictions();renderBank();renderGoal();archiveExpiredDuplas();renderDuplaHistory();renderDayHistory();load();resolveMultiplas();resolveDayPicks(true);
-{const rs0=riskState();if(rs0.msgs.length)setTimeout(()=>toast(rs0.msgs[0],5000),900)}
-let lastLocalDate=dateKey();
-setInterval(()=>{
- const now=dateKey();
- if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();if(day==="today"){games=[];load()}renderDuplaHistory();renderRisk();renderDayHistory()}
- const radarActive=$("#radar").classList.contains("active");
- if(!document.hidden&&day==="today"&&selected!=="dupla"&&(radarActive||settings.goalAlert)&&!multiBusy)load();
- resolveMultiplas();resolveDayPicks()
-},60000);
-document.addEventListener("visibilitychange",()=>{if(!document.hidden){const now=dateKey();if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();renderDuplaHistory();renderRisk();renderDayHistory()}if(day==="today"&&selected!=="dupla"&&$("#radar").classList.contains("active"))load()}});
-</script>
-</body>
-</html>
+if(navigator.share){$("#bkShare").style.display="block";$("#bkShare").onclick=()=>{
