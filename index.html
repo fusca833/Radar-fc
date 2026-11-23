@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -92,8 +93,67 @@ label{font-size:12px;color:#b6c9d9}.full{width:100%;margin-top:5px}
 .ai-box{background:#0b1929;border:1px solid #29415c;border-radius:12px;padding:14px;margin-bottom:12px}
 .ai-box h4{font-size:13px;margin:0 0 10px;color:#65e3a7}.ai-text{font-size:12px;line-height:1.7;color:#c2d0df}
 .outcome-card{background:#0d1d2e;border:1px solid #29415c;border-radius:11px;padding:12px;margin:10px 0}
-.outcome-card h4{font-size:12px;margin:0 0 8px}.outcome-card .outcome-list{margin-bottom:0}
-@media(max-width:600px){header{padding-top:18px}.matches{grid-template-columns:1fr}.dupla-games{grid-template-columns:1fr}.history{grid-template-columns:1fr}.detail-tabs button{font-size:10px;padding:10px 2px}}
+
+/* MERCADO DE DADOS */
+.market-data{
+ background:#0d1d2e;
+ border:1px solid #347d63;
+ border-radius:13px;
+ padding:15px;
+ margin-top:12px;
+}
+.market-data h3{
+ color:#65e3a7;
+ font-size:15px;
+ margin:0 0 8px;
+}
+.market-team{
+ background:#14263b;
+ border:1px solid #29415c;
+ border-radius:10px;
+ padding:12px;
+ margin-top:10px;
+}
+.market-team strong{
+ display:block;
+ font-size:13px;
+ margin-bottom:9px;
+}
+.market-grid{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:6px;
+}
+.market-item{
+ background:#0d1d2e;
+ border-radius:8px;
+ padding:10px 4px;
+ text-align:center;
+}
+.market-item small{
+ display:block;
+ color:#91a5bc;
+ font-size:9px;
+}
+.market-item b{
+ display:block;
+ font-size:17px;
+ margin:5px 0;
+}
+.market-note{
+ color:#91a5bc;
+ font-size:10px;
+ line-height:1.6;
+ margin-top:10px;
+}
+
+@media(max-width:600px){
+ header{padding-top:18px}
+ .matches{grid-template-columns:1fr}
+ .dupla-games{grid-template-columns:1fr}
+ .history{grid-template-columns:1fr}
+ .detail-tabs button{font-size:10px;padding:10px 2px}
+}
 </style>
 </head>
 <body>
@@ -203,7 +263,6 @@ function frequencyHTML(list){
  const totals=list.map(g=>g.scored+g.conceded),ranges=[{label:"0 gols",count:totals.filter(n=>n===0).length},{label:"1 gol",count:totals.filter(n=>n===1).length},{label:"2 gols",count:totals.filter(n=>n===2).length},{label:"3 gols",count:totals.filter(n=>n===3).length},{label:"4+ gols",count:totals.filter(n=>n>=4).length}],f=getForm(list);
  return`<div class="frequency-title">⚽ GOLS TOTAIS NAS PARTIDAS ANTERIORES</div><div class="frequency-list">${ranges.map(x=>`<div class="frequency-item"><small>${x.label}</small><strong>${x.count}</strong><span>${pct(x.count,total)}%</span></div>`).join("")}</div><div class="frequency-title">📊 RESULTADOS ANTERIORES</div><div class="outcome-list"><div class="outcome-item"><small class="green">VITÓRIAS</small><strong class="green">${f.wins}</strong><small>${pct(f.wins,total)}%</small></div><div class="outcome-item"><small>EMPATES</small><strong>${f.draws}</strong><small>${pct(f.draws,total)}%</small></div><div class="outcome-item"><small class="red">DERROTAS</small><strong class="red">${f.losses}</strong><small>${pct(f.losses,total)}%</small></div></div><div class="frequency-note">Frequências calculadas com base em ${total} jogo(s) concluído(s) deste time. São dados históricos, não garantias sobre a próxima partida.</div>`
 }
-/* Tips: percentuais individuais e separados para cada clube. */
 function teamTipsHTML(team,list){
  const f=getForm(list),total=list.length;if(!total)return`<div class="outcome-card"><h4>${safe(team)}</h4><div class="frequency-note">Histórico indisponível.</div></div>`;
  return`<div class="outcome-card"><h4>${safe(team)} · últimos ${total} jogos</h4><div class="outcome-list">
@@ -241,14 +300,116 @@ async function openMatch(g){
  $("#tab-tips").innerHTML='<div class="panel"><div class="loading">Calculando frequências históricas...</div></div>';$("#tab-stats").innerHTML='<div class="panel"><div class="loading">Carregando estatísticas...</div></div>';$("#tab-ai").innerHTML='<div class="panel"><div class="loading">Preparando análise automática...</div></div>';
  const tasks=[];if(g.homeId&&g.awayId&&g.path)tasks.push(Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]).then(v=>{currentHistHome=v[0];currentHistAway=v[1]}).catch(()=>{}));if(g.path&&g.source!=="SportScore")tasks.push(fetchLiveSummary(g).then(v=>currentLiveSummary=v).catch(()=>{}));await Promise.all(tasks);if(currentMatch?.id!==g.id)return;renderDetailTabs()
 }
+
+/* FUNÇÃO ATUALIZADA COM MERCADO DE DADOS */
 function renderDetailTabs(){
- const g=currentMatch,h=currentHistHome,a=currentHistAway,have=h.length||a.length;
- $("#tab-tips").innerHTML=`<div class="panel"><h3>📈 Tips · retrospecto dos times</h3><p class="muted" style="line-height:1.6">Veja separadamente os percentuais de vitória, empate e derrota de cada equipe nos jogos recentes. São frequências históricas, não previsões nem garantias.</p>${have?teamTipsHTML(g.home,h)+teamTipsHTML(g.away,a):'<div class="empty">Histórico não disponível para esta partida.</div>'}</div>`;
- $("#tab-stats").innerHTML=`<div class="panel"><h3>📊 Estatísticas da partida</h3><div class="muted" style="margin-bottom:12px">${g.live?"Dados do jogo em andamento":g.completed?"Partida encerrada":"Os dados ao vivo aparecem quando disponibilizados pela fonte"}</div>${liveStatsHTML(currentLiveSummary,g)}</div><div class="panel"><h3>📚 Forma recente</h3><div class="history">${h.length?renderHistory(g.home,h):'<div class="history-team">Histórico de '+safe(g.home)+' indisponível.</div>'}${a.length?renderHistory(g.away,a):'<div class="history-team">Histórico de '+safe(g.away)+' indisponível.</div>'}</div></div>`;
- const insights=aiAnalysis(g,h,a,currentLiveSummary);$("#tab-ai").innerHTML=`<div class="ai-box"><h4>🤖 RADAR IA · ANÁLISE AUTOMÁTICA</h4><div class="ai-text">${insights.map(x=>`<p>${safe(x)}</p>`).join("")}</div></div><div class="panel"><h3>Como interpretar</h3><p class="muted" style="line-height:1.7">A análise resume resultados e médias anteriores. Ela não é uma previsão garantida, não substitui informações oficiais e pode ficar limitada quando há poucos dados disponíveis.</p></div>`
+ const g=currentMatch,h=currentHistHome,a=currentHistAway;
+ const have=h.length||a.length;
+
+ function marketTeamHTML(team,list){
+  const f=getForm(list);
+  const total=list.length;
+
+  return `
+   <div class="market-team">
+    <strong>${safe(team)} · últimos ${total} jogos</strong>
+    <div class="market-grid">
+     <div class="market-item">
+      <small>VITÓRIAS</small>
+      <b class="green">${pct(f.wins,total)}%</b>
+      <small>${f.wins} de ${total}</small>
+     </div>
+     <div class="market-item">
+      <small>EMPATES</small>
+      <b>${pct(f.draws,total)}%</b>
+      <small>${f.draws} de ${total}</small>
+     </div>
+     <div class="market-item">
+      <small>DERROTAS</small>
+      <b class="red">${pct(f.losses,total)}%</b>
+      <small>${f.losses} de ${total}</small>
+     </div>
+    </div>
+   </div>
+  `;
+ }
+
+ const marketHTML=h.length>=3&&a.length>=3
+ ?`
+  <div class="market-data">
+   <h3>📊 Mercado de Dados</h3>
+   <p class="muted" style="line-height:1.6">
+    Comparação automática do retrospecto recente dos dois clubes.
+   </p>
+   ${marketTeamHTML(g.home,h)}
+   ${marketTeamHTML(g.away,a)}
+   <div class="market-note">
+    Dados calculados a partir dos últimos jogos concluídos de cada equipe.
+    São frequências históricas, não probabilidades ou previsões.
+    A amostra é limitada e não considera escalações, lesões ou mando de campo.
+   </div>
+  </div>
+ `
+ :`
+  <div class="market-data">
+   <h3>📊 Mercado de Dados</h3>
+   <div class="market-note">
+    A seção será exibida quando os dois times tiverem pelo menos 3 jogos concluídos disponíveis.
+   </div>
+  </div>
+ `;
+
+ $("#tab-tips").innerHTML=`
+  <div class="panel">
+   <h3>📈 Tips · retrospecto dos times</h3>
+   <p class="muted" style="line-height:1.6">
+    Veja separadamente os percentuais de vitória, empate e derrota de cada equipe nos jogos recentes.
+    São frequências históricas, não previsões nem garantias.
+   </p>
+   ${have?teamTipsHTML(g.home,h)+teamTipsHTML(g.away,a):'<div class="empty">Histórico não disponível para esta partida.</div>'}
+   ${marketHTML}
+  </div>
+ `;
+
+ $("#tab-stats").innerHTML=`
+  <div class="panel">
+   <h3>📊 Estatísticas da partida</h3>
+   <div class="muted" style="margin-bottom:12px">
+    ${g.live?"Dados do jogo em andamento":g.completed?"Partida encerrada":"Os dados ao vivo aparecem quando disponibilizados pela fonte"}
+   </div>
+   ${liveStatsHTML(currentLiveSummary,g)}
+  </div>
+  <div class="panel">
+   <h3>📚 Forma recente</h3>
+   <div class="history">
+    ${h.length?renderHistory(g.home,h):'<div class="history-team">Histórico de '+safe(g.home)+' indisponível.</div>'}
+    ${a.length?renderHistory(g.away,a):'<div class="history-team">Histórico de '+safe(g.away)+' indisponível.</div>'}
+   </div>
+  </div>
+ `;
+
+ const insights=aiAnalysis(g,h,a,currentLiveSummary);
+
+ $("#tab-ai").innerHTML=`
+  <div class="ai-box">
+   <h4>🤖 RADAR IA · ANÁLISE AUTOMÁTICA</h4>
+   <div class="ai-text">
+    ${insights.map(x=>`<p>${safe(x)}</p>`).join("")}
+   </div>
+  </div>
+  <div class="panel">
+   <h3>Como interpretar</h3>
+   <p class="muted" style="line-height:1.7">
+    A análise resume resultados e médias anteriores. Ela não é uma previsão garantida,
+    não substitui informações oficiais e pode ficar limitada quando há poucos dados disponíveis.
+   </p>
+  </div>
+ `;
 }
+
 function matchHTML(g,extra=""){return`<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}" role="button" tabindex="0"><div class="match-top"><span>${safe(g.league)}</span><span class="${g.live?"status-live":""}">${g.live?'<span class="live-dot"></span>':""}${safe(g.state)}</span></div><div class="teams">${teamHTML(g.home,g.homeLogo)}<div class="score">${safe(g.hs)}</div>${teamHTML(g.away,g.awayLogo)}<div class="score">${safe(g.as)}</div></div><div class="meta">${safe(formatDate(g.date))}</div><div class="tap-hint"><span>Toque para abrir a partida</span><strong>VER DETALHES →</strong></div></article>`}
 function bindMatchCards(box,list){box.querySelectorAll(".match").forEach(card=>{const open=()=>{const g=list.find(x=>String(x.id)===card.dataset.id);if(g)openMatch(g)};card.addEventListener("click",open);card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})})}
+
 /* Destaques do dia: cada data fica guardada; ao virar o dia, a seleção anterior entra no arquivo. */
 let duplaRecords=read("radarDuplaHistory",[]);if(!Array.isArray(duplaRecords))duplaRecords=[];
 let dailyDuplas=read("radarDuplaDaily",{});if(!dailyDuplas||typeof dailyDuplas!=="object"||Array.isArray(dailyDuplas))dailyDuplas={};
