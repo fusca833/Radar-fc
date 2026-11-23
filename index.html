@@ -93,6 +93,7 @@ label{font-size:12px;color:#b6c9d9}.full{width:100%;margin-top:5px}
 .ai-box{background:#0b1929;border:1px solid #29415c;border-radius:12px;padding:14px;margin-bottom:12px}
 .ai-box h4{font-size:13px;margin:0 0 10px;color:#65e3a7}.ai-text{font-size:12px;line-height:1.7;color:#c2d0df}
 .outcome-card{background:#0d1d2e;border:1px solid #29415c;border-radius:11px;padding:12px;margin:10px 0}
+.prob-line{margin-top:11px;padding:9px 10px;background:#0d1d2e;border:1px solid #347d63;border-radius:9px;font-size:11px;line-height:1.7;color:#b6c9d9}.prob-line b{color:#65e3a7}
 
 /* MERCADO DE DADOS */
 .market-data{
@@ -301,75 +302,52 @@ async function openMatch(g){
  const tasks=[];if(g.homeId&&g.awayId&&g.path)tasks.push(Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]).then(v=>{currentHistHome=v[0];currentHistAway=v[1]}).catch(()=>{}));if(g.path&&g.source!=="SportScore")tasks.push(fetchLiveSummary(g).then(v=>currentLiveSummary=v).catch(()=>{}));await Promise.all(tasks);if(currentMatch?.id!==g.id)return;renderDetailTabs()
 }
 
-/* FUNÇÃO ATUALIZADA COM MERCADO DE DADOS */
+/* PROBABILIDADES (usadas na aba Tips e nos cards da lista) */
+function calcProbs(h,a){
+ if(h.length<3||a.length<3)return null;
+ const pctOf=(list,fn)=>list.filter(fn).length/list.length*100,fh=getForm(h),fa=getForm(a),nh=h.length,na=a.length;
+ const pH=(fh.wins/nh+fa.losses/na)/2*100,pD=(fh.draws/nh+fa.draws/na)/2*100,pA=(fa.wins/na+fh.losses/nh)/2*100;
+ const d1x=pH+pD,dx2=pA+pD,d12=pH+pA,dcBest=Math.max(d1x,dx2,d12),dcKey=dcBest===d1x?"1x":dcBest===dx2?"x2":"12";
+ const o25=(pctOf(h,x=>x.scored+x.conceded>=3)+pctOf(a,x=>x.scored+x.conceded>=3))/2;
+ const btts=(pctOf(h,x=>x.scored>0&&x.conceded>0)+pctOf(a,x=>x.scored>0&&x.conceded>0))/2;
+ return{pH,pD,pA,d1x,dx2,d12,dcBest,dcKey,o25,btts}
+}
+function dcText(p,g){return p.dcKey==="1x"?safe(g.home)+" ou empate":p.dcKey==="x2"?safe(g.away)+" ou empate":safe(g.home)+" ou "+safe(g.away)+" (sem empate)"}
+function probLineHTML(p,g){const fav=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" favorito · "+Math.round(Math.max(p.pH,p.pA))+"%";return`<div class="prob-line">🏆 <b>${fav}</b><br>🎯 Chance dupla: <b>${dcText(p,g)} · ${Math.round(p.dcBest)}%</b><br>⚽ +2,5 gols: ${Math.round(p.o25)}% · Ambos marcam: ${Math.round(p.btts)}%</div>`}
+function enhanceCards(box,list){box.querySelectorAll(".match").forEach(async card=>{const g=list.find(x=>String(x.id)===card.dataset.id);if(!g||!g.homeId||!g.awayId||!g.path||card.querySelector(".prob-line"))return;try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);const p=calcProbs(h,a);if(!p||!card.isConnected||card.querySelector(".prob-line"))return;card.querySelector(".tap-hint").insertAdjacentHTML("beforebegin",probLineHTML(p,g))}catch(e){}})}
+
+/* FUNÇÃO DA ABA TIPS */
 function renderDetailTabs(){
  const g=currentMatch,h=currentHistHome,a=currentHistAway;
  const have=h.length||a.length;
 
- function marketTeamHTML(team,list){
-  const f=getForm(list);
-  const total=list.length;
 
-  return `
-   <div class="market-team">
-    <strong>${safe(team)} · últimos ${total} jogos</strong>
-    <div class="market-grid">
-     <div class="market-item">
-      <small>VITÓRIAS</small>
-      <b class="green">${pct(f.wins,total)}%</b>
-      <small>${f.wins} de ${total}</small>
-     </div>
-     <div class="market-item">
-      <small>EMPATES</small>
-      <b>${pct(f.draws,total)}%</b>
-      <small>${f.draws} de ${total}</small>
-     </div>
-     <div class="market-item">
-      <small>DERROTAS</small>
-      <b class="red">${pct(f.losses,total)}%</b>
-      <small>${f.losses} de ${total}</small>
-     </div>
-    </div>
-   </div>
-  `;
+ const item=(label,val,best)=>`<div class="market-item" style="${best?"border:1px solid #42d392":""}"><small>${label}</small><b class="${best?"green":""}">${Math.round(val)}%</b></div>`;
+ const p=calcProbs(h,a);
+ let marketHTML;
+ if(p){
+  const favText=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" tem mais chances de vencer";
+  const maxR=Math.max(p.pH,p.pD,p.pA);
+  marketHTML=`
+  <div class="market-data">
+   <h3>🎯 Mercado de Probabilidades</h3>
+   <div class="market-team"><strong>🏆 Mais chances de ganhar</strong><div style="font-size:14px;font-weight:bold" class="green">${favText}</div>
+    <div class="market-note" style="margin-top:6px">Melhor chance dupla: <strong>${dcText(p,g)}</strong> (${Math.round(p.dcBest)}%)</div></div>
+   <div class="market-team"><strong>Resultado final (1X2)</strong><div class="market-grid">
+    ${item(safe(g.home),p.pH,p.pH===maxR)}${item("Empate",p.pD,p.pD===maxR)}${item(safe(g.away),p.pA,p.pA===maxR)}</div></div>
+   <div class="market-team"><strong>Chance dupla</strong><div class="market-grid">
+    ${item("1X · Casa ou empate",p.d1x,p.dcKey==="1x")}${item("12 · Sem empate",p.d12,p.dcKey==="12")}${item("X2 · Fora ou empate",p.dx2,p.dcKey==="x2")}</div></div>
+   <div class="market-team"><strong>Total de gols</strong><div class="market-grid" style="grid-template-columns:repeat(2,1fr)">
+    ${item("Mais de 2,5",p.o25,p.o25>=50)}${item("Menos de 2,5",100-p.o25,p.o25<50)}</div></div>
+   <div class="market-team"><strong>Ambos marcam</strong><div class="market-grid" style="grid-template-columns:repeat(2,1fr)">
+    ${item("Sim",p.btts,p.btts>=50)}${item("Não",100-p.btts,p.btts<50)}</div></div>
+   <div class="market-note">Probabilidades estimadas a partir do retrospecto dos últimos jogos concluídos de cada time (${h.length} e ${a.length} jogos). Amostra limitada: não considera escalações, lesões ou mando de campo. Não é garantia de resultado.</div>
+  </div>`;
+ }else{
+  marketHTML=`<div class="market-data"><h3>🎯 Mercado de Probabilidades</h3><div class="market-note">As probabilidades serão exibidas quando os dois times tiverem pelo menos 3 jogos concluídos disponíveis.</div></div>`;
  }
 
- const marketHTML=h.length>=3&&a.length>=3
- ?`
-  <div class="market-data">
-   <h3>📊 Mercado de Dados</h3>
-   <p class="muted" style="line-height:1.6">
-    Comparação automática do retrospecto recente dos dois clubes.
-   </p>
-   ${marketTeamHTML(g.home,h)}
-   ${marketTeamHTML(g.away,a)}
-   <div class="market-note">
-    Dados calculados a partir dos últimos jogos concluídos de cada equipe.
-    São frequências históricas, não probabilidades ou previsões.
-    A amostra é limitada e não considera escalações, lesões ou mando de campo.
-   </div>
-  </div>
- `
- :`
-  <div class="market-data">
-   <h3>📊 Mercado de Dados</h3>
-   <div class="market-note">
-    A seção será exibida quando os dois times tiverem pelo menos 3 jogos concluídos disponíveis.
-   </div>
-  </div>
- `;
-
- $("#tab-tips").innerHTML=`
-  <div class="panel">
-   <h3>📈 Tips · retrospecto dos times</h3>
-   <p class="muted" style="line-height:1.6">
-    Veja separadamente os percentuais de vitória, empate e derrota de cada equipe nos jogos recentes.
-    São frequências históricas, não previsões nem garantias.
-   </p>
-   ${have?teamTipsHTML(g.home,h)+teamTipsHTML(g.away,a):'<div class="empty">Histórico não disponível para esta partida.</div>'}
-   ${marketHTML}
-  </div>
- `;
+ $("#tab-tips").innerHTML=`<div class="panel"><h3>📈 Tips · mercado de probabilidades</h3>${marketHTML}</div>`;
 
  $("#tab-stats").innerHTML=`
   <div class="panel">
@@ -408,7 +386,7 @@ function renderDetailTabs(){
 }
 
 function matchHTML(g,extra=""){return`<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}" role="button" tabindex="0"><div class="match-top"><span>${safe(g.league)}</span><span class="${g.live?"status-live":""}">${g.live?'<span class="live-dot"></span>':""}${safe(g.state)}</span></div><div class="teams">${teamHTML(g.home,g.homeLogo)}<div class="score">${safe(g.hs)}</div>${teamHTML(g.away,g.awayLogo)}<div class="score">${safe(g.as)}</div></div><div class="meta">${safe(formatDate(g.date))}</div><div class="tap-hint"><span>Toque para abrir a partida</span><strong>VER DETALHES →</strong></div></article>`}
-function bindMatchCards(box,list){box.querySelectorAll(".match").forEach(card=>{const open=()=>{const g=list.find(x=>String(x.id)===card.dataset.id);if(g)openMatch(g)};card.addEventListener("click",open);card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})})}
+function bindMatchCards(box,list){box.querySelectorAll(".match").forEach(card=>{const open=()=>{const g=list.find(x=>String(x.id)===card.dataset.id);if(g)openMatch(g)};card.addEventListener("click",open);card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})});enhanceCards(box,list)}
 
 /* Destaques do dia: cada data fica guardada; ao virar o dia, a seleção anterior entra no arquivo. */
 let duplaRecords=read("radarDuplaHistory",[]);if(!Array.isArray(duplaRecords))duplaRecords=[];
@@ -497,3 +475,4 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden){const now
 </script>
 </body>
 </html>
+```
