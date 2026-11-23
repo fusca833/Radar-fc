@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -94,6 +93,10 @@ label{font-size:12px;color:#b6c9d9}.full{width:100%;margin-top:5px}
 .ai-box h4{font-size:13px;margin:0 0 10px;color:#65e3a7}.ai-text{font-size:12px;line-height:1.7;color:#c2d0df}
 .outcome-card{background:#0d1d2e;border:1px solid #29415c;border-radius:11px;padding:12px;margin:10px 0}
 .prob-line{margin-top:11px;padding:9px 10px;background:#0d1d2e;border:1px solid #347d63;border-radius:9px;font-size:11px;line-height:1.7;color:#b6c9d9}.prob-line b{color:#65e3a7}
+
+/* MODO DA MÚLTIPLA (confiável / IA) */
+.mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.mode-switch button{padding:13px 6px;font-size:13px;font-weight:bold}
 
 /* MERCADO DE DADOS */
 .market-data{
@@ -411,9 +414,14 @@ function saveMultiplas(){localStorage.setItem("radarMultiplas",JSON.stringify(mu
 const multiLevels={
  safe:{name:"Segura",min:80,markets:["dc","o15","u35"],desc:"Palpites com 80% ou mais de probabilidade (chance dupla e gols)."},
  mid:{name:"Moderada",min:65,markets:["dc","o15","u35","win"],desc:"Palpites com 65% ou mais, incluindo favoritos para vencer."},
- bold:{name:"Ousada",min:50,markets:["win"],desc:"Apenas vitórias dos favoritos (a partir de 50%). Odd maior, risco maior."}
+ bold:{name:"Ousada",min:50,markets:["win"],desc:"Apenas vitórias dos favoritos (a partir de 50%). Odd maior, risco maior."},
+ reliable:{name:"Confiável",min:75,markets:["dc","o15","u35"],desc:"Gerada automaticamente: até 3 jogos com probabilidade de 75% ou mais (chance dupla e gols), usando só times com pelo menos 8 jogos de histórico."}
 };
-let multiLevel="safe",multiSize=4,multiBusy=false,resolvingMulti=false;
+const reliableCfg={level:"reliable",markets:["dc","o15","u35"],min:75,size:3,minSample:8};
+let multiLevel="safe",multiSize=4,multiMode="reliable",multiBusy=false,resolvingMulti=false;
+/* Chave da múltipla: data + "c" quando é a confiável (uma de cada tipo por dia) */
+function multiKey(){return dateKey(offsetDay())+(multiMode==="reliable"?"c":"")}
+function fmtKey(k){return String(k).slice(6,8)+"/"+String(k).slice(4,6)+"/"+String(k).slice(0,4)}
 function legCandidates(p,g){
  const c=[],dcLabel=p.dcKey==="1x"?g.home+" ou empate":p.dcKey==="x2"?g.away+" ou empate":g.home+" ou "+g.away;
  c.push({m:"dc",key:"dc"+p.dcKey,label:dcLabel,prob:p.dcBest});
@@ -422,10 +430,10 @@ function legCandidates(p,g){
  if(Math.abs(p.pH-p.pA)>=5)c.push({m:"win",key:p.pH>p.pA?"winH":"winA",label:(p.pH>p.pA?g.home:g.away)+" vence",prob:Math.max(p.pH,p.pA)});
  return c
 }
-async function buildMulti(){
- const lv=multiLevels[multiLevel],pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live);
- const evaluated=await Promise.all(pool.map(async g=>{try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]),p=calcProbs(h,a);if(!p)return null;const best=legCandidates(p,g).filter(c=>lv.markets.includes(c.m)&&c.prob>=lv.min).sort((x,y)=>y.prob-x.prob)[0];return best?{g,best}:null}catch(e){return null}}));
- return evaluated.filter(Boolean).sort((x,y)=>y.best.prob-x.best.prob).slice(0,multiSize).map(({g,best})=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:best.key,label:best.label,prob:Math.round(best.prob*10)/10,result:"pending"}))
+async function buildMulti(cfg){
+ const pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live);
+ const evaluated=await Promise.all(pool.map(async g=>{try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);if(h.length<cfg.minSample||a.length<cfg.minSample)return null;const p=calcProbs(h,a);if(!p)return null;const best=legCandidates(p,g).filter(c=>cfg.markets.includes(c.m)&&c.prob>=cfg.min).sort((x,y)=>y.prob-x.prob)[0];return best?{g,best}:null}catch(e){return null}}));
+ return evaluated.filter(Boolean).sort((x,y)=>y.best.prob-x.best.prob).slice(0,cfg.size).map(({g,best})=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:best.key,label:best.label,prob:Math.round(best.prob*10)/10,result:"pending"}))
 }
 function evalLeg(k,hs,as){const ok={dc1x:hs>=as,dcx2:as>=hs,dc12:hs!==as,o15:hs+as>=2,u35:hs+as<=3,winH:hs>as,winA:as>hs}[k];return ok?"green":"red"}
 function multiStatus(m){if(m.legs.some(l=>l.result==="red"))return"red";if(m.legs.length&&m.legs.every(l=>l.result==="green"))return"green";return"pending"}
@@ -451,31 +459,45 @@ function multiHTML(m){
  <div class="market-note">Probabilidades estimadas pelo retrospecto dos últimos 10 jogos de cada time. A "odd justa" é só uma referência calculada pela probabilidade, não é a odd de nenhuma casa de apostas. Quanto mais jogos na múltipla, menor a chance de acertar todos. Não é garantia de resultado.</div></div>`
 }
 function renderMultiResult(){
- const el=$("#multiResult");if(!el)return;const m=multiplas[dateKey(offsetDay())];if(m)resolveFromGames(m);
- el.innerHTML=m?multiHTML(m):'<div class="empty">Nenhuma múltipla gerada para esta data.<br>Escolha o nível e toque em "Gerar múltipla com IA".</div>'
+ const el=$("#multiResult");if(!el)return;const m=multiplas[multiKey()];if(m)resolveFromGames(m);
+ el.innerHTML=m?multiHTML(m):(multiMode==="reliable"?'<div class="empty">Nenhuma múltipla confiável gerada para esta data.<br>Toque em "Gerar múltipla confiável".</div>':'<div class="empty">Nenhuma múltipla com IA gerada para esta data.<br>Escolha o nível e toque em "Gerar múltipla com IA".</div>')
+}
+function renderMultiControls(){
+ const c=$("#multiControls");if(!c)return;
+ if(multiMode==="reliable"){
+  c.innerHTML=`<div class="muted" id="multiDesc" style="margin-bottom:10px">${multiLevels.reliable.desc}</div>
+  <button class="full" id="multiGen">✅ Gerar múltipla confiável</button>
+  <div class="muted" id="multiMsg" style="margin-top:8px"></div>`;
+ }else{
+  c.innerHTML=`<div class="muted" style="margin-bottom:8px">Escolha o nível:</div>
+  <div class="toolbar" style="margin:0 0 6px" id="multiLevels">${["safe","mid","bold"].map(k=>`<button class="${multiLevel===k?"active":""}" data-mlevel="${k}">${multiLevels[k].name}</button>`).join("")}</div>
+  <div class="muted" id="multiDesc" style="margin-bottom:10px">${multiLevels[multiLevel].desc}</div>
+  <label>Quantidade de jogos</label><select id="multiSize">${[2,3,4,5].map(n=>`<option value="${n}" ${multiSize===n?"selected":""}>${n} jogos</option>`).join("")}</select>
+  <button class="full" id="multiGen">🤖 Gerar múltipla com IA</button>
+  <div class="muted" id="multiMsg" style="margin-top:8px"></div>`;
+  document.querySelectorAll("[data-mlevel]").forEach(b=>b.onclick=()=>{multiLevel=b.dataset.mlevel;document.querySelectorAll("[data-mlevel]").forEach(x=>x.classList.toggle("active",x===b));$("#multiDesc").textContent=multiLevels[multiLevel].desc});
+  $("#multiSize").onchange=e=>{multiSize=Number(e.target.value)};
+ }
+ $("#multiGen").onclick=generateMulti
+}
+async function generateMulti(){
+ if(multiBusy)return;const msg=$("#multiMsg"),key=multiKey(),existing=multiplas[key],reliable=multiMode==="reliable";
+ if(existing&&existing.legs.some(l=>l.result!=="pending")){msg.textContent="Esta múltipla já tem jogos encerrados e não pode ser substituída.";return}
+ multiBusy=true;msg.textContent="Analisando os jogos e o histórico dos times...";
+ try{
+  const lv=multiLevels[multiLevel],cfg=reliable?reliableCfg:{level:multiLevel,markets:lv.markets,min:lv.min,size:multiSize,minSample:3};
+  const legs=await buildMulti(cfg),m2=$("#multiMsg");if(!m2)return;
+  if(legs.length<2){m2.textContent=reliable?"Poucos jogos confiáveis nesta data (probabilidade de 75% ou mais e histórico completo). Tente outra data ou use a opção com IA.":"Poucos jogos com probabilidade suficiente neste nível. Tente outro nível ou menos jogos.";return}
+  multiplas[key]={level:cfg.level,legs,created:Date.now()};saveMultiplas();m2.textContent=reliable?"Múltipla confiável gerada!":"Múltipla gerada!";renderMultiResult();renderDuplaHistory()
+ }catch(e){const m2=$("#multiMsg");if(m2)m2.textContent="Não foi possível gerar agora. Tente novamente."}finally{multiBusy=false}
 }
 function renderMultiBox(){
  const key=dateKey(offsetDay());
- $("#matches").innerHTML=`<div class="dupla-wrap"><div class="dupla-heading"><strong>🎯 MÚLTIPLA DO DIA</strong><span>${key.replace(/^(\d{4})(\d{2})(\d{2})$/,"$3/$2/$1")}</span></div>
- <div class="muted" style="margin-bottom:8px">Escolha o nível:</div>
- <div class="toolbar" style="margin:0 0 6px" id="multiLevels">${Object.keys(multiLevels).map(k=>`<button class="${multiLevel===k?"active":""}" data-mlevel="${k}">${multiLevels[k].name}</button>`).join("")}</div>
- <div class="muted" id="multiDesc" style="margin-bottom:10px">${multiLevels[multiLevel].desc}</div>
- <label>Quantidade de jogos</label><select id="multiSize">${[2,3,4,5].map(n=>`<option value="${n}" ${multiSize===n?"selected":""}>${n} jogos</option>`).join("")}</select>
- <button class="full" id="multiGen">🤖 Gerar múltipla com IA</button>
- <div class="muted" id="multiMsg" style="margin-top:8px"></div></div><div id="multiResult"></div>`;
- document.querySelectorAll("[data-mlevel]").forEach(b=>b.onclick=()=>{multiLevel=b.dataset.mlevel;document.querySelectorAll("[data-mlevel]").forEach(x=>x.classList.toggle("active",x===b));$("#multiDesc").textContent=multiLevels[multiLevel].desc});
- $("#multiSize").onchange=e=>{multiSize=Number(e.target.value)};
- $("#multiGen").onclick=async()=>{
-  if(multiBusy)return;const msg=$("#multiMsg"),existing=multiplas[key];
-  if(existing&&existing.legs.some(l=>l.result!=="pending")){msg.textContent="Esta múltipla já tem jogos encerrados e não pode ser substituída.";return}
-  multiBusy=true;msg.textContent="Analisando os jogos e o histórico dos times...";
-  try{
-   const legs=await buildMulti(),m2=$("#multiMsg");if(!m2)return;
-   if(legs.length<2){m2.textContent="Poucos jogos com probabilidade suficiente neste nível. Tente outro nível ou menos jogos.";return}
-   multiplas[key]={level:multiLevel,legs,created:Date.now()};saveMultiplas();m2.textContent="Múltipla gerada!";renderMultiResult();renderDuplaHistory()
-  }catch(e){const m2=$("#multiMsg");if(m2)m2.textContent="Não foi possível gerar agora. Tente novamente."}finally{multiBusy=false}
- };
- renderMultiResult()
+ $("#matches").innerHTML=`<div class="dupla-wrap"><div class="dupla-heading"><strong>🎯 MÚLTIPLA DO DIA</strong><span>${fmtKey(key)}</span></div>
+ <div class="mode-switch"><button data-mmode="reliable" class="${multiMode==="reliable"?"active":""}">✅ Múltipla confiável</button><button data-mmode="ai" class="${multiMode==="ai"?"active":""}">🤖 Fazer com IA</button></div>
+ <div id="multiControls"></div></div><div id="multiResult"></div>`;
+ document.querySelectorAll("[data-mmode]").forEach(b=>b.onclick=()=>{multiMode=b.dataset.mmode;document.querySelectorAll("[data-mmode]").forEach(x=>x.classList.toggle("active",x===b));renderMultiControls();renderMultiResult()});
+ renderMultiControls();renderMultiResult()
 }
 function renderDuplaHistory(){
  archiveExpiredDuplas();
@@ -484,7 +506,7 @@ function renderDuplaHistory(){
  const box=$("#duplaHistoryList"),all=duplaArchive.slice().sort((a,b)=>b.dateKey.localeCompare(a.dateKey));
  if(!keys.length&&!all.length&&!duplaRecords.length){box.innerHTML='<div class="empty">As múltiplas geradas aparecerão aqui, com green ou red automático depois dos jogos.</div>';return}
  const tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
- const multi=keys.map((k,i)=>{const m=multiplas[k],comb=m.legs.reduce((x,l)=>x*l.prob/100,1),date=k.replace(/^(\d{4})(\d{2})(\d{2})$/,"$3/$2/$1");return`<div class="dupla-record"><strong>📅 ${date} · ${safe(multiLevels[m.level]?.name||"")} · ${(comb*100).toFixed(0)}%</strong> ${tag[st[i]]}${m.legs.map(l=>`<div style="padding:7px 0;border-top:1px solid #263b53;margin-top:7px"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.label)} · ${Math.round(l.prob)}%${l.score?" · placar "+safe(l.score):""}</span> ${tag[l.result]}</div>`).join("")}</div>`}).join("");
+ const multi=keys.map((k,i)=>{const m=multiplas[k],comb=m.legs.reduce((x,l)=>x*l.prob/100,1),date=fmtKey(k);return`<div class="dupla-record"><strong>📅 ${date} · ${safe(multiLevels[m.level]?.name||"")} · ${(comb*100).toFixed(0)}%</strong> ${tag[st[i]]}${m.legs.map(l=>`<div style="padding:7px 0;border-top:1px solid #263b53;margin-top:7px"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.label)} · ${Math.round(l.prob)}%${l.score?" · placar "+safe(l.score):""}</span> ${tag[l.result]}</div>`).join("")}</div>`}).join("");
  const rate=g+r?`<div class="muted" style="margin-bottom:8px">Taxa de acerto das múltiplas: <strong>${Math.round(g/(g+r)*100)}%</strong> (${g} green de ${g+r} encerradas)</div>`:"";
  const archived=all.map(dayRecord=>{const date=dayRecord.dateKey.replace(/^(\d{4})(\d{2})(\d{2})$/,"$3/$2/$1");return`<div class="dupla-record"><strong>📅 ${date} (destaques antigos)</strong>${dayRecord.matches.map(m=>`<div style="padding:9px 0;border-top:1px solid #263b53;margin-top:8px"><strong>${safe(m.home)} x ${safe(m.away)}</strong><br><span class="muted">${safe(m.league||"Futebol")}</span><br>Placar: ${safe(m.hs)} x ${safe(m.as)}<br><span>${safe(m.result)}</span></div>`).join("")}</div>`}).join("");
  const manual=duplaRecords.slice().reverse().map(r=>{const date=r.date?new Date(r.date).toLocaleDateString("pt-BR"):"Data não informada",result=r.result==="green"||r.result==="win"?"Vitória":r.result==="red"||r.result==="loss"?"Derrota":r.result==="draw"?"Empate":"Pendente";return`<div class="dupla-record"><strong>${safe(r.home)} x ${safe(r.away)}</strong><br><span class="muted">${safe(r.league)} · ${date}</span><br>Resultado registrado: <strong>${result}</strong></div>`}).join("");
@@ -535,7 +557,7 @@ $("#refresh").onclick=()=>{archiveExpiredDuplas();games=[];load();resolveMultipl
 renderLeagues();renderPredictions();renderGoal();archiveExpiredDuplas();renderDuplaHistory();load();resolveMultiplas();
 /* A checagem periódica detecta a virada da data local mesmo com o site aberto. */
 let lastLocalDate=dateKey();
-setInterval(()=>{const now=dateKey();if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();if(day==="today"&&selected==="dupla"){games=[];load()}else if(day==="today"&&selected!=="dupla"){games=[];load()}renderDuplaHistory()}if(!document.hidden&&day==="today"&&$("#radar").classList.contains("active"))load();resolveMultiplas()},60000);
+setInterval(()=>{const now=dateKey();if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();if(day==="today"&&selected==="dupla"){games=[];load()}else if(day==="today"&&selected!=="dupla"){games=[];load()}renderDuplaHistory()}if(!document.hidden&&day==="today"&&$("#radar").classList.contains("active")&&!multiBusy)load();resolveMultiplas()},60000);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){const now=dateKey();if(now!==lastLocalDate){lastLocalDate=now;archiveExpiredDuplas();renderDuplaHistory()}if(day==="today"&&$("#radar").classList.contains("active"))load()}});
 </script>
 </body>
