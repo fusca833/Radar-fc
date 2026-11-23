@@ -92,6 +92,10 @@ label{font-size:12px;color:#b6c9d9}
 .analysis-label{text-align:center;color:#91a5bc;font-size:10px}
 .analysis-summary{font-size:11px;color:#b6c9d9;line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px solid #263b53}
 .analysis-events{font-size:11px;line-height:1.7;color:#b6c9d9;margin-top:10px}
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
+.metric{background:#14263b;border:1px solid #29415c;border-radius:8px;padding:9px 5px;text-align:center}
+.metric small{display:block;font-size:9px;color:#91a5bc}
+.metric strong{display:block;font-size:17px;margin-top:5px}
 @media(max-width:520px){header{padding-top:18px}.matches{grid-template-columns:1fr}.history{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -114,7 +118,7 @@ label{font-size:12px;color:#b6c9d9}
  <div id="sourceLabel" class="source">Fonte: ESPN</div>
  <div class="matches" id="matches"><div class="loading">Carregando partidas...</div></div>
  <div id="duplaHistorySection" style="display:none">
-  <div class="section"><h3>📊 Histórico da Dupla do Dia</h3></div>
+  <div class="section"><h3>📊 Histórico dos destaques</h3></div>
   <div class="dupla-stats">
    <div class="dupla-stat"><small>GREEN</small><strong class="green" id="duplaGreen">0</strong></div>
    <div class="dupla-stat"><small>RED</small><strong class="red" id="duplaRed">0</strong></div>
@@ -148,9 +152,12 @@ label{font-size:12px;color:#b6c9d9}
  <div class="section"><h3>🎯 Minhas metas</h3></div>
  <div class="panel">
   <h3>Meta de economia</h3>
-  <label>Nome da meta</label><input id="goalName" placeholder="Ex.: Comprar um PC">
-  <label>Valor desejado (R$)</label><input id="goalTarget" type="number" min="0" step="0.01" placeholder="Ex.: 1000">
-  <label>Quanto já guardou (R$)</label><input id="goalSaved" type="number" min="0" step="0.01" placeholder="Ex.: 150">
+  <label>Nome da meta</label>
+  <input id="goalName" placeholder="Ex.: Comprar um PC">
+  <label>Valor desejado (R$)</label>
+  <input id="goalTarget" type="number" min="0" step="0.01" placeholder="Ex.: 1000">
+  <label>Quanto já guardou (R$)</label>
+  <input id="goalSaved" type="number" min="0" step="0.01" placeholder="Ex.: 150">
   <button class="full" id="saveGoal">Salvar meta</button>
  </div>
  <div class="panel" style="margin-top:12px">
@@ -327,12 +334,35 @@ function resultLabel(g){
  if(g.scored===g.conceded)return ["EMPATE","draw"];
  return ["DERROTA","loss"];
 }
+
+/* Estatísticas históricas automáticas */
 function renderHistory(team,list){
  const f=getForm(list);
- return `<div class="history-team"><strong>${safe(team)}</strong><div class="muted">V ${f.wins} · E ${f.draws} · D ${f.losses}</div>${list.map(g=>{
+ const total=list.length;
+ const scored=list.reduce((s,g)=>s+g.scored,0);
+ const conceded=list.reduce((s,g)=>s+g.conceded,0);
+ const goals=list.map(g=>g.scored+g.conceded);
+ const two=goals.filter(n=>n>=2).length;
+ const three=goals.filter(n=>n>=3).length;
+ const avg=n=>total?(n/total).toFixed(1).replace(".",","):"—";
+ const pct=n=>total?Math.round(n/total*100)+"%":"—";
+
+ return `<div class="history-team">
+ <strong>${safe(team)}</strong>
+ <div class="muted">Últimos ${total} jogos · V ${f.wins} · E ${f.draws} · D ${f.losses}</div>
+ <div class="metric-grid">
+  <div class="metric"><small>GOLS MARCADOS</small><strong>${avg(scored)}</strong></div>
+  <div class="metric"><small>GOLS SOFRIDOS</small><strong>${avg(conceded)}</strong></div>
+  <div class="metric"><small>GOLS TOTAIS</small><strong>${avg(scored+conceded)}</strong></div>
+ </div>
+ <div class="game-result">Partidas com 2 ou mais gols: <strong>${two}/${total} (${pct(two)})</strong></div>
+ <div class="game-result">Partidas com 3 ou mais gols: <strong>${three}/${total} (${pct(three)})</strong></div>
+ <div class="game-result"><strong>Resultados anteriores</strong></div>
+ ${list.map(g=>{
   const [label,css]=resultLabel(g);
   return `<div class="game-result"><span class="${css}">${label}</span><br>${safe(g.opponent)}<br>${g.scored} x ${g.conceded}</div>`;
- }).join("")}</div>`;
+ }).join("")}
+ </div>`;
 }
 function teamHTML(name,logo){
  const img=logo?`<img class="team-logo" src="${safe(logo)}" alt="" onerror="this.style.display='none'">`:"";
@@ -387,8 +417,8 @@ function getScoringEvents(summary){
 function analysisSummary(rows,g){
  if(!rows?.length)return "Ainda não há estatísticas suficientes para analisar esta partida.";
  const find=label=>rows.find(r=>r.label===label);
- const shots=find("Finalizações"),corners=find("Escanteios"),pos=find("Posse de bola");
- const number=v=>parseFloat(String(v).replace("%","").replace(",",".")); 
+ const shots=find("Finalizações"),pos=find("Posse de bola");
+ const number=v=>parseFloat(String(v).replace("%","").replace(",","."));
  const hs=number(shots?.home),as=number(shots?.away);
  if(Number.isFinite(hs)&&Number.isFinite(as)){
   if(hs>as)return `${g.home} registra mais finalizações até agora.`;
@@ -432,19 +462,44 @@ async function loadLiveAnalysis(g,card){
   target.innerHTML='<div class="muted">Não foi possível consultar as estatísticas agora. Tente atualizar.</div>';
  }
 }
+
+/* Carrega o histórico antes da partida ou durante o jogo */
 async function loadForm(g,card){
  const target=card.querySelector(".phase-content");
  if(!target)return;
- if(!g.homeId||!g.awayId||!g.path){target.textContent="Histórico recente indisponível nesta fonte.";return}
+ if(!g.homeId||!g.awayId||!g.path){
+  target.textContent="Histórico recente indisponível nesta fonte.";
+  return;
+ }
+ target.innerHTML='<div class="loading">Calculando estatísticas históricas...</div>';
  try{
-  const [hg,ag]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
-  if(!hg.length||!ag.length){target.textContent="Ainda não há resultados anteriores disponíveis.";return}
+  const [hg,ag]=await Promise.all([
+   teamHistory(g.path,g.homeId),
+   teamHistory(g.path,g.awayId)
+  ]);
+  if(!hg.length||!ag.length){
+   target.textContent="Ainda não há resultados anteriores disponíveis.";
+   return;
+  }
   const hf=getForm(hg),af=getForm(ag);
-  let message="Os times estão em fase recente semelhante.";
-  if(formValue(hf)>formValue(af))message=`${g.home} apresenta melhor pontuação nos últimos jogos.`;
-  if(formValue(af)>formValue(hf))message=`${g.away} apresenta melhor pontuação nos últimos jogos.`;
-  target.innerHTML=`<div class="phase-result">${safe(message)}</div><div class="history">${renderHistory(g.home,hg)}${renderHistory(g.away,ag)}</div>`;
- }catch(e){target.textContent="Não foi possível carregar os resultados anteriores."}
+  const hAvg=hg.reduce((s,x)=>s+x.scored+x.conceded,0)/hg.length;
+  const aAvg=ag.reduce((s,x)=>s+x.scored+x.conceded,0)/ag.length;
+  let message="As equipes apresentam médias históricas próximas.";
+  if(hAvg>aAvg)message=`${g.home} teve maior média de gols totais nos últimos jogos.`;
+  if(aAvg>hAvg)message=`${g.away} teve maior média de gols totais nos últimos jogos.`;
+  target.innerHTML=`
+   <div class="phase-result">📊 COMPARAÇÃO ESTATÍSTICA</div>
+   <div class="analysis-summary">${safe(message)}</div>
+   <div class="history">
+    ${renderHistory(g.home,hg)}
+    ${renderHistory(g.away,ag)}
+   </div>
+   <div class="muted" style="margin-top:10px">
+    Dados dos últimos jogos concluídos. As médias descrevem o histórico e não garantem resultados futuros.
+   </div>`;
+ }catch(e){
+  target.textContent="Não foi possível carregar os resultados anteriores.";
+ }
 }
 function matchHTML(g,extra=""){
  const date=new Date(g.date);
@@ -455,7 +510,7 @@ function matchHTML(g,extra=""){
  <div class="tap-hint"><span>Toque para ver os detalhes</span><strong class="expand-label">＋ VER ANÁLISE</strong></div>
  <div class="match-details">
   <div class="live-analysis"><h4>📈 ANÁLISE DA PARTIDA <span class="analysis-status">${g.live?"AO VIVO":g.completed?"FINALIZADA":"AGUARDANDO"}</span></h4><div class="analysis-content loading">Carregando estatísticas...</div></div>
-  <div class="phase"><h4>📋 ÚLTIMOS CINCO JOGOS</h4><div class="phase-content loading">Consultando resultados...</div></div>
+  <div class="phase"><h4>📋 HISTÓRICO E MÉDIAS DOS ÚLTIMOS CINCO JOGOS</h4><div class="phase-content loading">Consultando resultados...</div></div>
  </div>
  </article>`;
 }
@@ -506,7 +561,7 @@ function renderDuplaHistory(){
  const draws=duplaRecords.filter(r=>r.result==="draw").length;
  $("#duplaGreen").textContent=greens;$("#duplaRed").textContent=reds;$("#duplaDraw").textContent=draws;
  const box=$("#duplaHistoryList");
- if(!duplaRecords.length){box.innerHTML='<div class="empty">Nenhum resultado antigo registrado ainda.</div>';return}
+ if(!duplaRecords.length){box.innerHTML='<div class="empty">Nenhum resultado registrado ainda.</div>';return}
  const labels={green:"GREEN",red:"RED",draw:"EMPATE",pending:"PENDENTE"};
  const classes={green:"green",red:"red",draw:"draw",pending:""};
  box.innerHTML=duplaRecords.slice().reverse().map(r=>{
