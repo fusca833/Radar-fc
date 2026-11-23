@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -29,7 +30,6 @@ button.active{background:#176344;border-color:#42d392}
 .match:hover{border-color:#42617f}
 .match.expanded{border-color:#42d392;background:#122238}
 .match.live-match{border-color:#b63d4a}
-.matchtop{display:flex;justify-content:space-between;color:#91a5bc;font-size:11px;margin-bottom:15px;gap:8px}
 .status-live{color:#ff737d;font-weight:bold}
 .live-dot{display:inline-block;width:7px;height:7px;background:#ff5965;border-radius:50%;margin-right:5px}
 .teams{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;font-size:14px;font-weight:bold}
@@ -106,6 +106,15 @@ label{font-size:12px;color:#b6c9d9}
 .outcome-item small{display:block;font-size:9px;color:#91a5bc}
 .outcome-item strong{display:block;font-size:17px;margin:5px 0}
 .frequency-note{font-size:10px;line-height:1.5;color:#91a5bc;margin-top:9px}
+
+/* NOVO: comparação de resultados da partida */
+.match-outcome-box{background:#101e30;border:1px solid #347d63;border-radius:10px;padding:11px;margin:12px 0}
+.match-outcome-title{font-size:11px;font-weight:bold;color:#65e3a7;margin-bottom:8px}
+.match-outcome-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.match-outcome-item{background:#14263b;border:1px solid #29415c;border-radius:8px;padding:10px 4px;text-align:center;min-width:0}
+.match-outcome-item small{display:block;font-size:9px;color:#b6c9d9;line-height:1.3}
+.match-outcome-item strong{display:block;font-size:19px;margin:6px 0}
+.match-outcome-item span{font-size:10px;color:#91a5bc}
 @media(max-width:520px){header{padding-top:18px}.matches{grid-template-columns:1fr}.history{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -374,6 +383,52 @@ function frequencyHTML(list){
  <div class="frequency-note">Frequências calculadas com base em ${total} jogo(s) concluído(s) deste time. São dados históricos, não garantias sobre a próxima partida.</div>`;
 }
 
+/* NOVO: comparação histórica entre mandante, empate e visitante */
+function matchOutcomeHTML(homeList,awayList){
+ const homeForm=getForm(homeList);
+ const awayForm=getForm(awayList);
+
+ /*
+  Os resultados do visitante são invertidos para a perspectiva
+  da partida atual. Exemplo: derrota do visitante conta como
+  vitória do mandante nesta comparação histórica.
+ */
+ const homeWins=homeForm.wins+awayForm.losses;
+ const draws=homeForm.draws+awayForm.draws;
+ const awayWins=homeForm.losses+awayForm.wins;
+ const total=homeList.length+awayList.length;
+
+ if(!total)return '<div class="frequency-note">Sem histórico suficiente para esta comparação.</div>';
+
+ const pct=n=>Math.round(n/total*100);
+
+ return `
+ <div class="match-outcome-box">
+  <div class="match-outcome-title">⚽ COMPARAÇÃO DE RESULTADOS HISTÓRICOS</div>
+  <div class="match-outcome-grid">
+   <div class="match-outcome-item">
+    <small>VITÓRIA DO MANDANTE</small>
+    <strong class="green">${homeWins}</strong>
+    <span>${pct(homeWins)}% dos registros</span>
+   </div>
+   <div class="match-outcome-item">
+    <small>EMPATE</small>
+    <strong style="color:#f3d27a">${draws}</strong>
+    <span>${pct(draws)}% dos registros</span>
+   </div>
+   <div class="match-outcome-item">
+    <small>VITÓRIA DO VISITANTE</small>
+    <strong class="red">${awayWins}</strong>
+    <span>${pct(awayWins)}% dos registros</span>
+   </div>
+  </div>
+  <div class="frequency-note">
+   Base: ${homeList.length} jogos anteriores do mandante e ${awayList.length} do visitante.
+   Os resultados foram ajustados à perspectiva desta partida. Não são confrontos diretos nem previsões do placar.
+  </div>
+ </div>`;
+}
+
 /* Estatísticas históricas automáticas */
 function renderHistory(team,list){
  const f=getForm(list);
@@ -518,6 +573,7 @@ async function loadForm(g,card){
   target.innerHTML=`
    <div class="phase-result">📊 COMPARAÇÃO ESTATÍSTICA HISTÓRICA</div>
    <div class="analysis-summary">Compare os registros anteriores de cada equipe. Os percentuais abaixo mostram a frequência nos últimos jogos concluídos.</div>
+   ${matchOutcomeHTML(hg,ag)}
    <div class="history">
     ${renderHistory(g.home,hg)}
     ${renderHistory(g.away,ag)}
@@ -623,6 +679,7 @@ function renderSavedDupla(saved,currentGames){
   target.innerHTML=`<span class="pick-tag">📊 DESTAQUE ESTATÍSTICO</span>
    <div class="phase-result">Comparativo dos últimos cinco jogos</div>
    <div class="muted">Dados históricos disponíveis: ${Math.min(g.histHome?.length||0,5)} jogos de ${safe(g.home)} e ${Math.min(g.histAway?.length||0,5)} de ${safe(g.away)}.</div>
+   ${matchOutcomeHTML(g.histHome||[],g.histAway||[])}
    <div class="history">${renderHistory(g.home,g.histHome||[])}${renderHistory(g.away,g.histAway||[])}</div>`;
  });
  bindMatchCards(box,updated,true);
