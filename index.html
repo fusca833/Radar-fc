@@ -165,7 +165,7 @@ body.on-radar #dayBar.has{display:block}
  <div class="filters" id="filters">
   <input id="search" type="search" placeholder="🔍 Buscar time..." autocomplete="off" autocapitalize="off">
   <button id="liveBtn">🔴 Só ao vivo</button>
-  <button id="favBtn">🔥 2 jogos 85%+</button>
+  <button id="favBtn">🔥 Top 4 · 80%+</button>
   <button id="alertBtn">🔔 Avisos de gol: OFF</button>
  </div>
  <div class="section"><h3 id="title">Partidas</h3><span class="muted" id="count"></span></div>
@@ -316,8 +316,7 @@ const competitions=[
 ];
 const LIVE_COMPS=competitions.filter(c=>c.path);
 let selected="all",day="today",games=[],loading=false,currentMatch=null,currentHistHome=[],currentHistAway=[],currentLiveSummary=null,currentStandings=null,currentH2H=[];
-let searchText="",onlyLive=false,top85Only=false,top85Token=0,lastFailed=0,pageBefore="radar",lastLoadAt=0;
-const top85Cache={key:"",items:[],done:false};
+let searchText="",onlyLive=false,top4Only=false,top4Token=0,top4P=null,lastFailed=0,pageBefore="radar",lastLoadAt=0;
 const historyCache=new Map(),standCache=new Map(),$=s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch(e){return fallback}};
 const store=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val))}catch(e){}};
@@ -369,7 +368,7 @@ function checkGoals(){
 function updateAlertBtn(){const b=$("#alertBtn");b.textContent="🔔 Avisos de gol: "+(settings.goalAlert?"ON":"OFF");b.classList.toggle("active",!!settings.goalAlert)}
 $("#alertBtn").onclick=()=>{settings.goalAlert=!settings.goalAlert;store("radarSettings",settings);updateAlertBtn();if(settings.goalAlert){unlockAudio();beep();toast("🔔 Avisos ativados! Deixe o app aberto. "+(favs.length?"Só dos times favoritos (★).":"De todos os jogos ao vivo."),5500)}};
 $("#liveBtn").onclick=()=>{onlyLive=!onlyLive;$("#liveBtn").classList.toggle("active",onlyLive);if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
-$("#favBtn").onclick=()=>{top85Only=!top85Only;$("#favBtn").classList.toggle("active",top85Only);if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
+$("#favBtn").onclick=()=>{top4Only=!top4Only;$("#favBtn").classList.toggle("active",top4Only);if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
 $("#search").oninput=e=>{searchText=e.target.value;if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
 
 /* DATAS E PARSE */
@@ -952,46 +951,50 @@ function visibleGames(){
  return list.map((g,i)=>({g,i})).sort((a,b)=>rank(a.g)-rank(b.g)||a.i-b.i).map(x=>x.g)
 }
 
-/* 2 JOGOS COM 85%+ : os dois jogos do dia com maior probabilidade (a partir de 85%) entre chance dupla, +1,5, -3,5 e vitória */
-async function computeTop85(pool){
- const ev=await Promise.all(pool.map(async g=>{
-  try{
-   const[h,a]=await Promise.all([histBefore(g.path,g.homeId,g),histBefore(g.path,g.awayId,g)]);
-   const p=calcProbs(h,a,g.path);if(!p)return null;
-   const best=legCandidates(p,g).sort((x,y)=>y.prob-x.prob)[0];
-   return best&&best.prob>=85?{id:g.id,label:best.label,prob:best.prob}:null
-  }catch(e){return null}
- }));
- return ev.filter(Boolean).sort((x,y)=>y.prob-x.prob).slice(0,2)
+/* TOP 4 · 80%+ : até 4 jogos do dia com maior chance dupla (80% ou mais).
+   A lista é gravada por dia e fica fixa: jogo escolhido não sai. Se faltar vaga, outro jogo 80%+ que ainda não começou pode completar (máximo 4). */
+const TOP4_MIN=80,TOP4_MAX=4;
+let top4Store=read("radarTop4",{});if(!top4Store||typeof top4Store!=="object"||Array.isArray(top4Store))top4Store={};
+(function(){const lim=dateKey(-45);let ch=false;Object.keys(top4Store).forEach(k=>{if(k<lim){delete top4Store[k];ch=true}});if(ch)store("radarTop4",top4Store)})();
+function top4Ids(){
+ if(top4P)return top4P;
+ top4P=(async()=>{
+  const dk=dateKey(offsetDay()),list=games.slice(),full=selected==="all"||selected==="dupla";
+  let ids=Array.isArray(top4Store[dk])?top4Store[dk].map(String):[];
+  if(full&&ids.length<TOP4_MAX){
+   const pool=list.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!ids.includes(String(g.id)));
+   if(pool.length){
+    const ev=await Promise.all(pool.map(async g=>{const rec=await gamePick(g);return rec&&rec.prob>=TOP4_MIN?{id:String(g.id),prob:rec.prob}:null}));
+    const add=ev.filter(Boolean).sort((x,y)=>y.prob-x.prob).slice(0,TOP4_MAX-ids.length);
+    if(add.length){ids=ids.concat(add.map(x=>x.id));top4Store[dk]=ids;store("radarTop4",top4Store)}
+   }
+  }
+  return ids
+ })().finally(()=>{top4P=null});
+ return top4P
 }
-async function renderTop85(){
- const box=$("#matches"),tk=++top85Token;
- const pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live);
- const key=pool.map(g=>g.id).join(",");
- let items;
- if(top85Cache.done&&top85Cache.key===key)items=top85Cache.items;
- else{
-  box.innerHTML='<div class="loading">Analisando os jogos do dia...</div>';
-  items=await computeTop85(pool);
-  if(tk!==top85Token||!top85Only)return;
-  top85Cache.key=key;top85Cache.items=items;top85Cache.done=true
- }
- const found=items.map(it=>({it,g:games.find(x=>String(x.id)===String(it.id))})).filter(x=>x.g);
- $("#count").textContent=found.length+" de 2 jogo(s)";
- if(!found.length){box.innerHTML='<div class="empty">Nenhum jogo com 85% ou mais de probabilidade nesta data.<br>O modelo reduz exageros, então isso é raro. Toque em "🔥 2 jogos 85%+" de novo para voltar a ver todos os jogos.</div>';return}
- box.innerHTML=(found.length<2?'<div class="warnbox">Só '+found.length+' jogo passou de 85% nesta data.</div>':"")+'<div class="matches">'+found.map(({it,g})=>'<div><div class="pick-tag">🎯 '+safe(it.label)+' · '+Math.round(it.prob)+'%</div>'+matchHTML(g)+'</div>').join("")+'</div>';
+async function renderTop4(){
+ const box=$("#matches"),tk=++top4Token,dk=dateKey(offsetDay());
+ if(!Array.isArray(top4Store[dk])||!top4Store[dk].length)box.innerHTML='<div class="loading">Analisando os jogos do dia...</div>';
+ let ids=[];
+ try{ids=await top4Ids()}catch(e){}
+ if(tk!==top4Token||!top4Only||dateKey(offsetDay())!==dk)return;
+ const found=ids.map(id=>{const g=games.find(x=>String(x.id)===String(id));return g?{g,rec:dayPicks[String(g.id)]}:null}).filter(Boolean).sort((a,b)=>Number(b.rec?.prob||0)-Number(a.rec?.prob||0));
+ $("#count").textContent=found.length+" de "+TOP4_MAX+" jogo(s)";
+ if(!found.length){box.innerHTML='<div class="empty">Nenhum jogo com chance dupla de '+TOP4_MIN+'% ou mais nesta data'+(selected==="all"?".":".<br>Escolha a aba \"Todas\" para o app procurar em todas as competições.")+'<br>Toque em "🔥 Top 4 · 80%+" de novo para voltar a ver todos os jogos.</div>';return}
+ box.innerHTML='<div class="matches">'+found.map(({g,rec})=>'<div><div class="pick-tag">🎯 '+(rec?safe(keyLabel(rec.key,g.home,g.away))+' · '+Math.round(rec.prob)+'%':'Chance dupla')+'</div>'+matchHTML(g)+'</div>').join("")+'</div><div class="market-note">Lista fixa do dia: os jogos escolhidos não saem. Se sobrar vaga, outro jogo com '+TOP4_MIN+'% ou mais que ainda não começou pode entrar, até o máximo de '+TOP4_MAX+'.</div>';
  bindMatchCards(box,found.map(x=>x.g))
 }
 function renderGames(failed=0){
  lastFailed=failed;
  $("#filters").style.display="flex";
  const list=visibleGames();
- $("#title").textContent=top85Only?"🔥 2 jogos com 85%+ de probabilidade":selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name||"Partidas";
+ $("#title").textContent=top4Only?"🔥 Top 4 do dia · chance dupla 80%+":selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name||"Partidas";
  $("#count").textContent=(list.length===games.length?games.length:list.length+" de "+games.length)+" jogo(s)";
  $("#duplaHistorySection").style.display="none";const box=$("#matches");
  updateDayBar();
  if(!games.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';return}
- if(top85Only){renderTop85();return}
+ if(top4Only){renderTop4();return}
  if(!list.length){box.innerHTML='<div class="empty">Nenhum jogo encontrado com esse filtro.</div>';return}
  box.innerHTML=(failed?'<div class="empty">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>':"")+`<div class="matches">${list.map(g=>matchHTML(g)).join("")}</div>`;bindMatchCards(box,games)
 }
@@ -1107,7 +1110,7 @@ async function load(){
  const comps=selected==="all"||selected==="dupla"?competitions.filter(c=>c.path):competitions.filter(c=>c.id===selected);
  try{
   const results=await Promise.all(comps.map(async c=>{try{return{games:await fetchScoreboard(c),error:false}}catch(e){return{games:[],error:true}}})),espnGames=results.flatMap(r=>r.games);
-  if(espnGames.length){games=espnGames.sort((a,b)=>a.live===b.live?new Date(a.date)-new Date(b.date):a.live?-1:1);$("#sourceLabel").textContent="Fonte: ESPN";saveActivePaths();checkGoals();if(selected==="dupla")renderDupla();else renderGames(results.filter(r=>r.error).length);return}
+  if(espnGames.length){games=espnGames.sort((a,b)=>a.live===b.live?new Date(a.date)-new Date(b.date):a.live?-1:1);$("#sourceLabel").textContent="Fonte: ESPN";saveActivePaths();checkGoals();top4Ids().catch(()=>{});if(selected==="dupla")renderDupla();else renderGames(results.filter(r=>r.error).length);return}
   box.innerHTML='<div class="loading">ESPN indisponível. Tentando outra fonte...</div>';
   try{const alternative=await fetchSportScore();games=alternative.sort((a,b)=>a.live===b.live?new Date(a.date)-new Date(b.date):a.live?-1:1);$("#sourceLabel").textContent="Fonte alternativa: SportScore";checkGoals();
    if(selected==="dupla")renderDupla();else renderGames(0)
@@ -1119,7 +1122,7 @@ function goPage(id){document.querySelectorAll("[data-page]").forEach(x=>x.classL
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{goPage(b.dataset.page);window.scrollTo(0,0)});
 $("#backToRadar").onclick=()=>goPage(pageBefore||"radar");
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".detail-panel").forEach(x=>x.classList.toggle("active",x.id==="tab-"+b.dataset.tab))});
-document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];top85Cache.done=false;load()});
+document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];load()});
 
 /* PÁGINA AO VIVO: probabilidades de gols, escanteios, cartões e chutes no alvo */
 let liveGames=[],liveSums=new Map(),liveLoaded=false,liveBusy=false,lastLiveAt=0,liveUpdated=null,liveFullScan=0;
@@ -1371,7 +1374,7 @@ $("#saveGoal").onclick=()=>{
 function loadGoalInputs(){$("#goalName").value=goal.name||"";$("#goalTarget").value=goal.target||"";$("#goalSaved").value=goal.saved||""}
 
 /* BACKUP, LEMBRETE E EXPORTAÇÃO CSV */
-const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarPredictions","radarBank","radarGoal"];
+const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarTop4","radarPredictions","radarBank","radarGoal"];
 function backupText(){const data={};BK_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=JSON.parse(v)}catch(e){}});return JSON.stringify({app:"radarfc",v:1,data})}
 function renderBackupInfo(){
  const el=$("#bkInfo");if(!el)return;
@@ -1443,7 +1446,7 @@ function makeIcon(){
 
 /* ATUALIZAÇÃO AUTOMÁTICA
    15 s com jogo ao vivo, 60 s sem jogo ao vivo. A tela de detalhes de um jogo ao vivo também atualiza. */
-$("#refresh").onclick=()=>{games=[];top85Cache.done=false;load()};
+$("#refresh").onclick=()=>{games=[];load()};
 setInterval(async()=>{
  if(document.hidden)return;
  const pg=document.querySelector(".page.active")?.id;
