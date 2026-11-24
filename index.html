@@ -596,7 +596,7 @@ function enhanceCards(box,list){
   try{
    const[h,a]=await Promise.all([histBefore(g.path,g.homeId,g),histBefore(g.path,g.awayId,g)]);
    const p=calcProbs(h,a,g.path);if(!p||!card.isConnected||card.querySelector(".prob-line"))return;
-   const rec=recordPick(g,p,h,a);p.dcKey=rec.key.slice(2);p.dcBest=rec.prob;
+   const rec=recordPick(g,p);p.dcKey=rec.key.slice(2);p.dcBest=rec.prob;
    let res=null;if(g.completed){const hs=getScore(g.hs),as=getScore(g.as);if(Number.isFinite(hs)&&Number.isFinite(as))res=evalLeg(rec.key,hs,as)}
    card.querySelector(".tap-hint").insertAdjacentHTML("beforebegin",probLineHTML(p,g,res))
   }catch(e){}
@@ -742,29 +742,13 @@ function renderLev(){
 /* MÚLTIPLA DO DIA */
 let multiplas=read("radarMultiplas",{});if(!multiplas||typeof multiplas!=="object"||Array.isArray(multiplas))multiplas={};
 function saveMultiplas(){store("radarMultiplas",multiplas)}
-const TARGET_COMB=80,MIN_RATE=70;
 const multiLevels={
- safe:{name:"Segura",min:80,rate:MIN_RATE,comb:TARGET_COMB,markets:["dc","o15","u35"],desc:"Até o número de jogos escolhido, só com palpites de 80% ou mais, times consistentes e probabilidade combinada de 80% ou mais de green."},
- mid:{name:"Moderada",min:65,rate:60,markets:["dc","o15","u35","win"],desc:"Palpites com 65% ou mais e times razoavelmente consistentes, incluindo favoritos para vencer."},
+ safe:{name:"Segura",min:80,markets:["dc","o15","u35"],desc:"Palpites com 80% ou mais de probabilidade (chance dupla e gols)."},
+ mid:{name:"Moderada",min:65,markets:["dc","o15","u35","win"],desc:"Palpites com 65% ou mais, incluindo favoritos para vencer."},
  bold:{name:"Ousada",min:50,markets:["win"],desc:"Apenas vitórias dos favoritos (a partir de 50%). Odd maior, risco maior."},
- reliable:{name:"Confiável",min:80,rate:MIN_RATE,comb:TARGET_COMB,markets:["dc","o15","u35"],desc:"Gerada automaticamente: 2 jogos escolhidos para a probabilidade combinada ficar em 80% ou mais de green. Só entram jogos em que os dois times têm pelo menos 8 jogos de histórico e bateram o mesmo palpite em 70% ou mais dos últimos 10 jogos."}
+ reliable:{name:"Confiável",min:75,markets:["dc","o15","u35"],desc:"Gerada automaticamente: 2 jogos com 75% ou mais cada, escolhidos para a odd justa ficar perto de 1,50 (chance dupla e gols), usando só times com pelo menos 8 jogos de histórico."}
 };
-const reliableCfg={level:"reliable",markets:["dc","o15","u35"],min:80,rate:MIN_RATE,comb:TARGET_COMB,size:2,minSample:8};
-let multiInfo={best:0,single:null};
-/* CONSISTÊNCIA: % dos últimos jogos em que CADA time "bateu" o palpite (vale o pior dos dois) */
-function teamRate(key,h,a){
- const r=(l,fn)=>l.length?l.filter(fn).length/l.length*100:0;
- switch(key){
-  case"dc1x":return Math.min(r(h,x=>x.scored>=x.conceded),r(a,x=>x.scored<=x.conceded));
-  case"dcx2":return Math.min(r(a,x=>x.scored>=x.conceded),r(h,x=>x.scored<=x.conceded));
-  case"dc12":return Math.min(r(h,x=>x.scored!==x.conceded),r(a,x=>x.scored!==x.conceded));
-  case"o15":return Math.min(r(h,x=>x.scored+x.conceded>=2),r(a,x=>x.scored+x.conceded>=2));
-  case"u35":return Math.min(r(h,x=>x.scored+x.conceded<=3),r(a,x=>x.scored+x.conceded<=3));
-  case"winH":return Math.min(r(h,x=>x.scored>x.conceded),r(a,x=>x.scored<x.conceded));
-  case"winA":return Math.min(r(a,x=>x.scored>x.conceded),r(h,x=>x.scored<x.conceded))
- }
- return 0
-}
+const reliableCfg={level:"reliable",markets:["dc","o15","u35"],min:75,size:2,minSample:8,targetOdd:1.5};
 let multiLevel="safe",multiSize=4,multiMode="reliable",multiBusy=false,resolvingMulti=false;
 function multiKey(){return dateKey(offsetDay())+(multiMode==="reliable"?"c":"")}
 function fmtKey(k){return String(k).slice(6,8)+"/"+String(k).slice(4,6)+"/"+String(k).slice(0,4)}
@@ -779,30 +763,24 @@ function legCandidates(p,g){
 }
 async function buildMulti(cfg,exclude=[]){
  const pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!exclude.includes(String(g.id)));
- const evaluated=await Promise.all(pool.map(async g=>{try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);if(h.length<cfg.minSample||a.length<cfg.minSample)return null;const p=calcProbs(h,a,g.path);if(!p)return null;const opts=legCandidates(p,g).map(c=>({...c,rate:teamRate(c.key,h,a)})).filter(c=>cfg.markets.includes(c.m)&&c.prob>=cfg.min&&c.rate>=(cfg.rate||0)).sort((x,y)=>y.prob-x.prob);return opts.length?{g,opts}:null}catch(e){return null}}));
+ const evaluated=await Promise.all(pool.map(async g=>{try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);if(h.length<cfg.minSample||a.length<cfg.minSample)return null;const p=calcProbs(h,a,g.path);if(!p)return null;const opts=legCandidates(p,g).filter(c=>cfg.markets.includes(c.m)&&c.prob>=cfg.min).sort((x,y)=>y.prob-x.prob);return opts.length?{g,opts}:null}catch(e){return null}}));
  const ev=evaluated.filter(Boolean);
- const leg=(g,c)=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:c.key,label:c.label,prob:Math.round(c.prob*10)/10,rate:Math.round(c.rate||0),result:"pending"});
- const T=cfg.comb||0;
- multiInfo={best:0,single:null};
- ev.forEach(({g,opts})=>{const c=opts[0];if(!multiInfo.single||c.prob>multiInfo.single.c.prob)multiInfo.single={g,c}});
+ const leg=(g,c)=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:c.key,label:c.label,prob:Math.round(c.prob*10)/10,result:"pending"});
+ const T=cfg.targetOdd;
  if(T&&cfg.size===2){
   let best=null;
-  for(let i=0;i<ev.length;i++)for(let j=i+1;j<ev.length;j++){const x=ev[i].opts[0],y=ev[j].opts[0],comb=x.prob*y.prob/100;if(!best||comb>best.comb)best={comb,x,y,gi:ev[i].g,gj:ev[j].g}}
-  if(best)multiInfo.best=best.comb;
-  if(best&&best.comb>=T)return[leg(best.gi,best.x),leg(best.gj,best.y)];
-  const s1=multiInfo.single;return s1&&s1.c.prob>=T?[leg(s1.g,s1.c)]:[]
+  for(let i=0;i<ev.length;i++)for(let j=i+1;j<ev.length;j++)ev[i].opts.forEach(a=>ev[j].opts.forEach(b=>{
+   const odd=10000/(a.prob*b.prob),d=Math.abs(odd-T),mn=Math.min(a.prob,b.prob);
+   if(!best||d<best.d-0.005||(Math.abs(d-best.d)<=0.005&&mn>best.mn))best={d,mn,a,b,gi:ev[i].g,gj:ev[j].g}
+  }));
+  return best?[leg(best.gi,best.a),leg(best.gj,best.b)]:[]
  }
  if(T&&cfg.size===1&&cfg.otherProb>0){
   let best=null;
-  ev.forEach(({g,opts})=>opts.forEach(c=>{if(cfg.otherProb*c.prob/100<T)return;if(!best||c.prob>best.c.prob)best={g,c}}));
+  ev.forEach(({g,opts})=>opts.forEach(c=>{const d=Math.abs(10000/(cfg.otherProb*c.prob)-T);if(!best||d<best.d)best={d,g,c}}));
   return best?[leg(best.g,best.c)]:[]
  }
- const sorted=ev.map(({g,opts})=>({g,best:opts[0]})).sort((x,y)=>y.best.prob-x.best.prob);
- if(!T)return sorted.slice(0,cfg.size).map(({g,best})=>leg(g,best));
- if(sorted.length>=2)multiInfo.best=sorted[0].best.prob*sorted[1].best.prob/100;
- const out=[];let comb=100;
- for(const x of sorted){if(out.length>=cfg.size)break;const nc=comb*x.best.prob/100;if(nc<T)break;comb=nc;out.push(leg(x.g,x.best))}
- return out
+ return ev.map(({g,opts})=>({g,best:opts[0]})).sort((x,y)=>y.best.prob-x.best.prob).slice(0,cfg.size).map(({g,best})=>leg(g,best))
 }
 function evalLeg(k,hs,as){const ok={dc1x:hs>=as,dcx2:as>=hs,dc12:hs!==as,o15:hs+as>=2,u35:hs+as<=3,winH:hs>as,winA:as>hs}[k];return ok?"green":"red"}
 function multiStatus(m){if(m.legs.some(l=>l.result==="red"))return"red";if(m.legs.length&&m.legs.every(l=>l.result==="green"))return"green";return"pending"}
@@ -843,9 +821,9 @@ function copyText(t){
 function multiHTML(m){
  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1),st=multiStatus(m),odd=comb>0?(1/comb).toFixed(2).replace(".",","):"—",
  tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
- return`<div class="panel" style="margin-top:12px"><h3>🎯 Múltipla ${safe(multiTitle(m))} · ${m.legs.length} jogo${m.legs.length>1?"s":""} ${tag[st]}</h3>
+ return`<div class="panel" style="margin-top:12px"><h3>🎯 Múltipla ${safe(multiTitle(m))} · ${m.legs.length} jogos ${tag[st]}</h3>
  <div class="dupla-stats" style="grid-template-columns:repeat(2,1fr)"><div class="dupla-stat"><small>PROBABILIDADE COMBINADA</small><strong class="green">${(comb*100).toFixed(0)}%</strong></div><div class="dupla-stat"><small>ODD JUSTA</small><strong>${odd}</strong></div></div>
- ${m.legs.map((l,i)=>`<div class="dupla-record"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.league)} · ${safe(formatDate(l.date))}</span><br>🎯 ${safe(l.label)} · <strong>${Math.round(l.prob)}%</strong>${l.rate?" · consistência "+l.rate+"%":""} · odd justa ${(100/l.prob).toFixed(2).replace(".",",")}${l.score?" · placar "+safe(l.score):""} ${tag[l.result]}${l.result==="pending"?`<br><button class="legbtn" data-swap="${i}">🔄 Trocar jogo</button>`:""}</div>`).join("")}
+ ${m.legs.map((l,i)=>`<div class="dupla-record"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.league)} · ${safe(formatDate(l.date))}</span><br>🎯 ${safe(l.label)} · <strong>${Math.round(l.prob)}%</strong> · odd justa ${(100/l.prob).toFixed(2).replace(".",",")}${l.score?" · placar "+safe(l.score):""} ${tag[l.result]}${l.result==="pending"?`<br><button class="legbtn" data-swap="${i}">🔄 Trocar jogo</button>`:""}</div>`).join("")}
  <div style="background:var(--c3);border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px"><label>💵 Odd da casa (opcional)</label><input id="multiOdd" type="text" inputmode="decimal" placeholder="Ex.: 3,20" value="${m.odd?String(m.odd).replace(".",","):""}"><div id="multiEV" class="market-note" style="margin-top:0">${evHTML(m)}</div></div>
  <button class="full" id="multiCopy" style="margin-top:10px">📋 Copiar múltipla</button>
  <button class="full" id="multiBank" style="margin-top:8px">💰 Registrar na banca</button>
@@ -874,8 +852,8 @@ async function swapLeg(i){
  if(!m||!m.legs[i]||m.legs[i].result!=="pending")return;
  multiBusy=true;toast("Procurando outro jogo...",2000);
  try{
-  const lv=multiLevels[m.level],cfg0=m.level==="reliable"?reliableCfg:{level:m.level,markets:lv.markets,min:lv.min,rate:lv.rate,comb:lv.comb,minSample:lv.comb?8:MIN_SAMPLE};
-  const res=await buildMulti({...cfg0,size:1,otherProb:m.legs.reduce((pr,x,j)=>j===i?pr:pr*x.prob/100,100)},m.legs.map(l=>String(l.id)));
+  const lv=multiLevels[m.level],cfg0=m.level==="reliable"?reliableCfg:{level:m.level,markets:lv.markets,min:lv.min,minSample:MIN_SAMPLE};
+  const res=await buildMulti({...cfg0,size:1,otherProb:(m.legs.find((x,j)=>j!==i)||{}).prob},m.legs.map(l=>String(l.id)));
   if(!res.length){toast("Nenhum outro jogo disponível com essa probabilidade.",3500);return}
   m.legs[i]=res[0];saveMultiplas();renderMultiResult();renderDuplaHistory();toast("🔄 Jogo trocado!",2000)
  }catch(e){toast("Não foi possível trocar agora.",3000)}finally{multiBusy=false}
@@ -894,7 +872,7 @@ function renderMultiControls(){
   c.innerHTML=`<div class="muted" style="margin-bottom:8px">Escolha o nível:</div>
   <div class="toolbar" style="margin:0 0 6px" id="multiLevels">${["safe","mid","bold"].map(k=>`<button class="${multiLevel===k?"active":""}" data-mlevel="${k}">${multiLevels[k].name}</button>`).join("")}</div>
   <div class="muted" id="multiDesc" style="margin-bottom:10px">${multiLevels[multiLevel].desc}</div>
-  <label>Quantidade máxima de jogos</label><select id="multiSize">${[2,3,4,5].map(n=>`<option value="${n}" ${multiSize===n?"selected":""}>${n} jogos</option>`).join("")}</select>
+  <label>Quantidade de jogos</label><select id="multiSize">${[2,3,4,5].map(n=>`<option value="${n}" ${multiSize===n?"selected":""}>${n} jogos</option>`).join("")}</select>
   <button class="full" id="multiGen">🤖 Gerar múltipla com IA</button>
   <div class="muted" id="multiMsg" style="margin-top:8px"></div>`;
   document.querySelectorAll("[data-mlevel]").forEach(b=>b.onclick=()=>{multiLevel=b.dataset.mlevel;document.querySelectorAll("[data-mlevel]").forEach(x=>x.classList.toggle("active",x===b));$("#multiDesc").textContent=multiLevels[multiLevel].desc});
@@ -909,11 +887,10 @@ async function generateMulti(){
  if(existing&&existing.legs.some(l=>l.result!=="pending")){msg.textContent="Esta múltipla já tem jogos encerrados e não pode ser substituída.";return}
  multiBusy=true;msg.textContent="Analisando os jogos e o histórico dos times...";
  try{
-  const lv=multiLevels[multiLevel],cfg=reliable?reliableCfg:{level:multiLevel,markets:lv.markets,min:lv.min,rate:lv.rate,comb:lv.comb,size:multiSize,minSample:lv.comb?8:MIN_SAMPLE};
+  const lv=multiLevels[multiLevel],cfg=reliable?reliableCfg:{level:multiLevel,markets:lv.markets,min:lv.min,size:multiSize,minSample:MIN_SAMPLE};
   const legs=await buildMulti(cfg),m2=$("#multiMsg");if(!m2)return;
-  const strict=reliable||!!lv.comb;
-  if(legs.length<(strict?1:2)){m2.textContent=strict?"Nenhum jogo chegou a "+TARGET_COMB+"% de probabilidade com os filtros de segurança nesta data (times com histórico completo e consistentes). Tente de novo mais tarde ou em outra data.":"Poucos jogos com probabilidade suficiente neste nível. Tente outro nível ou menos jogos.";return}
-  multiplas[key]={level:cfg.level,legs,created:Date.now()};saveMultiplas();m2.textContent=strict&&legs.length<cfg.size?"Para manter "+TARGET_COMB+"% ou mais de probabilidade combinada"+(multiInfo.best&&legs.length<2?" (a melhor dupla do dia só chegou a "+Math.round(multiInfo.best)+"%)":"")+", ficaram "+legs.length+" jogo"+(legs.length>1?"s":"")+" (o máximo possível hoje).":reliable?"Múltipla confiável gerada!":"Múltipla gerada!";renderMultiResult();renderDuplaHistory()
+  if(legs.length<2){m2.textContent=reliable?"Poucos jogos confiáveis nesta data (probabilidade de 75% ou mais e histórico completo). Tente outra data ou use a opção com IA.":"Poucos jogos com probabilidade suficiente neste nível. Tente outro nível ou menos jogos.";return}
+  multiplas[key]={level:cfg.level,legs,created:Date.now()};saveMultiplas();m2.textContent=reliable?"Múltipla confiável gerada!":"Múltipla gerada!";renderMultiResult();renderDuplaHistory()
  }catch(e){const m2=$("#multiMsg");if(m2)m2.textContent="Não foi possível gerar agora. Tente novamente."}finally{multiBusy=false}
 }
 function renderMultiBox(){
@@ -987,7 +964,7 @@ function top4Ids(){
   if(full&&ids.length<TOP4_MAX){
    const pool=list.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!ids.includes(String(g.id)));
    if(pool.length){
-    const ev=await Promise.all(pool.map(async g=>{const rec=await gamePick(g);return rec&&rec.prob>=TOP4_MIN&&(rec.rate===undefined||rec.rate>=MIN_RATE)?{id:String(g.id),prob:rec.prob}:null}));
+    const ev=await Promise.all(pool.map(async g=>{const rec=await gamePick(g);return rec&&rec.prob>=TOP4_MIN?{id:String(g.id),prob:rec.prob}:null}));
     const add=ev.filter(Boolean).sort((x,y)=>y.prob-x.prob).slice(0,TOP4_MAX-ids.length);
     if(add.length){ids=ids.concat(add.map(x=>x.id));top4Store[dk]=ids;store("radarTop4",top4Store)}
    }
@@ -1005,7 +982,7 @@ async function renderTop4(){
  const found=ids.map(id=>{const g=games.find(x=>String(x.id)===String(id));return g?{g,rec:dayPicks[String(g.id)]}:null}).filter(Boolean).sort((a,b)=>Number(b.rec?.prob||0)-Number(a.rec?.prob||0));
  $("#count").textContent=found.length+" de "+TOP4_MAX+" jogo(s)";
  if(!found.length){box.innerHTML='<div class="empty">Nenhum jogo com chance dupla de '+TOP4_MIN+'% ou mais nesta data'+(selected==="all"?".":".<br>Escolha a aba \"Todas\" para o app procurar em todas as competições.")+'<br>Toque em "🔥 Top 4 · 80%+" de novo para voltar a ver todos os jogos.</div>';return}
- box.innerHTML='<div class="matches">'+found.map(({g,rec})=>'<div><div class="pick-tag">🎯 '+(rec?safe(keyLabel(rec.key,g.home,g.away))+' · '+Math.round(rec.prob)+'%':'Chance dupla')+'</div>'+matchHTML(g)+'</div>').join("")+'</div><div class="market-note">Só entram jogos em que os dois times têm bom histórico nesse palpite. Lista fixa do dia: os jogos escolhidos não saem. Se sobrar vaga, outro jogo com '+TOP4_MIN+'% ou mais que ainda não começou pode entrar, até o máximo de '+TOP4_MAX+'.</div>';
+ box.innerHTML='<div class="matches">'+found.map(({g,rec})=>'<div><div class="pick-tag">🎯 '+(rec?safe(keyLabel(rec.key,g.home,g.away))+' · '+Math.round(rec.prob)+'%':'Chance dupla')+'</div>'+matchHTML(g)+'</div>').join("")+'</div><div class="market-note">Lista fixa do dia: os jogos escolhidos não saem. Se sobrar vaga, outro jogo com '+TOP4_MIN+'% ou mais que ainda não começou pode entrar, até o máximo de '+TOP4_MAX+'.</div>';
  bindMatchCards(box,found.map(x=>x.g))
 }
 function renderGames(failed=0){
@@ -1022,20 +999,15 @@ function renderGames(failed=0){
  box.innerHTML=(failed?'<div class="empty">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>':"")+`<div class="matches">${list.map(g=>matchHTML(g)).join("")}</div>`;bindMatchCards(box,games)
 }
 
-/* PALPITES GRAVADOS (um palpite por jogo: a chance dupla mais provável entre os times consistentes, gravada antes do jogo e nunca alterada) */
+/* PALPITES GRAVADOS (um palpite por jogo: a chance dupla mais provável, gravada antes do jogo e nunca alterada) */
 let dayPicks=read("radarDayPicks",{});if(!dayPicks||typeof dayPicks!=="object"||Array.isArray(dayPicks))dayPicks={};
 let picksTimer=null;
 function saveDayPicksNow(){store("radarDayPicks",dayPicks)}
 function savePicksSoon(){clearTimeout(picksTimer);picksTimer=setTimeout(saveDayPicksNow,400)}
 (function(){const lim=dateKey(-45);let ch=false;Object.keys(dayPicks).forEach(id=>{const r=dayPicks[id],dk=r&&r.dk;if(!dk||dk<lim){delete dayPicks[id];ch=true}});if(ch)saveDayPicksNow()})();
-function recordPick(g,p,h,a){
+function recordPick(g,p){
  const id=String(g.id);if(dayPicks[id])return dayPicks[id];
- let key="dc"+p.dcKey,prob=p.dcBest,rate;
- if(h&&a&&h.length&&a.length){
-  const opts=[{key:"dc1x",prob:p.d1x},{key:"dcx2",prob:p.dx2},{key:"dc12",prob:p.d12}].map(o=>({...o,rate:teamRate(o.key,h,a)})),good=opts.filter(o=>o.rate>=60),pk=(good.length?good:opts).sort((x,y)=>y.prob-x.prob)[0];
-  key=pk.key;prob=pk.prob;rate=Math.round(pk.rate)
- }
- const rec={key,prob:Math.round(prob*10)/10,rate,home:g.home,away:g.away,league:g.league,path:g.path,date:g.date,dk:dateFromISO(g.date),result:"pending"};
+ const rec={key:"dc"+p.dcKey,prob:Math.round(p.dcBest*10)/10,home:g.home,away:g.away,league:g.league,path:g.path,date:g.date,dk:dateFromISO(g.date),result:"pending"};
  dayPicks[id]=rec;savePicksSoon();return rec
 }
 async function gamePick(g){
@@ -1043,7 +1015,7 @@ async function gamePick(g){
  if(!g.homeId||!g.awayId||!g.path)return null;
  try{
   const[h,a]=await Promise.all([histBefore(g.path,g.homeId,g),histBefore(g.path,g.awayId,g)]);
-  const p=calcProbs(h,a,g.path);return p?recordPick(g,p,h,a):null
+  const p=calcProbs(h,a,g.path);return p?recordPick(g,p):null
  }catch(e){return null}
 }
 
@@ -1410,4 +1382,114 @@ function renderBackupInfo(){
  const days=Math.floor((Date.now()-settings.lastBackup)/86400000);
  el.innerHTML="Último backup: <strong>"+new Date(settings.lastBackup).toLocaleDateString("pt-BR")+"</strong>"+(days>=7?' <span class="red">· faz '+days+' dias, copie um novo</span>':"")
 }
-function markBackup(){settings.lastBack cd /home/claude/radar && n=$(grep -n "function markBackup" index.html | head -1 | cut -d: -f1); echo $n; wc -l index.html; tail -n +$n index.html | wc -c index.html
+function markBackup(){settings.lastBackup=Date.now();store("radarSettings",settings);renderBackupInfo()}
+function backupReminder(){
+ const hasData=bank.length||predictions.length||Object.keys(multiplas).length||Object.keys(dayPicks).length||goal.target;
+ if(!hasData)return;
+ if(!settings.lastBackup){settings.lastBackup=Date.now();store("radarSettings",settings);return}
+ if(Date.now()-settings.lastBackup>7*86400000)toast("💾 Faz mais de 7 dias do último backup. Vá em Meu Controle e copie um novo.",8000)
+}
+$("#bkCopy").onclick=()=>copyText(backupText()).then(ok=>{if(ok)markBackup()});
+if(navigator.share){
+ const sb=$("#bkShare");sb.style.display="block";
+ sb.onclick=()=>{navigator.share({title:"Backup Radar FC",text:backupText()}).then(markBackup).catch(()=>{})}
+}
+$("#bkRestore").onclick=()=>{
+ const raw=$("#bkText").value.trim();
+ if(!raw){toast("Cole o backup primeiro.",2200);return}
+ let obj;
+ try{obj=JSON.parse(raw);if(!obj||obj.app!=="radarfc"||!obj.data||typeof obj.data!=="object")throw Error("x")}catch(e){toast("Backup inválido.",3000);return}
+ if(!confirm("Restaurar este backup? Os dados atuais serão substituídos."))return;
+ try{
+  BK_KEYS.forEach(k=>{if(k in obj.data)localStorage.setItem(k,JSON.stringify(obj.data[k]))});
+  toast("♻️ Backup restaurado. Recarregando...",2000);
+  setTimeout(()=>location.reload(),1200)
+ }catch(e){toast("Não foi possível restaurar.",3000)}
+};
+function csvCell(v){
+ if(typeof v==="number")return String(v).replace(".",",");
+ let s=String(v??"");if(/^[=+\-@\t\r]/.test(s))s="'"+s;
+ return'"'+s.replace(/"/g,'""')+'"'
+}
+function exportCSV(name,head,rows){
+ const csv="\ufeff"+[head,...rows].map(r=>r.map(csvCell).join(";")).join("\r\n");
+ let file=null;try{file=new File([csv],name,{type:"text/csv"})}catch(e){}
+ if(file&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return}
+ try{
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);toast("📄 CSV gerado",2500)
+ }catch(e){copyText(csv)}
+}
+function keyLabel(k,h,a){return({dc1x:h+" ou empate",dcx2:a+" ou empate",dc12:h+" ou "+a,o15:"Mais de 1,5 gols",u35:"Menos de 3,5 gols",winH:h+" vence",winA:a+" vence"})[k]||k}
+$("#csvBank").onclick=()=>{
+ if(!bank.length){toast("Não há apostas para exportar.",2500);return}
+ exportCSV("radarfc-banca.csv",["Data","Descrição","Tipo","Valor","Odd","Resultado","Lucro"],bank.map(b=>[b.date||"",b.name||"",typeLbl[b.type||"manual"]||"",Number(b.stake)||0,Number(b.odd)||0,betLbl[b.result]||"",betProfit(b)]))
+};
+$("#csvPicks").onclick=()=>{
+ const arr=Object.values(dayPicks).filter(r=>r.dk).sort((a,b)=>b.dk.localeCompare(a.dk));
+ if(!arr.length){toast("Não há palpites para exportar.",2500);return}
+ exportCSV("radarfc-palpites.csv",["Dia","Jogo","Competição","Palpite","Probabilidade","Resultado","Placar"],arr.map(r=>[fmtKey(r.dk),r.home+" x "+r.away,r.league||"",keyLabel(r.key,r.home,r.away),Number(r.prob)||0,r.result==="green"?"Green":r.result==="red"?"Red":"Em aberto",r.score||""]))
+};
+
+/* ÍCONE DO IPHONE (gerado na hora, sem arquivo externo) */
+function makeIcon(){
+ try{
+  const c=document.createElement("canvas");c.width=c.height=180;
+  const x=c.getContext("2d");
+  x.fillStyle="#08111f";x.fillRect(0,0,180,180);
+  x.fillStyle="#65e3a7";x.beginPath();x.arc(90,90,58,0,Math.PI*2);x.fill();
+  x.fillStyle="#08111f";x.font="bold 62px Arial";x.textAlign="center";x.textBaseline="middle";x.fillText("FC",90,95);
+  $("#touchIcon").href=c.toDataURL("image/png")
+ }catch(e){}
+}
+
+/* ATUALIZAÇÃO AUTOMÁTICA
+   15 s com jogo ao vivo, 60 s sem jogo ao vivo. A tela de detalhes de um jogo ao vivo também atualiza. */
+$("#refresh").onclick=()=>{games=[];load()};
+setInterval(async()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg!=="radar"&&pg!=="matchPage")return;
+ const every=games.some(g=>g.live)?15000:60000;
+ if(loading||Date.now()-lastLoadAt<every-500)return;
+ await load();
+ if(pg==="matchPage")refreshOpenMatch()
+},5000);
+/* Ao Vivo: a cada 20 s (também com a página fechada, se os avisos estiverem ligados) */
+setInterval(()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="live"||settings.liveAlert)liveTick()
+},20000);
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="radar"&&!loading&&Date.now()-lastLoadAt>15000)load();
+ if(pg==="live"||settings.liveAlert)liveTick()
+});
+
+/* INICIALIZAÇÃO */
+applyTheme();
+updateAlertBtn();
+makeIcon();
+renderLeagues();
+renderLiveFilters();
+showPage("radar");
+loadRiskInputs();
+loadGoalInputs();
+loadLevInputs();
+renderLev();
+renderPredictions();
+renderBank();
+renderGoal();
+renderDayHistory();
+renderBackupInfo();
+renderLive();
+load();
+backupReminder();
+setTimeout(()=>{resolveMultiplas();resolveDayPicks(true)},4000);
+if(settings.liveAlert)setTimeout(()=>liveTick(true),6000);
+</script>
+</body>
+</html>
