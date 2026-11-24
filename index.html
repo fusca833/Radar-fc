@@ -50,7 +50,7 @@ main{max-width:1000px;margin:auto;padding:0 16px 100px}
 .dupla-games{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dupla-games .match{background:var(--c4);border-color:var(--g4a)}.dupla-games .team-logo{width:25px;height:25px}
 .dupla-games .teams{font-size:12px;gap:7px}.dupla-games .score{font-size:17px}.dupla-games .meta{font-size:10px}
-.pick-tag{display:inline-block;color:var(--gn);font-size:11px;font-weight:bold;margin-bottom:10px}
+.pick-tag{display:inline-block;color:var(--gn);font-size:12px;font-weight:bold;margin-bottom:8px}
 .loading,.empty{text-align:center;padding:28px 12px;color:var(--mu);font-size:13px;line-height:1.5}
 .source{display:inline-block;padding:5px 9px;border-radius:8px;background:var(--c1);color:var(--tx2);font-size:11px;margin-top:8px}
 footer{text-align:center;color:var(--dim);font-size:11px;line-height:1.5;padding:25px 10px}
@@ -165,14 +165,14 @@ body.on-radar #dayBar.has{display:block}
  <div class="filters" id="filters">
   <input id="search" type="search" placeholder="🔍 Buscar time..." autocomplete="off" autocapitalize="off">
   <button id="liveBtn">🔴 Só ao vivo</button>
-  <button id="favBtn">⭐ Só favoritos</button>
+  <button id="favBtn">🔥 2 jogos 85%+</button>
   <button id="alertBtn">🔔 Avisos de gol: OFF</button>
  </div>
  <div class="section"><h3 id="title">Partidas</h3><span class="muted" id="count"></span></div>
  <div id="sourceLabel" class="source">Fonte: ESPN</div>
  <div id="matches"><div class="loading">Carregando partidas...</div></div>
  <div id="duplaHistorySection" style="display:none">
-  <div class="section"><h3>📊 Histórico das múltiplas</h3></div>
+  <div class="section"><h3 id="duplaHistTitle">📊 Histórico das múltiplas</h3></div>
   <div class="dupla-stats">
    <div class="dupla-stat"><small>GREEN</small><strong class="green" id="duplaGreen">0</strong></div>
    <div class="dupla-stat"><small>RED</small><strong class="red" id="duplaRed">0</strong></div>
@@ -180,8 +180,8 @@ body.on-radar #dayBar.has{display:block}
   </div>
   <div class="section"><h3>📐 Calibração das probabilidades</h3></div>
   <div class="panel" id="calibBox"><div class="empty">Ainda não há palpites encerrados.</div></div>
-  <div class="section"><h3>📅 Histórico</h3></div>
-  <div class="panel" id="duplaHistoryList"><div class="empty">Nenhum destaque arquivado ainda.</div></div>
+  <div class="section"><h3>📅 Histórico do dia</h3></div>
+  <div class="panel" id="duplaHistoryList"><div class="empty">Nenhuma múltipla neste dia.</div></div>
  </div>
  <footer>Dados esportivos fornecidos pela ESPN e SportScore.<br>Estatísticas dependem da disponibilidade da fonte.<br>Atualização automática a cada 15 segundos com jogos ao vivo (60 segundos sem jogos ao vivo).<br><a href="https://sportscore.com" target="_blank" rel="noopener" style="color:var(--mu)">Powered by SportScore</a></footer>
 </section>
@@ -246,6 +246,16 @@ body.on-radar #dayBar.has{display:block}
  <div class="section"><h3>📊 ROI por tipo</h3></div>
  <div class="panel" id="bkByType"><div class="empty">Sem apostas encerradas ainda.</div></div>
 
+ <div class="section"><h3>🚀 Alavancagem</h3></div>
+ <div class="panel">
+  <p class="muted" style="line-height:1.7;margin-top:0">Mostra quanto sua banca vira se você reinvestir tudo a cada acerto, com as odds 1,50 e 1,55, até chegar na meta. Uma única perda zera a sequência e você perde o valor da rodada.</p>
+  <label>Valor inicial (R$)</label><input id="levStart" type="text" inputmode="decimal" placeholder="Ex.: 5">
+  <label>Meta que quer alcançar (R$)</label><input id="levTarget" type="text" inputmode="decimal" placeholder="Ex.: 100">
+  <label>Outra odd para comparar (opcional)</label><input id="levCustom" type="text" inputmode="decimal" placeholder="Ex.: 1,70">
+  <label>Chance de acerto de cada aposta (%)</label><input id="levProb" type="text" inputmode="decimal" placeholder="Ex.: 70">
+  <div id="levOut" style="margin-top:6px"></div>
+ </div>
+
  <div class="section"><h3>🛡️ Limites e metas</h3></div>
  <div class="panel">
   <p class="muted" style="line-height:1.7;margin-top:0">Defina quanto você aceita perder e quanto quer ganhar. O app avisa quando você chegar perto e bloqueia a geração de múltiplas quando o limite de perda é atingido. Deixe vazio para desativar. A semana conta os últimos 7 dias.</p>
@@ -306,7 +316,8 @@ const competitions=[
 ];
 const LIVE_COMPS=competitions.filter(c=>c.path);
 let selected="all",day="today",games=[],loading=false,currentMatch=null,currentHistHome=[],currentHistAway=[],currentLiveSummary=null,currentStandings=null,currentH2H=[];
-let searchText="",onlyLive=false,favOnly=false,lastFailed=0,pageBefore="radar",lastLoadAt=0;
+let searchText="",onlyLive=false,top85Only=false,top85Token=0,lastFailed=0,pageBefore="radar",lastLoadAt=0;
+const top85Cache={key:"",items:[],done:false};
 const historyCache=new Map(),standCache=new Map(),$=s=>document.querySelector(s);
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback}catch(e){return fallback}};
 const store=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val))}catch(e){}};
@@ -358,7 +369,7 @@ function checkGoals(){
 function updateAlertBtn(){const b=$("#alertBtn");b.textContent="🔔 Avisos de gol: "+(settings.goalAlert?"ON":"OFF");b.classList.toggle("active",!!settings.goalAlert)}
 $("#alertBtn").onclick=()=>{settings.goalAlert=!settings.goalAlert;store("radarSettings",settings);updateAlertBtn();if(settings.goalAlert){unlockAudio();beep();toast("🔔 Avisos ativados! Deixe o app aberto. "+(favs.length?"Só dos times favoritos (★).":"De todos os jogos ao vivo."),5500)}};
 $("#liveBtn").onclick=()=>{onlyLive=!onlyLive;$("#liveBtn").classList.toggle("active",onlyLive);if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
-$("#favBtn").onclick=()=>{favOnly=!favOnly;$("#favBtn").classList.toggle("active",favOnly);if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
+$("#favBtn").onclick=()=>{top85Only=!top85Only;$("#favBtn").classList.toggle("active",top85Only);if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
 $("#search").oninput=e=>{searchText=e.target.value;if(selected!=="dupla"&&!loading)renderGames(lastFailed)};
 
 /* DATAS E PARSE */
@@ -550,13 +561,11 @@ function adjGoals(x,path){const m=strengthMaps.get(path)||EMPTY_MAP,s=m.get(Stri
 function pois(l){const a=[Math.exp(-l)];for(let i=1;i<=8;i++)a.push(a[i-1]*l/i);return a}
 function calcProbs(h,a,path){
  if(h.length<MIN_SAMPLE||a.length<MIN_SAMPLE)return null;
- /* retrospecto */
  const hw=wfrac(h,x=>x.scored>x.conceded,true),hd=wfrac(h,x=>x.scored===x.conceded,true),hl=wfrac(h,x=>x.scored<x.conceded,true);
  const aw=wfrac(a,x=>x.scored>x.conceded,false),ad=wfrac(a,x=>x.scored===x.conceded,false),al=wfrac(a,x=>x.scored<x.conceded,false);
  const eH=(hw+al)/2,eD=(hd+ad)/2,eA=(aw+hl)/2;
  const both=fn=>(wfrac(h,fn,true)+wfrac(a,fn,false))/2;
  const e15=both(x=>x.scored+x.conceded>=2),e25=both(x=>x.scored+x.conceded>=3),e35=both(x=>x.scored+x.conceded<=3),eB=both(x=>x.scored>0&&x.conceded>0);
- /* Poisson */
  const ag=x=>adjGoals(x,path);
  let lH=(wavg(h,x=>ag(x).sc,true)+wavg(a,x=>ag(x).co,false))/2;
  let lA=(wavg(a,x=>ag(x).sc,false)+wavg(h,x=>ag(x).co,true))/2;
@@ -661,21 +670,10 @@ function bindMatchCards(box,list){
  enhanceCards(box,list)
 }
 
-/* Destaques do dia */
+/* Destaques do dia (dados antigos, mantidos só por compatibilidade) */
 let duplaRecords=read("radarDuplaHistory",[]);if(!Array.isArray(duplaRecords))duplaRecords=[];
 let dailyDuplas=read("radarDuplaDaily",{});if(!dailyDuplas||typeof dailyDuplas!=="object"||Array.isArray(dailyDuplas))dailyDuplas={};
 let duplaArchive=read("radarDuplaArchive",[]);if(!Array.isArray(duplaArchive))duplaArchive=[];
-function saveDuplaData(){store("radarDuplaHistory",duplaRecords);store("radarDuplaDaily",dailyDuplas);store("radarDuplaArchive",duplaArchive)}
-function archiveExpiredDuplas(){
- const today=dateKey();let changed=false;
- Object.keys(dailyDuplas).sort().forEach(key=>{
-  if(key>=today||!Array.isArray(dailyDuplas[key])||!dailyDuplas[key].length)return;
-  if(duplaArchive.some(x=>x.dateKey===key))return;
-  const matches=dailyDuplas[key].map(g=>{const hs=getScore(g.hs),as=getScore(g.as);let result="Sem resultado disponível";if(g.completed&&Number.isFinite(hs)&&Number.isFinite(as))result=hs>as?"Vitória do mandante":hs<as?"Vitória do visitante":"Empate";return{home:g.home,away:g.away,league:g.league,hs:g.hs,as:g.as,result}});
-  duplaArchive.push({dateKey:key,matches});changed=true;
- });
- if(changed)saveDuplaData()
-}
 
 /* LIMITES E METAS (calculados a partir da banca) */
 function betTs(b){if(b.ts)return b.ts;const m=String(b.date||"").match(/^(\d{2})\/(\d{2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1],12).getTime():0}
@@ -688,7 +686,6 @@ function riskState(){
  const loss=(label,val,lim)=>{if(!(lim>0))return;const l=-val;if(l>=lim){blocked=true;msgs.push("🛑 Limite de perda "+label+" atingido ("+money(l)+" de "+money(lim)+"). Faça uma pausa.")}else if(l>=lim*0.8)msgs.push("⚠️ Você já usou "+Math.round(l/lim*100)+"% do limite de perda "+label+".")};
  const goalf=(label,val,g)=>{if(g>0&&val>=g)msgs.push("🎯 Meta de lucro "+label+" batida ("+money(val)+"). Considere parar por aqui.")};
  loss("do dia",day,r.dayLoss);loss("da semana",week,r.weekLoss);goalf("do dia",day,r.dayGoal);goalf("da semana",week,r.weekGoal);
- /* sequência de reds */
  const settled=bank.filter(b=>b.result!=="pending").slice().sort((a,b)=>betTs(b)-betTs(a)||(b.id||0)-(a.id||0));
  let streak=0;for(const b of settled){if(b.result==="loss")streak++;else break}
  if(streak>=3)msgs.push("🧊 "+streak+" reds seguidos. Faça uma pausa antes da próxima aposta.");
@@ -707,6 +704,41 @@ function renderRisk(){
 }
 function loadRiskInputs(){const r=settings.risk||{};$("#rkDayLoss").value=r.dayLoss||"";$("#rkWeekLoss").value=r.weekLoss||"";$("#rkDayGoal").value=r.dayGoal||"";$("#rkWeekGoal").value=r.weekGoal||""}
 $("#rkSave").onclick=()=>{const g=id=>{const v=pn($(id).value);return Number.isFinite(v)&&v>0?v:0};settings.risk={dayLoss:g("#rkDayLoss"),weekLoss:g("#rkWeekLoss"),dayGoal:g("#rkDayGoal"),weekGoal:g("#rkWeekGoal")};store("radarSettings",settings);renderRisk();toast("🛡️ Limites salvos",2000)};
+
+/* ALAVANCAGEM: reinvestindo tudo a cada acerto, odds 1,50 e 1,55 (e uma opcional) */
+function loadLevInputs(){
+ const l=settings.lev||{};
+ $("#levStart").value=l.start!==undefined?l.start:"5";
+ $("#levTarget").value=l.target||"";
+ $("#levCustom").value=l.custom||"";
+ $("#levProb").value=l.prob!==undefined?l.prob:"70"
+}
+function renderLev(){
+ const out=$("#levOut");if(!out)return;
+ settings.lev={start:$("#levStart").value,target:$("#levTarget").value,custom:$("#levCustom").value,prob:$("#levProb").value};
+ store("radarSettings",settings);
+ const start=pn($("#levStart").value),target=pn($("#levTarget").value),pr=pn($("#levProb").value),cu=pn($("#levCustom").value);
+ if(!(start>0)||!(target>start)){out.innerHTML='<div class="market-note">Informe o valor inicial e uma meta maior que ele para ver a tabela.</div>';return}
+ const odds=[1.5,1.55];if(Number.isFinite(cu)&&cu>1&&odds.indexOf(cu)<0)odds.push(cu);
+ const fo=o=>o.toFixed(2).replace(".",",");
+ const need=odds.map(o=>{let n=0,v=start;while(v<target&&n<500){v*=o;n++}return n});
+ const maxN=Math.min(60,Math.max(...need));
+ const p=Number.isFinite(pr)&&pr>0&&pr<=100?pr/100:0.7;
+ const fp=v=>{const x=v*100;if(x<0.01)return"menos de 0,01%";return x.toFixed(x>=10?0:x>=1?1:2).replace(".",",")+"%"};
+ let rows="";
+ for(let i=1;i<=maxN;i++){
+  rows+="<tr><td>"+i+"</td>"+odds.map((o,k)=>{
+   if(i>need[k])return"<td>—</td>";
+   const v=start*Math.pow(o,i),hit=i===need[k];
+   return'<td class="'+(hit?"green":"")+'">'+(hit?"<strong>"+money(v)+" ✓</strong>":money(v))+"</td>"
+  }).join("")+"</tr>"
+ }
+ const sum=odds.map((o,k)=>"<div style=\"margin:6px 0\"><strong>Odd "+fo(o)+":</strong> "+need[k]+" acerto(s) seguido(s) para chegar em "+money(target)+".<br><span class=\"muted\">Chance de acertar todos se cada um tiver "+Math.round(p*100)+"%: <strong>"+fp(Math.pow(p,need[k]))+"</strong></span></div>").join("");
+ out.innerHTML='<div class="warnbox" style="border-color:var(--gb2)">'+sum+"</div>"+
+ '<div class="tbl-wrap"><table class="tbl c"><tr><th>Acerto nº</th>'+odds.map(o=>"<th>Odd "+fo(o)+"</th>").join("")+"</tr>"+rows+"</table></div>"+
+ '<div class="market-note">Começando com '+money(start)+' e reinvestindo todo o valor a cada acerto. A linha com ✓ é onde a meta é atingida (o valor final já inclui o lucro).'+(Math.max(...need)>60?" A tabela mostra só as 60 primeiras linhas.":"")+' Uma única derrota zera tudo: quanto mais apostas seguidas, menor a chance de chegar lá. Não é garantia de resultado.</div>'
+}
+["#levStart","#levTarget","#levCustom","#levProb"].forEach(s=>$(s).oninput=renderLev);
 
 /* MÚLTIPLA DO DIA */
 let multiplas=read("radarMultiplas",{});if(!multiplas||typeof multiplas!=="object"||Array.isArray(multiplas))multiplas={};
@@ -856,7 +888,7 @@ function renderMultiBox(){
  renderMultiControls();renderMultiResult()
 }
 
-/* CALIBRAÇÃO: compara a probabilidade prevista com o que realmente aconteceu */
+/* CALIBRAÇÃO: compara a probabilidade prevista com o que realmente aconteceu (considera todas as múltiplas já encerradas) */
 function renderCalibration(){
  const box=$("#calibBox");if(!box)return;
  const legs=[];Object.values(multiplas).forEach(m=>(m.legs||[]).forEach(l=>{if(l.result==="green"||l.result==="red")legs.push(l)}));
@@ -874,23 +906,24 @@ function renderCalibration(){
  box.innerHTML=`<div class="dupla-stats"><div class="dupla-stat"><small>PREVISTO (MÉDIA)</small><strong>${f0(avgP)}%</strong></div><div class="dupla-stat"><small>ACERTO REAL</small><strong class="${diff>=0?"green":"red"}">${f0(real)}%</strong></div><div class="dupla-stat"><small>DIFERENÇA</small><strong class="${diff>=0?"green":"red"}">${sg(diff)}</strong></div></div>
  <div class="tbl-wrap"><table class="tbl c"><tr><th>Faixa</th><th>Palpites</th><th>Previsto</th><th>Real</th><th>Dif.</th></tr>${rows}</table></div>
  <div class="market-note" style="font-size:12px">${safe(verdict)}</div>
- <div class="market-note">Cada palpite conta separado, não a múltipla inteira. Se o "Real" fica bem abaixo do "Previsto", as probabilidades estão infladas.</div>`
+ <div class="market-note">Cada palpite conta separado, não a múltipla inteira. A calibração soma todos os dias já encerrados. Se o "Real" fica bem abaixo do "Previsto", as probabilidades estão infladas.</div>`
 }
+/* HISTÓRICO DAS MÚLTIPLAS: mostra só o dia selecionado (Hoje, Amanhã ou Ontem). Ao trocar de dia, troca sozinho. */
 function renderDuplaHistory(){
- archiveExpiredDuplas();
- const keys=Object.keys(multiplas).sort().reverse(),st=keys.map(k=>multiStatus(multiplas[k])),g=st.filter(x=>x==="green").length,r=st.filter(x=>x==="red").length,pe=st.filter(x=>x==="pending").length;
+ const dk=dateKey(offsetDay());
+ const keys=Object.keys(multiplas).filter(k=>String(k).slice(0,8)===dk).sort().reverse();
+ const st=keys.map(k=>multiStatus(multiplas[k])),g=st.filter(x=>x==="green").length,r=st.filter(x=>x==="red").length,pe=st.filter(x=>x==="pending").length;
+ const ht=$("#duplaHistTitle");if(ht)ht.textContent="📊 Histórico das múltiplas · "+fmtKey(dk).slice(0,5);
  $("#duplaGreen").textContent=g;$("#duplaRed").textContent=r;$("#duplaDraw").textContent=pe;
  renderCalibration();
- const box=$("#duplaHistoryList"),all=duplaArchive.slice().sort((a,b)=>b.dateKey.localeCompare(a.dateKey));
- if(!keys.length&&!all.length&&!duplaRecords.length){box.innerHTML='<div class="empty">As múltiplas geradas aparecerão aqui, com green ou red automático depois dos jogos.</div>';return}
+ const box=$("#duplaHistoryList");
+ if(!keys.length){box.innerHTML='<div class="empty">Nenhuma múltipla gerada em '+fmtKey(dk)+'.<br>As múltiplas do dia aparecem aqui, com green ou red automático depois dos jogos.</div>';return}
  const tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
  const multi=keys.map((k,i)=>{const m=multiplas[k],comb=m.legs.reduce((x,l)=>x*l.prob/100,1),date=fmtKey(k);return`<div class="dupla-record"><strong>📅 ${date} · ${safe(multiTitle(m))} · ${(comb*100).toFixed(0)}%</strong> ${tag[st[i]]}${m.legs.map(l=>`<div style="padding:7px 0;border-top:1px solid var(--b2);margin-top:7px"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.label)} · ${Math.round(l.prob)}%${l.score?" · placar "+safe(l.score):""}</span> ${tag[l.result]}</div>`).join("")}</div>`}).join("");
  const rt=arr=>{const gg=arr.filter(k=>multiStatus(multiplas[k])==="green").length,rr=arr.filter(k=>multiStatus(multiplas[k])==="red").length;return rr+gg?Math.round(gg/(gg+rr)*100)+"% ("+gg+" de "+(gg+rr)+")":"sem resultados ainda"};
  const rel=keys.filter(k=>multiplas[k].level==="reliable"),ia=keys.filter(k=>multiplas[k].level!=="reliable");
- const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto das múltiplas:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
- const archived=all.map(dayRecord=>{const date=dayRecord.dateKey.replace(/^(\d{4})(\d{2})(\d{2})$/,"$3/$2/$1");return`<div class="dupla-record"><strong>📅 ${date} (destaques antigos)</strong>${dayRecord.matches.map(m=>`<div style="padding:9px 0;border-top:1px solid var(--b2);margin-top:8px"><strong>${safe(m.home)} x ${safe(m.away)}</strong><br><span class="muted">${safe(m.league||"Futebol")}</span><br>Placar: ${safe(m.hs)} x ${safe(m.as)}<br><span>${safe(m.result)}</span></div>`).join("")}</div>`}).join("");
- const manual=duplaRecords.slice().reverse().map(r=>{const date=r.date?new Date(r.date).toLocaleDateString("pt-BR"):"Data não informada",result=r.result==="green"||r.result==="win"?"Vitória":r.result==="red"||r.result==="loss"?"Derrota":r.result==="draw"?"Empate":"Pendente";return`<div class="dupla-record"><strong>${safe(r.home)} x ${safe(r.away)}</strong><br><span class="muted">${safe(r.league)} · ${date}</span><br>Resultado registrado: <strong>${result}</strong></div>`}).join("");
- box.innerHTML=rate+multi+archived+manual
+ const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto das múltiplas deste dia:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
+ box.innerHTML=rate+multi
 }
 function renderDupla(){
  $("#title").textContent="🎯 Múltipla do Dia";$("#filters").style.display="none";$("#duplaHistorySection").style.display="block";$("#count").textContent=games.length+" jogo(s) na data";
@@ -898,19 +931,51 @@ function renderDupla(){
 }
 function visibleGames(){
  const q=norm(searchText.trim());
- const list=games.filter(g=>(!onlyLive||g.live)&&(!favOnly||isFav(g))&&(!q||norm(g.home).includes(q)||norm(g.away).includes(q)));
+ const list=games.filter(g=>(!onlyLive||g.live)&&(!q||norm(g.home).includes(q)||norm(g.away).includes(q)));
  const rank=g=>isFav(g)?0:1;
  return list.map((g,i)=>({g,i})).sort((a,b)=>rank(a.g)-rank(b.g)||a.i-b.i).map(x=>x.g)
+}
+
+/* 2 JOGOS COM 85%+ : os dois jogos do dia com maior probabilidade (a partir de 85%) entre chance dupla, +1,5, -3,5 e vitória */
+async function computeTop85(pool){
+ const ev=await Promise.all(pool.map(async g=>{
+  try{
+   const[h,a]=await Promise.all([histBefore(g.path,g.homeId,g),histBefore(g.path,g.awayId,g)]);
+   const p=calcProbs(h,a,g.path);if(!p)return null;
+   const best=legCandidates(p,g).sort((x,y)=>y.prob-x.prob)[0];
+   return best&&best.prob>=85?{id:g.id,label:best.label,prob:best.prob}:null
+  }catch(e){return null}
+ }));
+ return ev.filter(Boolean).sort((x,y)=>y.prob-x.prob).slice(0,2)
+}
+async function renderTop85(){
+ const box=$("#matches"),tk=++top85Token;
+ const pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live);
+ const key=pool.map(g=>g.id).join(",");
+ let items;
+ if(top85Cache.done&&top85Cache.key===key)items=top85Cache.items;
+ else{
+  box.innerHTML='<div class="loading">Analisando os jogos do dia...</div>';
+  items=await computeTop85(pool);
+  if(tk!==top85Token||!top85Only)return;
+  top85Cache.key=key;top85Cache.items=items;top85Cache.done=true
+ }
+ const found=items.map(it=>({it,g:games.find(x=>String(x.id)===String(it.id))})).filter(x=>x.g);
+ $("#count").textContent=found.length+" de 2 jogo(s)";
+ if(!found.length){box.innerHTML='<div class="empty">Nenhum jogo com 85% ou mais de probabilidade nesta data.<br>O modelo reduz exageros, então isso é raro. Toque em "🔥 2 jogos 85%+" de novo para voltar a ver todos os jogos.</div>';return}
+ box.innerHTML=(found.length<2?'<div class="warnbox">Só '+found.length+' jogo passou de 85% nesta data.</div>':"")+'<div class="matches">'+found.map(({it,g})=>'<div><div class="pick-tag">🎯 '+safe(it.label)+' · '+Math.round(it.prob)+'%</div>'+matchHTML(g)+'</div>').join("")+'</div>';
+ bindMatchCards(box,found.map(x=>x.g))
 }
 function renderGames(failed=0){
  lastFailed=failed;
  $("#filters").style.display="flex";
  const list=visibleGames();
- $("#title").textContent=selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name||"Partidas";
+ $("#title").textContent=top85Only?"🔥 2 jogos com 85%+ de probabilidade":selected==="all"?"Partidas de todas as competições":competitions.find(c=>c.id===selected)?.name||"Partidas";
  $("#count").textContent=(list.length===games.length?games.length:list.length+" de "+games.length)+" jogo(s)";
  $("#duplaHistorySection").style.display="none";const box=$("#matches");
  updateDayBar();
  if(!games.length){box.innerHTML='<div class="empty">Nenhuma partida encontrada nesta data.</div>';return}
+ if(top85Only){renderTop85();return}
  if(!list.length){box.innerHTML='<div class="empty">Nenhum jogo encontrado com esse filtro.</div>';return}
  box.innerHTML=(failed?'<div class="empty">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>':"")+`<div class="matches">${list.map(g=>matchHTML(g)).join("")}</div>`;bindMatchCards(box,games)
 }
@@ -1038,7 +1103,7 @@ function goPage(id){document.querySelectorAll("[data-page]").forEach(x=>x.classL
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{goPage(b.dataset.page);window.scrollTo(0,0)});
 $("#backToRadar").onclick=()=>goPage(pageBefore||"radar");
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".detail-panel").forEach(x=>x.classList.toggle("active",x.id==="tab-"+b.dataset.tab))});
-document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];load()});
+document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.day;document.querySelectorAll("[data-day]").forEach(x=>x.classList.toggle("active",x===b));games=[];top85Cache.done=false;load()});
 
 /* PÁGINA AO VIVO: probabilidades de gols, escanteios, cartões e chutes no alvo */
 let liveGames=[],liveSums=new Map(),liveLoaded=false,liveBusy=false,lastLiveAt=0,liveUpdated=null,liveFullScan=0;
@@ -1362,7 +1427,7 @@ function makeIcon(){
 
 /* ATUALIZAÇÃO AUTOMÁTICA
    15 s com jogo ao vivo, 60 s sem jogo ao vivo. A tela de detalhes de um jogo ao vivo também atualiza. */
-$("#refresh").onclick=()=>{games=[];load()};
+$("#refresh").onclick=()=>{games=[];top85Cache.done=false;load()};
 setInterval(async()=>{
  if(document.hidden)return;
  const pg=document.querySelector(".page.active")?.id;
@@ -1394,6 +1459,8 @@ renderLiveFilters();
 showPage("radar");
 loadRiskInputs();
 loadGoalInputs();
+loadLevInputs();
+renderLev();
 renderPredictions();
 renderBank();
 renderGoal();
