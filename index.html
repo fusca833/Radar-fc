@@ -747,9 +747,9 @@ const multiLevels={
  safe:{name:"Segura",min:80,markets:["dc","o15","u35"],desc:"Palpites com 80% ou mais de probabilidade (chance dupla e gols)."},
  mid:{name:"Moderada",min:65,markets:["dc","o15","u35","win"],desc:"Palpites com 65% ou mais, incluindo favoritos para vencer."},
  bold:{name:"Ousada",min:50,markets:["win"],desc:"Apenas vitórias dos favoritos (a partir de 50%). Odd maior, risco maior."},
- reliable:{name:"Confiável",min:75,markets:["dc","o15","u35"],desc:"Gerada automaticamente: até 3 jogos com probabilidade de 75% ou mais (chance dupla e gols), usando só times com pelo menos 8 jogos de histórico."}
+ reliable:{name:"Confiável",min:75,markets:["dc","o15","u35"],desc:"Gerada automaticamente: 2 jogos com 75% ou mais cada, escolhidos para a odd justa ficar perto de 1,50 (chance dupla e gols), usando só times com pelo menos 8 jogos de histórico."}
 };
-const reliableCfg={level:"reliable",markets:["dc","o15","u35"],min:75,size:3,minSample:8};
+const reliableCfg={level:"reliable",markets:["dc","o15","u35"],min:75,size:2,minSample:8,targetOdd:1.5};
 let multiLevel="safe",multiSize=4,multiMode="reliable",multiBusy=false,resolvingMulti=false;
 function multiKey(){return dateKey(offsetDay())+(multiMode==="reliable"?"c":"")}
 function fmtKey(k){return String(k).slice(6,8)+"/"+String(k).slice(4,6)+"/"+String(k).slice(0,4)}
@@ -764,8 +764,24 @@ function legCandidates(p,g){
 }
 async function buildMulti(cfg,exclude=[]){
  const pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!exclude.includes(String(g.id)));
- const evaluated=await Promise.all(pool.map(async g=>{try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);if(h.length<cfg.minSample||a.length<cfg.minSample)return null;const p=calcProbs(h,a,g.path);if(!p)return null;const best=legCandidates(p,g).filter(c=>cfg.markets.includes(c.m)&&c.prob>=cfg.min).sort((x,y)=>y.prob-x.prob)[0];return best?{g,best}:null}catch(e){return null}}));
- return evaluated.filter(Boolean).sort((x,y)=>y.best.prob-x.best.prob).slice(0,cfg.size).map(({g,best})=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:best.key,label:best.label,prob:Math.round(best.prob*10)/10,result:"pending"}))
+ const evaluated=await Promise.all(pool.map(async g=>{try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);if(h.length<cfg.minSample||a.length<cfg.minSample)return null;const p=calcProbs(h,a,g.path);if(!p)return null;const opts=legCandidates(p,g).filter(c=>cfg.markets.includes(c.m)&&c.prob>=cfg.min).sort((x,y)=>y.prob-x.prob);return opts.length?{g,opts}:null}catch(e){return null}}));
+ const ev=evaluated.filter(Boolean);
+ const leg=(g,c)=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:c.key,label:c.label,prob:Math.round(c.prob*10)/10,result:"pending"});
+ const T=cfg.targetOdd;
+ if(T&&cfg.size===2){
+  let best=null;
+  for(let i=0;i<ev.length;i++)for(let j=i+1;j<ev.length;j++)ev[i].opts.forEach(a=>ev[j].opts.forEach(b=>{
+   const odd=10000/(a.prob*b.prob),d=Math.abs(odd-T),mn=Math.min(a.prob,b.prob);
+   if(!best||d<best.d-0.005||(Math.abs(d-best.d)<=0.005&&mn>best.mn))best={d,mn,a,b,gi:ev[i].g,gj:ev[j].g}
+  }));
+  return best?[leg(best.gi,best.a),leg(best.gj,best.b)]:[]
+ }
+ if(T&&cfg.size===1&&cfg.otherProb>0){
+  let best=null;
+  ev.forEach(({g,opts})=>opts.forEach(c=>{const d=Math.abs(10000/(cfg.otherProb*c.prob)-T);if(!best||d<best.d)best={d,g,c}}));
+  return best?[leg(best.g,best.c)]:[]
+ }
+ return ev.map(({g,opts})=>({g,best:opts[0]})).sort((x,y)=>y.best.prob-x.best.prob).slice(0,cfg.size).map(({g,best})=>leg(g,best))
 }
 function evalLeg(k,hs,as){const ok={dc1x:hs>=as,dcx2:as>=hs,dc12:hs!==as,o15:hs+as>=2,u35:hs+as<=3,winH:hs>as,winA:as>hs}[k];return ok?"green":"red"}
 function multiStatus(m){if(m.legs.some(l=>l.result==="red"))return"red";if(m.legs.length&&m.legs.every(l=>l.result==="green"))return"green";return"pending"}
@@ -838,7 +854,7 @@ async function swapLeg(i){
  multiBusy=true;toast("Procurando outro jogo...",2000);
  try{
   const lv=multiLevels[m.level],cfg0=m.level==="reliable"?reliableCfg:{level:m.level,markets:lv.markets,min:lv.min,minSample:MIN_SAMPLE};
-  const res=await buildMulti({...cfg0,size:1},m.legs.map(l=>String(l.id)));
+  const res=await buildMulti({...cfg0,size:1,otherProb:(m.legs.find((x,j)=>j!==i)||{}).prob},m.legs.map(l=>String(l.id)));
   if(!res.length){toast("Nenhum outro jogo disponível com essa probabilidade.",3500);return}
   m.legs[i]=res[0];saveMultiplas();renderMultiResult();renderDuplaHistory();toast("🔄 Jogo trocado!",2000)
  }catch(e){toast("Não foi possível trocar agora.",3000)}finally{multiBusy=false}
