@@ -1050,4 +1050,360 @@ async function fetchLiveScoreboard(c){
  return(d.events||[]).map(e=>parseEvent(e,c.name,c.path)).filter(g=>g.live)
 }
 async function liveSummary(g){
- const r=await limitedFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${g.path}/summary?event=${enc
+ const r=await limitedFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${g.path}/summary?event=${encodeURIComponent(g.id)}`,{cache:"no-store"});
+ if(!r.ok)throw Error("x");return r.json()
+}
+/* quais competições consultar: só a escolhida; ou só as que têm jogo hoje/ontem (com varredura completa a cada 15 min) */
+function liveScanComps(){
+ const sel=settings.liveComp;
+ if(sel&&sel!=="all")return LIVE_COMPS.filter(c=>c.path===sel);
+ const now=Date.now();
+ if(now-liveFullScan>15*60000){liveFullScan=now;return LIVE_COMPS}
+ const act=activePaths();
+ return act.size?LIVE_COMPS.filter(c=>act.has(c.path)):LIVE_COMPS
+}
+function liveVisible(){
+ return liveGames.filter(g=>(!settings.liveFavOnly||isFav(g))&&(!settings.liveComp||settings.liveComp==="all"||g.path===settings.liveComp))
+}
+function liveMinute(g){
+ const s=String(g.state||"");
+ if(/halftime|half time|intervalo|^\s*ht\s*$/i.test(s))return 45;
+ const m=s.match(/(\d{1,3})\s*'\s*(?:\+\s*(\d{1,2}))?/);
+ if(m)return Math.min(130,Number(m[1])+(Number(m[2])||0));
+ const t=new Date(g.date).getTime();
+ if(Number.isFinite(t)){let e=(Date.now()-t)/60000;if(e>60)e-=15;return Math.max(1,Math.min(95,Math.round(e)))}
+ return 45
+}
+function poisAtLeast(k,m){
+ if(k<=0)return 100;
+ let s=0,t=Math.exp(-m);
+ for(let i=0;i<k;i++){s+=t;t=t*m/(i+1)}
+ return Math.max(0,Math.min(100,(1-s)*100))
+}
+function liveModel(g,sum){
+ const min=liveMinute(g),rem=min>90?3:Math.max(2,93-min);
+ const hs=getScore(g.hs),as=getScore(g.as),goals=(Number.isFinite(hs)?hs:0)+(Number.isFinite(as)?as:0);
+ const rows=sum?getStatsRows(sum,g):[];
+ const num=v=>{const n=parseFloat(String(v).replace("%",""));return Number.isFinite(n)?n:null};
+ const tot=label=>{const r=rows.find(x=>x.label===label);if(!r)return null;const a=num(r.home),b=num(r.away);if(a===null&&b===null)return null;return(a||0)+(b||0)};
+ const corners=tot("Escanteios"),yel=tot("Amarelos"),red=tot("Vermelhos"),sot=tot("No alvo");
+ const cards=yel===null?null:yel+(red||0);
+ const rate=(cur,pr)=>(cur+pr*30)/(min+30);
+ const lab=(cur,k)=>String(cur+k-0.5).replace(".",",");
+ const mk=(key,title,cur,pr,ks)=>{const rt=rate(cur,pr),mean=rt*rem;return{key,title,cur,proj:cur+mean,rt,items:ks.map(k=>({label:"Mais de "+lab(cur,k),p:poisAtLeast(k,mean)}))}};
+ const markets=[],missing=[];
+ const gm=mk("gols","⚽ Gols",goals,2.7/90,[1,2]);
+ gm.items.unshift({label:"Gol nos próx. 10 min",p:(1-Math.exp(-gm.rt*Math.min(10,rem)))*100,g10:true});
+ markets.push(gm);
+ if(corners!==null)markets.push(mk("esc","🚩 Escanteios",corners,10/90,[1,2,3]));else missing.push("escanteios");
+ if(cards!==null)markets.push(mk("car","🟨 Cartões",cards,4.2/90,[1,2,3]));else missing.push("cartões");
+ if(sot!==null)markets.push(mk("sot","🎯 Chutes no alvo",sot,8/90,[1,2,3]));else missing.push("chutes no alvo");
+ let top=0;markets.forEach(x=>x.items.forEach(i=>{if(i.p>top)top=i.p}));
+ return{min,rem,goals,markets,missing,top}
+}
+function computeModels(){
+ return liveVisible().map(g=>({g,m:liveModel(g,liveSums.get(String(g.id))||null)}))
+}
+async function liveTick(force){
+ if(liveBusy)return;
+ if(!force&&Date.now()-lastLiveAt<15000)return;
+ liveBusy=true;lastLiveAt=Date.now();
+ try{
+  const res=await Promise.all(liveScanComps().map(c=>fetchLiveScoreboard(c).catch(()=>null)));
+  const ok=res.filter(Boolean);
+  if(ok.length){
+   const seen=new Map();ok.flat().forEach(g=>{if(!seen.has(g.id))seen.set(g.id,g)});
+   liveGames=[...seen.values()];liveLoaded=true;liveUpdated=new Date();
+   const vis=liveVisible();
+   const sums=await Promise.all(vis.map(g=>liveSummary(g).catch(()=>null)));
+   liveSums=new Map();vis.forEach((g,i)=>{if(sums[i])liveSums.set(String(g.id),sums[i])});
+   checkLiveAlerts()
+  }
+ }catch(e){}finally{liveBusy=false}
+ renderLive()
+}
+function checkLiveAlerts(){
+ const ids=new Set(liveGames.map(g=>String(g.id)));
+ Object.keys(liveNotified).forEach(k=>{if(!ids.has(k.split("|")[0]))delete liveNotified[k]});
+ if(!settings.liveAlert){store("radarLiveNotified",liveNotified);return}
+ const thr=Number(settings.liveThr)||75,now=Date.now(),COOL=5*60000,picks=[];
+ computeModels().forEach(({g,m})=>{
+  if(m.min<3||m.min>=90)return;
+  if(now-(liveLastAlert[g.id]||0)<COOL)return;
+  let best=null;
+  m.markets.forEach(mk=>mk.items.forEach(i=>{
+   if(i.p<thr||i.p>=98)return;
+   const k=g.id+"|"+mk.key+"|"+i.label+(i.g10?"|"+Math.floor(m.min/10):"");
+   if(liveNotified[k])return;
+   if(!best||i.p>best.i.p)best={g,mk,i,m,k}
+  }));
+  if(best)picks.push(best)
+ });
+ if(!picks.length){store("radarLiveNotified",liveNotified);return}
+ picks.forEach(x=>{liveNotified[x.k]=1;liveLastAlert[x.g.id]=now});
+ store("radarLiveNotified",liveNotified);
+ picks.sort((a,b)=>b.i.p-a.i.p);
+ beep();try{if(navigator.vibrate)navigator.vibrate([200,100,200,100,200])}catch(e){}
+ const h=picks[0];
+ toast("📡 "+h.g.home+" "+h.g.hs+" x "+h.g.as+" "+h.g.away+" · "+h.m.min+"'\n"+h.mk.title+" · "+h.i.label+": "+Math.round(h.i.p)+"%"+(picks.length>1?" (+"+(picks.length-1)+" jogo(s))":""),7000);
+ try{
+  if("Notification" in window&&Notification.permission==="granted"){
+   picks.slice(0,3).forEach(x=>new Notification("📡 "+x.g.home+" "+x.g.hs+" x "+x.g.as+" "+x.g.away+" · "+x.m.min+"'",{body:x.mk.title+" · "+x.i.label+": "+Math.round(x.i.p)+"%",tag:x.g.id+x.mk.key}))
+  }
+ }catch(e){}
+}
+function renderLiveFilters(){
+ const s=$("#liveComp");
+ s.innerHTML='<option value="all">Todas as competições</option>'+LIVE_COMPS.map(c=>`<option value="${safe(c.path)}">${safe(c.name)}</option>`).join("")
+}
+function renderLive(){
+ const list=$("#liveList");if(!list)return;
+ const b=$("#liveAlertBtn");
+ b.textContent="🔔 Avisar probabilidades altas: "+(settings.liveAlert?"ON":"OFF");
+ b.classList.toggle("active",!!settings.liveAlert);
+ const fb=$("#liveFavBtn");fb.textContent="⭐ Só favoritos: "+(settings.liveFavOnly?"ON":"OFF");fb.classList.toggle("active",!!settings.liveFavOnly);
+ $("#liveThr").value=String(settings.liveThr||75);
+ $("#liveComp").value=settings.liveComp||"all";
+ const vis=liveVisible();
+ $("#liveCount").textContent=liveLoaded?vis.length+" jogo(s)":"";
+ $("#liveStamp").textContent=liveUpdated?"Atualizado às "+liveUpdated.toLocaleTimeString("pt-BR"):"Buscando jogos ao vivo...";
+ if(!liveLoaded)return;
+ if(!vis.length){list.innerHTML='<div class="empty">'+(liveGames.length?"Nenhum jogo ao vivo com esse filtro.":"Nenhum jogo ao vivo agora.")+'</div>';return}
+ const thr=Number(settings.liveThr)||75;
+ const models=computeModels().sort((a,b)=>b.m.top-a.m.top);
+ list.innerHTML='<div class="matches">'+models.map(({g,m})=>`<article class="match live-match" data-id="${safe(g.id)}" role="button" tabindex="0">
+  <div class="live-head"><span>${safe(g.league)}</span><span class="status-live"><span class="live-dot"></span>${safe(g.state)}</span></div>
+  <div class="live-score"><span>${safe(g.home)}</span><span>${safe(g.hs)} x ${safe(g.as)}</span><span>${safe(g.away)}</span></div>
+  ${m.markets.map(mk=>`<div class="frequency-title">${mk.title} · projeção final ≈ ${mk.proj.toFixed(1).replace(".",",")}</div><div class="market-grid">${mk.items.map(i=>`<div class="market-item" style="${i.p>=thr?"border:1px solid var(--gbd)":""}"><small>${safe(i.label)}</small><b class="${i.p>=thr?"green":""}">${Math.round(i.p)}%</b></div>`).join("")}</div>`).join("")}
+  ${m.missing.length?`<div class="market-note">Sem dados ainda de: ${m.missing.join(", ")}.</div>`:""}
+  <div class="tap-hint"><span>Toque para abrir a partida</span><strong>VER DETALHES →</strong></div></article>`).join("")+'</div>';
+ list.querySelectorAll(".match").forEach(card=>{
+  const open=()=>{const g=liveGames.find(x=>String(x.id)===card.dataset.id);if(g)openMatch(g)};
+  card.addEventListener("click",open);
+  card.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})
+ })
+}
+$("#liveAlertBtn").onclick=()=>{
+ settings.liveAlert=!settings.liveAlert;store("radarSettings",settings);
+ if(settings.liveAlert){
+  unlockAudio();beep();
+  try{if("Notification" in window&&Notification.permission==="default")Notification.requestPermission()}catch(e){}
+  toast("🔔 Avisos ativados! Deixe o app aberto.",4500);liveTick(true)
+ }
+ renderLive()
+};
+$("#liveThr").onchange=e=>{settings.liveThr=Number(e.target.value)||75;store("radarSettings",settings);renderLive()};
+$("#liveComp").onchange=e=>{settings.liveComp=e.target.value;store("radarSettings",settings);liveFullScan=0;renderLive();liveTick(true)};
+$("#liveFavBtn").onclick=()=>{settings.liveFavOnly=!settings.liveFavOnly;store("radarSettings",settings);renderLive();liveTick(true)};
+
+/* MEU CONTROLE */
+let predictions=read("radarPredictions",[]);if(!Array.isArray(predictions))predictions=[];
+let bank=read("radarBank",[]);if(!Array.isArray(bank))bank=[];
+let goal=read("radarGoal",{});if(!goal||typeof goal!=="object"||Array.isArray(goal))goal={};
+const resLbl={pending:"⏳ Em andamento",win:"✅ Acerto",loss:"❌ Erro"};
+const betLbl={pending:"⏳ Em andamento",win:"✅ Green",loss:"❌ Red"};
+const typeLbl={manual:"Manual",confiavel:"✅ Confiável",ia:"🤖 IA"};
+function chartSVG(vals){
+ if(vals.length<2)return'<div class="empty">Dados insuficientes para o gráfico.</div>';
+ const W=300,H=110,p=8,mn=Math.min(0,...vals),mx=Math.max(0,...vals),rg=(mx-mn)||1;
+ const x=i=>p+i*(W-2*p)/(vals.length-1),y=v=>H-p-(v-mn)/rg*(H-2*p);
+ const pts=vals.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" "),last=vals[vals.length-1];
+ return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Gráfico de evolução"><line x1="${p}" x2="${W-p}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}" stroke="var(--b1)" stroke-dasharray="3"/><polyline points="${pts}" fill="none" stroke="${last>=0?"var(--gn)":"var(--rd)"}" stroke-width="2.5" stroke-linejoin="round"/></svg><div class="market-note">Atual: <strong>${last>=0?"+":""}${Number.isInteger(last)?last:money(last)}</strong></div>`
+}
+function renderCharts(){
+ let acc=0;const pv=predictions.filter(p=>p.result!=="pending").map(p=>acc+=p.result==="win"?1:-1);
+ $("#chartPred").innerHTML=chartSVG(pv);
+ acc=0;const bv=bank.filter(b=>b.result!=="pending").slice().sort((a,b)=>betTs(a)-betTs(b)).map(b=>acc+=betProfit(b));
+ $("#chartBank").innerHTML=chartSVG(bv)
+}
+function renderPredictions(){
+ const box=$("#predictionList");
+ box.innerHTML=predictions.length?predictions.slice().reverse().map(p=>`<div class="record"><div><strong>${safe(p.text)}</strong><br><span class="muted">${safe(p.date)} · ${resLbl[p.result]||""}</span></div><div class="record-actions"><button data-pr="win" data-id="${p.id}" aria-label="Marcar como acerto">✅</button><button data-pr="loss" data-id="${p.id}" aria-label="Marcar como erro">❌</button><button data-pr="pending" data-id="${p.id}" aria-label="Marcar como em andamento">⏳</button><button data-pr="del" data-id="${p.id}" aria-label="Apagar registro">🗑</button></div></div>`).join(""):'<div class="empty">Nenhum registro ainda.</div>';
+ renderCharts()
+}
+$("#predictionList").onclick=e=>{
+ const b=e.target.closest("[data-pr]");if(!b)return;const id=b.dataset.id;
+ if(b.dataset.pr==="del")predictions=predictions.filter(p=>String(p.id)!==id);
+ else{const p=predictions.find(x=>String(x.id)===id);if(p)p.result=b.dataset.pr}
+ store("radarPredictions",predictions);renderPredictions()
+};
+$("#addPrediction").onclick=()=>{
+ const t=$("#prediction").value.trim();if(!t){toast("Digite uma descrição.",2000);return}
+ predictions.push({id:Date.now(),text:t,result:$("#result").value,date:new Date().toLocaleDateString("pt-BR")});
+ store("radarPredictions",predictions);$("#prediction").value="";renderPredictions();toast("Registro salvo",1800)
+};
+$("#clearPredictions").onclick=()=>{if(predictions.length&&confirm("Apagar todos os registros?")){predictions=[];store("radarPredictions",predictions);renderPredictions()}};
+
+function renderBankByType(){
+ const box=$("#bkByType");if(!box)return;
+ const agg={};
+ bank.forEach(b=>{
+  if(b.result==="pending")return;
+  const t=b.type||"manual",o=agg[t]||(agg[t]={n:0,st:0,pr:0,w:0,l:0});
+  o.n++;o.st+=b.stake;o.pr+=betProfit(b);if(b.result==="win")o.w++;else o.l++
+ });
+ const keys=Object.keys(agg);
+ if(!keys.length){box.innerHTML='<div class="empty">Sem apostas encerradas ainda.</div>';return}
+ const rows=keys.map(t=>{const o=agg[t],roi=o.st?o.pr/o.st*100:0;return`<tr><td>${typeLbl[t]||safe(t)}</td><td>${o.n}</td><td class="green">${o.w}</td><td class="red">${o.l}</td><td class="${o.pr>=0?"green":"red"}">${money(o.pr)}</td><td class="${roi>=0?"green":"red"}">${roi.toFixed(1).replace(".",",")}%</td></tr>`}).join("");
+ box.innerHTML=`<div class="tbl-wrap"><table class="tbl c"><tr><th>Tipo</th><th>Apostas</th><th>Green</th><th>Red</th><th>Lucro</th><th>ROI</th></tr>${rows}</table></div><div class="market-note">Considera só apostas encerradas. Com poucas apostas o ROI varia muito: não tire conclusões antes de umas 30 por tipo.</div>`
+}
+function renderBank(){
+ let staked=0,profit=0,open=0,settled=0;
+ bank.forEach(b=>{staked+=b.stake;if(b.result==="pending")open+=b.stake;else{settled+=b.stake;profit+=betProfit(b)}});
+ $("#bkStaked").textContent=money(staked);
+ const bp=$("#bkProfit");bp.textContent=money(profit);bp.className="sm "+(profit>0?"green":profit<0?"red":"");
+ $("#bkOpen").textContent=money(open);
+ const roi=settled?profit/settled*100:0;$("#bkRoi").textContent=roi.toFixed(1).replace(".",",")+"%";
+ $("#bkList").innerHTML=bank.length?bank.slice().reverse().map(b=>`<div class="record"><div><strong>${safe(b.name)}</strong><br><span class="muted">${safe(b.date)} · ${typeLbl[b.type||"manual"]||""} · ${money(b.stake)} · odd ${String(b.odd).replace(".",",")} · ${betLbl[b.result]||""}${b.result!=="pending"?" · "+money(betProfit(b)):""}</span></div><div class="record-actions"><button data-bk="win" data-id="${b.id}" aria-label="Marcar como green">✅</button><button data-bk="loss" data-id="${b.id}" aria-label="Marcar como red">❌</button><button data-bk="pending" data-id="${b.id}" aria-label="Marcar como em andamento">⏳</button><button data-bk="del" data-id="${b.id}" aria-label="Apagar aposta">🗑</button></div></div>`).join(""):'<div class="empty">Nenhuma aposta registrada.</div>';
+ renderBankByType();renderCharts();renderRisk()
+}
+$("#bkList").onclick=e=>{
+ const b=e.target.closest("[data-bk]");if(!b)return;const id=b.dataset.id;
+ if(b.dataset.bk==="del")bank=bank.filter(x=>String(x.id)!==id);
+ else{const x=bank.find(y=>String(y.id)===id);if(x)x.result=b.dataset.bk}
+ store("radarBank",bank);renderBank();const rs=riskState();if(rs.blocked||rs.streak>=3)toast(rs.msgs[0],5000)
+};
+$("#bkAdd").onclick=()=>{
+ const name=$("#bkName").value.trim(),stake=pn($("#bkStake").value),odd=pn($("#bkOdd").value);
+ if(!name){toast("Digite uma descrição.",2000);return}
+ if(!(stake>0)){toast("Informe um valor apostado válido.",2200);return}
+ if(!(odd>1)){toast("A odd precisa ser maior que 1.",2200);return}
+ bank.push({id:Date.now(),name,stake,odd,type:$("#bkType").value||"manual",result:$("#bkResult").value,date:new Date().toLocaleDateString("pt-BR"),ts:Date.now()});
+ store("radarBank",bank);["#bkName","#bkStake","#bkOdd"].forEach(s=>$(s).value="");$("#bkType").value="manual";
+ renderBank();const rs=riskState();toast(rs.msgs.length?rs.msgs[0]:"Aposta salva",rs.msgs.length?5000:1800)
+};
+$("#bkClear").onclick=()=>{if(bank.length&&confirm("Apagar todas as apostas?")){bank=[];store("radarBank",bank);renderBank()}};
+
+function renderGoal(){
+ const t=Number(goal.target)||0,s=Number(goal.saved)||0,p=t>0?Math.min(100,s/t*100):0;
+ $("#goalLabel").textContent=goal.name||"Minha meta";
+ $("#goalAmount").textContent=money(s)+" / "+money(t);
+ $("#goalBar").style.width=p+"%";
+ $("#goalPercent").textContent=Math.round(p)+"% concluído";
+ $("#goalRemaining").textContent=t>0&&s>=t?"🎉 Meta atingida!":"Faltam "+money(Math.max(0,t-s))
+}
+$("#saveGoal").onclick=()=>{
+ const t=pn($("#goalTarget").value),s=pn($("#goalSaved").value);
+ goal={name:$("#goalName").value.trim(),target:Number.isFinite(t)&&t>0?t:0,saved:Number.isFinite(s)&&s>0?s:0};
+ store("radarGoal",goal);renderGoal();toast("🎯 Meta salva",1800)
+};
+function loadGoalInputs(){$("#goalName").value=goal.name||"";$("#goalTarget").value=goal.target||"";$("#goalSaved").value=goal.saved||""}
+
+/* BACKUP, LEMBRETE E EXPORTAÇÃO CSV */
+const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarPredictions","radarBank","radarGoal"];
+function backupText(){const data={};BK_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=JSON.parse(v)}catch(e){}});return JSON.stringify({app:"radarfc",v:1,data})}
+function renderBackupInfo(){
+ const el=$("#bkInfo");if(!el)return;
+ if(!settings.lastBackup){el.textContent="Nenhum backup copiado ainda.";return}
+ const days=Math.floor((Date.now()-settings.lastBackup)/86400000);
+ el.innerHTML="Último backup: <strong>"+new Date(settings.lastBackup).toLocaleDateString("pt-BR")+"</strong>"+(days>=7?' <span class="red">· faz '+days+' dias, copie um novo</span>':"")
+}
+function markBackup(){settings.lastBackup=Date.now();store("radarSettings",settings);renderBackupInfo()}
+function backupReminder(){
+ const hasData=bank.length||predictions.length||Object.keys(multiplas).length||Object.keys(dayPicks).length||goal.target;
+ if(!hasData)return;
+ if(!settings.lastBackup){settings.lastBackup=Date.now();store("radarSettings",settings);return}
+ if(Date.now()-settings.lastBackup>7*86400000)toast("💾 Faz mais de 7 dias do último backup. Vá em Meu Controle e copie um novo.",8000)
+}
+$("#bkCopy").onclick=()=>copyText(backupText()).then(ok=>{if(ok)markBackup()});
+if(navigator.share){
+ const sb=$("#bkShare");sb.style.display="block";
+ sb.onclick=()=>{navigator.share({title:"Backup Radar FC",text:backupText()}).then(markBackup).catch(()=>{})}
+}
+$("#bkRestore").onclick=()=>{
+ const raw=$("#bkText").value.trim();
+ if(!raw){toast("Cole o backup primeiro.",2200);return}
+ let obj;
+ try{obj=JSON.parse(raw);if(!obj||obj.app!=="radarfc"||!obj.data||typeof obj.data!=="object")throw Error("x")}catch(e){toast("Backup inválido.",3000);return}
+ if(!confirm("Restaurar este backup? Os dados atuais serão substituídos."))return;
+ try{
+  BK_KEYS.forEach(k=>{if(k in obj.data)localStorage.setItem(k,JSON.stringify(obj.data[k]))});
+  toast("♻️ Backup restaurado. Recarregando...",2000);
+  setTimeout(()=>location.reload(),1200)
+ }catch(e){toast("Não foi possível restaurar.",3000)}
+};
+function csvCell(v){
+ if(typeof v==="number")return String(v).replace(".",",");
+ let s=String(v??"");if(/^[=+\-@\t\r]/.test(s))s="'"+s;
+ return'"'+s.replace(/"/g,'""')+'"'
+}
+function exportCSV(name,head,rows){
+ const csv="\ufeff"+[head,...rows].map(r=>r.map(csvCell).join(";")).join("\r\n");
+ let file=null;try{file=new File([csv],name,{type:"text/csv"})}catch(e){}
+ if(file&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return}
+ try{
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);toast("📄 CSV gerado",2500)
+ }catch(e){copyText(csv)}
+}
+function keyLabel(k,h,a){return({dc1x:h+" ou empate",dcx2:a+" ou empate",dc12:h+" ou "+a,o15:"Mais de 1,5 gols",u35:"Menos de 3,5 gols",winH:h+" vence",winA:a+" vence"})[k]||k}
+$("#csvBank").onclick=()=>{
+ if(!bank.length){toast("Não há apostas para exportar.",2500);return}
+ exportCSV("radarfc-banca.csv",["Data","Descrição","Tipo","Valor","Odd","Resultado","Lucro"],bank.map(b=>[b.date||"",b.name||"",typeLbl[b.type||"manual"]||"",Number(b.stake)||0,Number(b.odd)||0,betLbl[b.result]||"",betProfit(b)]))
+};
+$("#csvPicks").onclick=()=>{
+ const arr=Object.values(dayPicks).filter(r=>r.dk).sort((a,b)=>b.dk.localeCompare(a.dk));
+ if(!arr.length){toast("Não há palpites para exportar.",2500);return}
+ exportCSV("radarfc-palpites.csv",["Dia","Jogo","Competição","Palpite","Probabilidade","Resultado","Placar"],arr.map(r=>[fmtKey(r.dk),r.home+" x "+r.away,r.league||"",keyLabel(r.key,r.home,r.away),Number(r.prob)||0,r.result==="green"?"Green":r.result==="red"?"Red":"Em aberto",r.score||""]))
+};
+
+/* ÍCONE DO IPHONE (gerado na hora, sem arquivo externo) */
+function makeIcon(){
+ try{
+  const c=document.createElement("canvas");c.width=c.height=180;
+  const x=c.getContext("2d");
+  x.fillStyle="#08111f";x.fillRect(0,0,180,180);
+  x.fillStyle="#65e3a7";x.beginPath();x.arc(90,90,58,0,Math.PI*2);x.fill();
+  x.fillStyle="#08111f";x.font="bold 62px Arial";x.textAlign="center";x.textBaseline="middle";x.fillText("FC",90,95);
+  $("#touchIcon").href=c.toDataURL("image/png")
+ }catch(e){}
+}
+
+/* ATUALIZAÇÃO AUTOMÁTICA
+   15 s com jogo ao vivo, 60 s sem jogo ao vivo. A tela de detalhes de um jogo ao vivo também atualiza. */
+$("#refresh").onclick=()=>{games=[];load()};
+setInterval(async()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg!=="radar"&&pg!=="matchPage")return;
+ const every=games.some(g=>g.live)?15000:60000;
+ if(loading||Date.now()-lastLoadAt<every-500)return;
+ await load();
+ if(pg==="matchPage")refreshOpenMatch()
+},5000);
+/* Ao Vivo: a cada 20 s (também com a página fechada, se os avisos estiverem ligados) */
+setInterval(()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="live"||settings.liveAlert)liveTick()
+},20000);
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="radar"&&!loading&&Date.now()-lastLoadAt>15000)load();
+ if(pg==="live"||settings.liveAlert)liveTick()
+});
+
+/* INICIALIZAÇÃO */
+applyTheme();
+updateAlertBtn();
+makeIcon();
+renderLeagues();
+renderLiveFilters();
+showPage("radar");
+loadRiskInputs();
+loadGoalInputs();
+renderPredictions();
+renderBank();
+renderGoal();
+renderDayHistory();
+renderBackupInfo();
+renderLive();
+load();
+backupReminder();
+setTimeout(()=>{resolveMultiplas();resolveDayPicks(true)},4000);
+if(settings.liveAlert)setTimeout(()=>liveTick(true),6000);
+</script>
+</body>
+</html>
