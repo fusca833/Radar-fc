@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0f14">
+<meta name="theme-color" content="#08111f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -11,74 +11,73 @@
 <link rel="apple-touch-icon" id="touchIcon" href="">
 <title>Radar FC</title>
 <style>
-:root{--bg:#0b0f14;--tx:#f4f6f8;--mu:#8b97a6;--c1:#161c24;--b1:#232b36;--c2:#121820;--b2:#1d2530;--c3:#10161d;--c4:#151c25;--c5:#10161d;--inp:#0e131a;--tx2:#b9c3cf;--tx3:#c7d0da;--gn:#3ddc97;--rd:#ff6b6b;--gbtn:#12a36a;--gbd:#3ddc97;--gb2:#1f5c47;--nav:#0e131a;--hov:#34414f;--tap:#7d8a99;--dim:#66727f;--h1a:#10261f;--h1b:#121820;--h1bd:#1f3a30;--d1a:#16202b;--d1b:#10161d;--g4a:#1f4a3c;--live:#ff5c6a}
-html[data-theme="light"]{--bg:#f5f7fa;--tx:#141b24;--mu:#5d6b7c;--c1:#e9eef4;--b1:#d5dde7;--c2:#ffffff;--b2:#e3e9f0;--c3:#f7f9fc;--c4:#f2f6fa;--c5:#f7f9fc;--inp:#ffffff;--tx2:#37485a;--tx3:#2c3c4d;--gn:#0b8a52;--rd:#c62828;--gbtn:#14965f;--gbd:#14965f;--gb2:#8fd1b4;--nav:#ffffff;--hov:#9fb3c7;--tap:#5d6b7c;--dim:#60707f;--h1a:#e4f5ec;--h1b:#e9eef4;--h1bd:#b4dcc8;--d1a:#e9eff6;--d1b:#ffffff;--g4a:#a9d9c2;--live:#d32f3f}
+:root{--bg:#08111f;--tx:#f2f6fc;--mu:#91a5bc;--c1:#14263b;--b1:#29415c;--c2:#101e30;--b2:#263b53;--c3:#0d1d2e;--c4:#12263a;--c5:#0b1929;--inp:#081725;--tx2:#b6c9d9;--tx3:#c2d0df;--gn:#65e3a7;--rd:#ff9292;--gbtn:#176344;--gbd:#42d392;--gb2:#347d63;--nav:#0d1a2a;--hov:#42617f;--tap:#8da6c0;--dim:#74879d;--h1a:#123b35;--h1b:#14263b;--h1bd:#28604f;--d1a:#142d43;--d1b:#101e30;--g4a:#315b50;--live:#ff737d}
+html[data-theme="light"]{--bg:#eef3f8;--tx:#12202f;--mu:#4d6178;--c1:#e3ebf4;--b1:#bccbdb;--c2:#ffffff;--b2:#d3dfeb;--c3:#f4f8fc;--c4:#f0f5fa;--c5:#f4f8fc;--inp:#ffffff;--tx2:#34495e;--tx3:#2c3f52;--gn:#0b8a52;--rd:#c62828;--gbtn:#1b9a63;--gbd:#1b9a63;--gb2:#7cc7a4;--nav:#ffffff;--hov:#8aa5c0;--tap:#4d6178;--dim:#53677d;--h1a:#dff3ea;--h1b:#e3ebf4;--h1bd:#a9d9c2;--d1a:#e3ecf6;--d1b:#ffffff;--g4a:#9fd3bb;--live:#d32f3f}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;line-height:1.35}
-header{max-width:860px;margin:auto;padding:18px 16px 8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-h1{margin:0;font-size:20px;letter-spacing:.4px}h2,h3,h4{margin-top:0}
-.sub{display:none}
-.muted{font-size:11px;color:var(--mu);margin-top:4px}
-button{background:var(--c1);color:var(--tx);border:0;border-radius:12px;padding:10px 14px;font-size:13px;cursor:pointer;touch-action:manipulation;font-family:inherit}
-button.active{background:var(--gbtn);color:#fff}
-main{max-width:860px;margin:auto;padding:0 16px 100px}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+header{max-width:1000px;margin:auto;padding:20px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+h1{margin:0;font-size:23px}h2,h3,h4{margin-top:0}
+.sub,.muted{font-size:11px;color:var(--mu);margin-top:4px}
+button{background:var(--c1);color:var(--tx);border:1px solid var(--b1);border-radius:10px;padding:11px 14px;cursor:pointer;touch-action:manipulation;font-family:inherit}
+button.active{background:var(--gbtn);border-color:var(--gbd);color:#fff}
+main{max-width:1000px;margin:auto;padding:0 16px 100px}
 .page{display:none}.page.active{display:block}
-.hero{display:none}
-.toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
-.toolbar button{border-radius:999px;padding:8px 16px;font-size:12px}
-.leagues{display:flex;gap:6px;overflow:auto;padding:2px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}.leagues::-webkit-scrollbar{display:none}.leagues button{white-space:nowrap;font-size:12px;border-radius:999px;padding:8px 14px}
-.filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+.hero{background:linear-gradient(120deg,var(--h1a),var(--h1b));border:1px solid var(--h1bd);padding:20px;border-radius:16px;margin-bottom:18px}
+.hero h2{margin:0 0 7px;font-size:19px}.hero p{margin:0;color:var(--tx2);font-size:13px;line-height:1.5}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.leagues{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;-webkit-overflow-scrolling:touch}.leagues button{white-space:nowrap;font-size:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 6px}
 .filters input{flex:1 1 150px;width:auto;margin:0}
-.filters button{font-size:12px;border-radius:999px;padding:9px 13px}
-.section{display:flex;justify-content:space-between;align-items:center;margin:22px 0 10px}.section h3{font-size:15px;margin:0}
-.matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px;align-items:start}
-.match,.panel{background:var(--c2);border:1px solid var(--b2);border-radius:18px;padding:16px}
-.match{cursor:pointer;transition:.15s}.match:hover{border-color:var(--hov)}.match.live-match{border-color:#8f3340}
-.match-top{display:flex;justify-content:space-between;gap:8px;color:var(--mu);font-size:11px;margin-bottom:12px}
+.filters button{font-size:12px}
+.section{display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px}.section h3{font-size:16px;margin:0}
+.matches{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;align-items:start}
+.match,.panel{background:var(--c2);border:1px solid var(--b2);border-radius:15px;padding:15px}
+.match{cursor:pointer;transition:.2s}.match:hover{border-color:var(--hov)}.match.live-match{border-color:#b63d4a}
+.match-top{display:flex;justify-content:space-between;gap:8px;color:var(--mu);font-size:11px;margin-bottom:13px}
 .status-live{color:var(--live);font-weight:bold}.live-dot{display:inline-block;width:7px;height:7px;background:#ff5965;border-radius:50%;margin-right:5px}
-.teams{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;font-size:14px;font-weight:600}
+.teams{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;font-size:14px;font-weight:bold}
 .team-name{display:flex;align-items:center;gap:9px;min-width:0}.team-name span{overflow-wrap:anywhere}
-.team-logo{width:28px;height:28px;object-fit:contain;flex-shrink:0}.score{text-align:right;font-size:18px}
-.star{background:transparent;border:0;padding:4px 5px;font-size:18px;line-height:1;color:var(--dim);flex-shrink:0;border-radius:6px}
+.team-logo{width:30px;height:30px;object-fit:contain;flex-shrink:0}.score{text-align:right;font-size:19px}
+.star{background:transparent;border:0;padding:4px 5px;font-size:19px;line-height:1;color:var(--mu);flex-shrink:0;border-radius:6px}
 .star.on{color:#f5c542}
-.meta{color:var(--mu);font-size:11px;margin-top:12px;padding-top:0}
-.tap-hint{display:none}
+.meta{color:var(--mu);font-size:11px;margin-top:12px;border-top:1px solid var(--b2);padding-top:10px}
+.tap-hint{display:flex;justify-content:space-between;align-items:center;margin-top:13px;padding-top:11px;border-top:1px solid var(--b2);color:var(--tap);font-size:11px}
 .tap-hint strong{color:var(--gn);font-size:11px}
-.dupla-wrap{background:var(--c3);border:1px solid var(--gb2);border-radius:18px;padding:14px;margin-bottom:14px}
+.dupla-wrap{background:var(--c3);border:1px solid var(--gb2);border-radius:16px;padding:13px;margin-bottom:16px}
 .dupla-heading{display:flex;justify-content:space-between;align-items:center;margin:0 0 12px}
 .dupla-heading strong{color:var(--gn);font-size:13px}.dupla-heading span{font-size:11px;color:var(--mu)}
 .dupla-games{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dupla-games .match{background:var(--c4);border-color:var(--g4a)}.dupla-games .team-logo{width:25px;height:25px}
 .dupla-games .teams{font-size:12px;gap:7px}.dupla-games .score{font-size:17px}.dupla-games .meta{font-size:10px}
-.pick-tag{display:inline-block;color:var(--gn);font-size:12px;font-weight:bold;margin:0 0 8px 4px}
+.pick-tag{display:inline-block;color:var(--gn);font-size:12px;font-weight:bold;margin-bottom:8px}
 .loading,.empty{text-align:center;padding:28px 12px;color:var(--mu);font-size:13px;line-height:1.5}
-.source{display:none}
-footer{text-align:center;color:var(--dim);font-size:10px;line-height:1.5;padding:22px 10px;opacity:.8}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav);border-top:1px solid var(--b2);display:flex;justify-content:center;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));z-index:10}
-.bottom-nav button{flex:1;max-width:220px;background:transparent;border:0;color:var(--mu);font-size:12px;padding:10px 6px}
-.bottom-nav button.active{background:var(--c1);color:var(--gn)}
+.source{display:inline-block;padding:5px 9px;border-radius:8px;background:var(--c1);color:var(--tx2);font-size:11px;margin-top:8px}
+footer{text-align:center;color:var(--dim);font-size:11px;line-height:1.5;padding:25px 10px}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav);border-top:1px solid var(--b1);display:flex;justify-content:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:10}
+.bottom-nav button{flex:1;max-width:220px;background:transparent;border:0;color:var(--mu);font-size:13px}
+.bottom-nav button.active{background:var(--gbtn);color:#fff}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
-.stat{background:var(--c1);padding:15px;border-radius:14px;border:0}
-.stat small{color:var(--mu);font-size:11px}.stat strong{display:block;font-size:22px;margin-top:7px}
+.stat{background:var(--c1);padding:15px;border-radius:12px;border:1px solid var(--b1)}
+.stat small{color:var(--mu);font-size:11px}.stat strong{display:block;font-size:23px;margin-top:7px}
 .stat strong.sm{font-size:18px}
 .green{color:var(--gn)}.red{color:var(--rd)}
-input,select,textarea{width:100%;background:var(--inp);border:1px solid var(--b1);color:var(--tx);padding:12px;border-radius:12px;margin:6px 0 12px;font-size:16px;font-family:inherit}
+input,select,textarea{width:100%;background:var(--inp);border:1px solid var(--b1);color:var(--tx);padding:12px;border-radius:9px;margin:6px 0 12px;font-size:16px;font-family:inherit}
 input[type=search]{-webkit-appearance:none;appearance:none}
 textarea{min-height:90px;resize:vertical}
 label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
-.progress{height:10px;background:var(--b2);border-radius:20px;overflow:hidden;margin:12px 0}
+.progress{height:12px;background:var(--b2);border-radius:20px;overflow:hidden;margin:12px 0}
 .progress div{height:100%;background:var(--gbd);width:0%;transition:width .3s}
 .record{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--b2);font-size:12px}
 .record:last-child{border-bottom:0}.record-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .record button{padding:7px 9px;font-size:11px}
 .dupla-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
-.dupla-stat{background:var(--c1);border:0;border-radius:14px;padding:12px;text-align:center}
+.dupla-stat{background:var(--c1);border:1px solid var(--b1);border-radius:11px;padding:12px;text-align:center}
 .dupla-stat small{display:block;color:var(--mu);font-size:11px}.dupla-stat strong{display:block;font-size:22px;margin-top:5px}
 .dupla-record{padding:12px 0;border-bottom:1px solid var(--b2);font-size:12px;line-height:1.6}.dupla-record:last-child{border:0}
 .legbtn{padding:6px 10px;font-size:11px;margin-top:6px}
 .detail-back{display:flex;align-items:center;gap:10px;margin:5px 0 15px}.detail-back button{padding:9px 13px}
-.detail-hero{background:linear-gradient(135deg,var(--d1a),var(--d1b));border:1px solid var(--b2);border-radius:20px;padding:18px;margin-bottom:14px}
+.detail-hero{background:linear-gradient(135deg,var(--d1a),var(--d1b));border:1px solid var(--b1);border-radius:16px;padding:18px;margin-bottom:14px}
 .detail-league{font-size:11px;color:var(--mu);text-align:center;margin-bottom:15px}
 .detail-score{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
 .detail-team{text-align:center;font-size:12px;font-weight:bold;overflow-wrap:anywhere}
@@ -89,35 +88,35 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 .detail-panel .panel{margin-bottom:12px}
 .info-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--b2);font-size:12px}
 .info-row:last-child{border:0}.history{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.history-team{background:var(--c2);border:1px solid var(--b2);border-radius:14px;padding:10px;min-width:0}
+.history-team{background:var(--c2);border:1px solid var(--b2);border-radius:10px;padding:10px;min-width:0}
 .history-team strong{font-size:12px;display:block;margin-bottom:8px}
 .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}
-.metric{background:var(--c1);border:0;border-radius:10px;padding:9px 5px;text-align:center}
+.metric{background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:9px 5px;text-align:center}
 .metric small{display:block;font-size:10px;color:var(--mu)}.metric strong{display:block;font-size:17px;margin-top:5px}
 .frequency-title{font-size:11px;font-weight:bold;color:var(--tx2);margin:12px 0 7px}
 .frequency-list{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:8px 0}
-.frequency-item{background:var(--c1);border:0;border-radius:10px;padding:8px 3px;text-align:center;min-width:0}
+.frequency-item{background:var(--c1);border:1px solid var(--b1);border-radius:8px;padding:8px 3px;text-align:center;min-width:0}
 .frequency-item small{display:block;color:var(--mu);font-size:10px}.frequency-item strong{display:block;font-size:15px;margin:5px 0 3px}
 .frequency-item span{font-size:10px;color:var(--tx2)}
 .outcome-list{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
-.outcome-item{padding:9px 4px;border-radius:10px;background:var(--c1);border:0;text-align:center}
+.outcome-item{padding:9px 4px;border-radius:8px;background:var(--c1);border:1px solid var(--b1);text-align:center}
 .outcome-item small{display:block;font-size:10px;color:var(--mu)}.outcome-item strong{display:block;font-size:17px;margin:5px 0}
 .frequency-note{font-size:11px;line-height:1.5;color:var(--mu);margin-top:9px}
 .analysis-row{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--b2);font-size:12px}
 .analysis-value{text-align:center;font-weight:bold}.analysis-label{text-align:center;color:var(--mu);font-size:11px}
 .analysis-events{font-size:11px;line-height:1.7;color:var(--tx2);margin-top:10px}
-.ai-box{background:var(--c5);border:1px solid var(--b2);border-radius:16px;padding:14px;margin-bottom:12px}
+.ai-box{background:var(--c5);border:1px solid var(--b1);border-radius:12px;padding:14px;margin-bottom:12px}
 .ai-box h4{font-size:13px;margin:0 0 10px;color:var(--gn)}.ai-text{font-size:12px;line-height:1.7;color:var(--tx3)}
-.outcome-card{background:var(--c3);border:1px solid var(--b2);border-radius:14px;padding:12px;margin:10px 0}
-.prob-line{margin-top:12px;padding:10px 12px;background:var(--c3);border:1px solid var(--gb2);border-radius:12px;font-size:11px;line-height:1.7;color:var(--tx2)}.prob-line b{color:var(--gn)}
+.outcome-card{background:var(--c3);border:1px solid var(--b1);border-radius:11px;padding:12px;margin:10px 0}
+.prob-line{margin-top:11px;padding:9px 10px;background:var(--c3);border:1px solid var(--gb2);border-radius:9px;font-size:11px;line-height:1.7;color:var(--tx2)}.prob-line b{color:var(--gn)}
 .mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
 .mode-switch button{padding:13px 6px;font-size:13px;font-weight:bold}
-.market-data{background:var(--c3);border:1px solid var(--gb2);border-radius:16px;padding:15px;margin-top:12px}
+.market-data{background:var(--c3);border:1px solid var(--gb2);border-radius:13px;padding:15px;margin-top:12px}
 .market-data h3{color:var(--gn);font-size:15px;margin:0 0 8px}
-.market-team{background:var(--c1);border:0;border-radius:14px;padding:12px;margin-top:10px}
+.market-team{background:var(--c1);border:1px solid var(--b1);border-radius:10px;padding:12px;margin-top:10px}
 .market-team strong{display:block;font-size:13px;margin-bottom:9px}
 .market-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.market-item{background:var(--c3);border-radius:10px;padding:10px 4px;text-align:center}
+.market-item{background:var(--c3);border-radius:8px;padding:10px 4px;text-align:center}
 .market-item small{display:block;color:var(--mu);font-size:10px}
 .market-item b{display:block;font-size:17px;margin:5px 0}
 .market-note{color:var(--mu);font-size:11px;line-height:1.6;margin-top:10px}
@@ -128,21 +127,21 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 .tbl td:nth-child(2),.tbl th:nth-child(2){text-align:left;white-space:normal;min-width:110px}
 .tbl.c td:nth-child(2),.tbl.c th:nth-child(2){text-align:center;white-space:nowrap;min-width:0}
 .tbl tr.hl{background:var(--c1);font-weight:bold}
-.warnbox{background:var(--c1);border:1px solid #8f3340;border-radius:14px;padding:10px 12px;margin-bottom:10px;color:var(--tx2);font-size:12px;line-height:1.6}
-.toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--c3);border:1px solid var(--gbd);color:var(--tx);padding:12px 16px;border-radius:14px;font-size:13px;z-index:50;max-width:92%;text-align:center;display:none;box-shadow:0 6px 24px rgba(0,0,0,.35);white-space:pre-line}
+.warnbox{background:var(--c1);border:1px solid #b63d4a;border-radius:10px;padding:10px;margin-bottom:10px;color:var(--tx2);font-size:12px;line-height:1.6}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--c3);border:1px solid var(--gbd);color:var(--tx);padding:12px 16px;border-radius:12px;font-size:13px;z-index:50;max-width:92%;text-align:center;display:none;box-shadow:0 6px 24px rgba(0,0,0,.35);white-space:pre-line}
 .toast.show{display:block}
 .live-head{display:flex;justify-content:space-between;align-items:center;color:var(--mu);font-size:11px;margin-bottom:10px}
 .live-score{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;font-weight:bold;font-size:14px;margin-bottom:6px}
 .live-score span:first-child{overflow-wrap:anywhere}.live-score span:last-child{text-align:right;overflow-wrap:anywhere}
-#dayBar{display:none;max-width:860px;margin:0 auto 12px;padding:0 16px}
+#dayBar{display:none;max-width:1000px;margin:0 auto 14px;padding:0 16px}
 body.on-radar #dayBar.has{display:block}
-#dayBar .daybox{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--c1);border:0;border-radius:16px;padding:12px 16px}
+#dayBar .daybox{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--c1);border:1px solid var(--b1);border-radius:12px;padding:10px 14px}
 #dayBar .daytit{font-size:11px;color:var(--mu)}
 #dayBar .dayscore{font-size:24px;font-weight:bold;margin-top:2px}
 #dayBar .daydet{font-size:11px;color:var(--mu);text-align:right;line-height:1.6}
-#dayBar .daynote{display:none}
+#dayBar .daynote{font-size:10px;color:var(--dim);margin-top:5px;padding-left:2px}
 @media(max-width:600px){
- header{padding-top:16px}
+ header{padding-top:18px}
  .matches{grid-template-columns:1fr}
  .dupla-games{grid-template-columns:1fr}
  .history{grid-template-columns:1fr}
@@ -188,7 +187,6 @@ body.on-radar #dayBar.has{display:block}
 </section>
 <section class="page" id="live">
  <div class="hero"><h2>📡 Ao Vivo · Probabilidades</h2><p>Chance de gols, escanteios, cartões e chutes no alvo nos jogos que estão rolando agora. Atualiza sozinho a cada 20 segundos.</p></div>
- <div class="section"><h3>📡 Ao vivo</h3></div>
  <div class="panel">
   <button class="full" id="liveAlertBtn">🔔 Avisar probabilidades altas: OFF</button>
   <label style="display:block;margin-top:12px">Avisar quando a chance for de pelo menos</label>
@@ -217,7 +215,6 @@ body.on-radar #dayBar.has{display:block}
 </section>
 <section class="page" id="controle">
  <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus registros, sua banca, seus limites e sua evolução nas metas.</p></div>
- <div class="section"><h3>📊 Meu Controle</h3></div>
 
  <div class="section"><h3>📅 Acertos por dia</h3></div>
  <div class="panel" id="dayHistory"><div class="empty">Ainda não há palpites gravados.</div></div>
@@ -347,7 +344,7 @@ const packG=x=>[x.date,x.opponent,x.opponentId,x.home?1:0,x.scored,x.conceded];
 const unpackG=a=>({date:a[0],opponent:a[1],opponentId:a[2],home:a[3]===1,scored:a[4],conceded:a[5],completed:true});
 
 /* TEMA */
-function applyTheme(){const t=settings.theme==="light"?"light":"dark";document.documentElement.setAttribute("data-theme",t);const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==="light"?"#f5f7fa":"#0b0f14";$("#themeBtn").textContent=t==="light"?"🌙":"☀️"}
+function applyTheme(){const t=settings.theme==="light"?"light":"dark";document.documentElement.setAttribute("data-theme",t);const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==="light"?"#eef3f8":"#08111f";$("#themeBtn").textContent=t==="light"?"🌙":"☀️"}
 $("#themeBtn").onclick=()=>{settings.theme=settings.theme==="light"?"dark":"light";store("radarSettings",settings);applyTheme()};
 
 /* AVISO / SOM / TOAST */
@@ -827,7 +824,7 @@ function multiHTML(m){
  return`<div class="panel" style="margin-top:12px"><h3>🎯 Múltipla ${safe(multiTitle(m))} · ${m.legs.length} jogos ${tag[st]}</h3>
  <div class="dupla-stats" style="grid-template-columns:repeat(2,1fr)"><div class="dupla-stat"><small>PROBABILIDADE COMBINADA</small><strong class="green">${(comb*100).toFixed(0)}%</strong></div><div class="dupla-stat"><small>ODD JUSTA</small><strong>${odd}</strong></div></div>
  ${m.legs.map((l,i)=>`<div class="dupla-record"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.league)} · ${safe(formatDate(l.date))}</span><br>🎯 ${safe(l.label)} · <strong>${Math.round(l.prob)}%</strong> · odd justa ${(100/l.prob).toFixed(2).replace(".",",")}${l.score?" · placar "+safe(l.score):""} ${tag[l.result]}${l.result==="pending"?`<br><button class="legbtn" data-swap="${i}">🔄 Trocar jogo</button>`:""}</div>`).join("")}
- <div style="background:var(--c3);border:1px solid var(--b2);border-radius:14px;padding:12px;margin-top:10px"><label>💵 Odd da casa (opcional)</label><input id="multiOdd" type="text" inputmode="decimal" placeholder="Ex.: 3,20" value="${m.odd?String(m.odd).replace(".",","):""}"><div id="multiEV" class="market-note" style="margin-top:0">${evHTML(m)}</div></div>
+ <div style="background:var(--c3);border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px"><label>💵 Odd da casa (opcional)</label><input id="multiOdd" type="text" inputmode="decimal" placeholder="Ex.: 3,20" value="${m.odd?String(m.odd).replace(".",","):""}"><div id="multiEV" class="market-note" style="margin-top:0">${evHTML(m)}</div></div>
  <button class="full" id="multiCopy" style="margin-top:10px">📋 Copiar múltipla</button>
  <button class="full" id="multiBank" style="margin-top:8px">💰 Registrar na banca</button>
  <div class="market-note">Probabilidades estimadas pelo retrospecto dos últimos jogos de cada time combinado com um modelo de Poisson, com ajuste pela força dos adversários e encolhimento em direção à média da liga. A "odd justa" é só uma referência calculada pela probabilidade, não é a odd de nenhuma casa de apostas. Quanto mais jogos na múltipla, menor a chance de acertar todos. Não é garantia de resultado.</div></div>`
@@ -1377,4 +1374,122 @@ $("#saveGoal").onclick=()=>{
 function loadGoalInputs(){$("#goalName").value=goal.name||"";$("#goalTarget").value=goal.target||"";$("#goalSaved").value=goal.saved||""}
 
 /* BACKUP, LEMBRETE E EXPORTAÇÃO CSV */
-const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarTop4","radarPredictions","radarBank
+const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarTop4","radarPredictions","radarBank","radarGoal"];
+function backupText(){const data={};BK_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=JSON.parse(v)}catch(e){}});return JSON.stringify({app:"radarfc",v:1,data})}
+function renderBackupInfo(){
+ const el=$("#bkInfo");if(!el)return;
+ if(!settings.lastBackup){el.textContent="Nenhum backup copiado ainda.";return}
+ const days=Math.floor((Date.now()-settings.lastBackup)/86400000);
+ el.innerHTML="Último backup: <strong>"+new Date(settings.lastBackup).toLocaleDateString("pt-BR")+"</strong>"+(days>=7?' <span class="red">· faz '+days+' dias, copie um novo</span>':"")
+}
+function markBackup(){settings.lastBackup=Date.now();store("radarSettings",settings);renderBackupInfo()}
+function backupReminder(){
+ const hasData=bank.length||predictions.length||Object.keys(multiplas).length||Object.keys(dayPicks).length||goal.target;
+ if(!hasData)return;
+ if(!settings.lastBackup){settings.lastBackup=Date.now();store("radarSettings",settings);return}
+ if(Date.now()-settings.lastBackup>7*86400000)toast("💾 Faz mais de 7 dias do último backup. Vá em Meu Controle e copie um novo.",8000)
+}
+$("#bkCopy").onclick=()=>copyText(backupText()).then(ok=>{if(ok)markBackup()});
+if(navigator.share){
+ const sb=$("#bkShare");sb.style.display="block";
+ sb.onclick=()=>{navigator.share({title:"Backup Radar FC",text:backupText()}).then(markBackup).catch(()=>{})}
+}
+$("#bkRestore").onclick=()=>{
+ const raw=$("#bkText").value.trim();
+ if(!raw){toast("Cole o backup primeiro.",2200);return}
+ let obj;
+ try{obj=JSON.parse(raw);if(!obj||obj.app!=="radarfc"||!obj.data||typeof obj.data!=="object")throw Error("x")}catch(e){toast("Backup inválido.",3000);return}
+ if(!confirm("Restaurar este backup? Os dados atuais serão substituídos."))return;
+ try{
+  BK_KEYS.forEach(k=>{if(k in obj.data)localStorage.setItem(k,JSON.stringify(obj.data[k]))});
+  toast("♻️ Backup restaurado. Recarregando...",2000);
+  setTimeout(()=>location.reload(),1200)
+ }catch(e){toast("Não foi possível restaurar.",3000)}
+};
+function csvCell(v){
+ if(typeof v==="number")return String(v).replace(".",",");
+ let s=String(v??"");if(/^[=+\-@\t\r]/.test(s))s="'"+s;
+ return'"'+s.replace(/"/g,'""')+'"'
+}
+function exportCSV(name,head,rows){
+ const csv="\ufeff"+[head,...rows].map(r=>r.map(csvCell).join(";")).join("\r\n");
+ let file=null;try{file=new File([csv],name,{type:"text/csv"})}catch(e){}
+ if(file&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:name}).catch(()=>{});return}
+ try{
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);toast("📄 CSV gerado",2500)
+ }catch(e){copyText(csv)}
+}
+function keyLabel(k,h,a){return({dc1x:h+" ou empate",dcx2:a+" ou empate",dc12:h+" ou "+a,o15:"Mais de 1,5 gols",u35:"Menos de 3,5 gols",winH:h+" vence",winA:a+" vence"})[k]||k}
+$("#csvBank").onclick=()=>{
+ if(!bank.length){toast("Não há apostas para exportar.",2500);return}
+ exportCSV("radarfc-banca.csv",["Data","Descrição","Tipo","Valor","Odd","Resultado","Lucro"],bank.map(b=>[b.date||"",b.name||"",typeLbl[b.type||"manual"]||"",Number(b.stake)||0,Number(b.odd)||0,betLbl[b.result]||"",betProfit(b)]))
+};
+$("#csvPicks").onclick=()=>{
+ const arr=Object.values(dayPicks).filter(r=>r.dk).sort((a,b)=>b.dk.localeCompare(a.dk));
+ if(!arr.length){toast("Não há palpites para exportar.",2500);return}
+ exportCSV("radarfc-palpites.csv",["Dia","Jogo","Competição","Palpite","Probabilidade","Resultado","Placar"],arr.map(r=>[fmtKey(r.dk),r.home+" x "+r.away,r.league||"",keyLabel(r.key,r.home,r.away),Number(r.prob)||0,r.result==="green"?"Green":r.result==="red"?"Red":"Em aberto",r.score||""]))
+};
+
+/* ÍCONE DO IPHONE (gerado na hora, sem arquivo externo) */
+function makeIcon(){
+ try{
+  const c=document.createElement("canvas");c.width=c.height=180;
+  const x=c.getContext("2d");
+  x.fillStyle="#08111f";x.fillRect(0,0,180,180);
+  x.fillStyle="#65e3a7";x.beginPath();x.arc(90,90,58,0,Math.PI*2);x.fill();
+  x.fillStyle="#08111f";x.font="bold 62px Arial";x.textAlign="center";x.textBaseline="middle";x.fillText("FC",90,95);
+  $("#touchIcon").href=c.toDataURL("image/png")
+ }catch(e){}
+}
+
+/* ATUALIZAÇÃO AUTOMÁTICA
+   15 s com jogo ao vivo, 60 s sem jogo ao vivo. A tela de detalhes de um jogo ao vivo também atualiza. */
+$("#refresh").onclick=()=>{games=[];load()};
+setInterval(async()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg!=="radar"&&pg!=="matchPage")return;
+ const every=games.some(g=>g.live)?15000:60000;
+ if(loading||Date.now()-lastLoadAt<every-500)return;
+ await load();
+ if(pg==="matchPage")refreshOpenMatch()
+},5000);
+/* Ao Vivo: a cada 20 s (também com a página fechada, se os avisos estiverem ligados) */
+setInterval(()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="live"||settings.liveAlert)liveTick()
+},20000);
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="radar"&&!loading&&Date.now()-lastLoadAt>15000)load();
+ if(pg==="live"||settings.liveAlert)liveTick()
+});
+
+/* INICIALIZAÇÃO */
+applyTheme();
+updateAlertBtn();
+makeIcon();
+renderLeagues();
+renderLiveFilters();
+showPage("radar");
+loadRiskInputs();
+loadGoalInputs();
+loadLevInputs();
+renderLev();
+renderPredictions();
+renderBank();
+renderGoal();
+renderDayHistory();
+renderBackupInfo();
+renderLive();
+load();
+backupReminder();
+setTimeout(()=>{resolveMultiplas();resolveDayPicks(true)},4000);
+if(settings.liveAlert)setTimeout(()=>liveTick(true),6000);
+</script>
+</body>
+</html>
