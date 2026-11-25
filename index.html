@@ -1564,6 +1564,25 @@ load();
 backupReminder();
 setTimeout(()=>{resolveMultiplas();resolveDayPicks(true)},4000);
 if(settings.liveAlert)setTimeout(()=>liveTick(true),6000);
-</script>
+/* ===== 1 PALPITE POR JOGO · SÓ COM 80% OU MAIS ===== */
+const TIP_MIN=80;
+function probLineHTML(p,g,res,rec){
+ if(!rec||rec.prob<TIP_MIN)return'<div class="prob-line" style="color:var(--mu)">Sem palpite confiável (80%+) neste jogo.</div>';
+ const sc=safe(g.hs)+" x "+safe(g.as);
+ const badge=res?(res==="green"?'<br><b class="green">✅ Palpite acertou</b> <span>('+sc+')</span>':'<br><b class="red">❌ Palpite errou</b> <span>('+sc+')</span>'):"";
+ return'<div class="prob-line">🎯 Palpite: <b>'+safe(keyLabel(rec.key,g.home,g.away))+' · '+Math.round(rec.prob)+'%</b>'+badge+'</div>'
+}
+const _renderDetailTabs=renderDetailTabs;
+renderDetailTabs=function(){
+ _renderDetailTabs();
+ if(typeof isPremium==="function"&&!isPremium())return;
+ const g=currentMatch;if(!g)return;
+ const cutT=g.date?new Date(g.date).getTime():NaN,cut=l=>Number.isFinite(cutT)?l.filter(x=>new Date(x.date).getTime()<cutT):l;
+ const p=calcProbs(cut(currentHistHome),cut(currentHistAway),g.path),bp=p?bestLeg(p,g):null;
+ const body=bp&&bp.prob>=TIP_MIN
+  ?'<div class="market-team"><div style="font-size:16px;font-weight:bold" class="green">'+safe(keyLabel(bp.key,g.home,g.away))+'</div><div class="market-note" style="margin-top:6px">Probabilidade estimada: <strong>'+Math.round(bp.prob)+'%</strong></div></div>'
+  :'<div class="empty">Sem palpite confiável (80%+) neste jogo.</div>';
+ $("#tab-tips").innerHTML='<div class="panel"><h3>🎯 Palpite do jogo</h3>'+body+'<div class="market-note">Só aparece palpite com 80% ou mais. É uma estimativa pelo histórico dos dois times, sem garantia de resultado.</div></div>'
+};</script>
 </body>
 </html>
