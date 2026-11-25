@@ -307,7 +307,6 @@ const competitions=[
  {id:"cdr",name:"Copa del Rey",path:"esp.copa_del_rey"},{id:"coppa",name:"Coppa Italia",path:"ita.coppa_italia"},{id:"dfb",name:"DFB Pokal",path:"ger.dfb_pokal"},
  {id:"sco",name:"Escócia",path:"sco.1"},{id:"bel",name:"Bélgica",path:"bel.1"},{id:"uecl",name:"Conference League",path:"uefa.europa.conf"}
 ];
-const LIVE_COMPS=competitions.filter(c=>c.path);
 let selected="all",day="today",games=[],loading=false,currentMatch=null,currentHistHome=[],currentHistAway=[],currentLiveSummary=null,currentStandings=null,currentH2H=[];
 let searchText="",onlyLive=false,top4Only=false,top4Token=0,top4P=null,lastFailed=0,pageBefore="radar",lastLoadAt=0;
 const historyCache=new Map(),standCache=new Map(),$=s=>document.querySelector(s);
@@ -418,19 +417,48 @@ function ensureStrength(path){
  return strengthP.get(path)
 }
 
-/* HISTÓRICO DOS TIMES (guarda se o jogo foi em casa ou fora) */
+/* HISTÓRICO DOS TIMES (liga do jogo + liga doméstica do time nas copas) */
+const EXTRA_LEAGUES=["gre.1","sui.1","aut.1","den.1","nor.1","swe.1","pol.1","cze.1","cro.1","srb.1","isr.1","ukr.1","rou.1","hun.1","bul.1","svk.1","cyp.1","kaz.1"];
+let domP=null;
+function domesticMap(){
+ if(!domP)domP=(async()=>{
+  const m=new Map(),paths=competitions.filter(c=>c.path&&!CUP_PATHS.has(c.path)).map(c=>c.path).concat(EXTRA_LEAGUES);
+  await Promise.all(paths.map(async p=>{
+   try{
+    const d=await standData(p);
+    const walk=n=>{(n.standings?.entries||[]).forEach(e=>{if(e.team?.id!==undefined&&!m.has(String(e.team.id)))m.set(String(e.team.id),p)});(n.children||[]).forEach(walk)};
+    walk(d)
+   }catch(e){}
+  }));
+  return m
+ })();
+ return domP
+}
+async function fetchSched(path,id){
+ const response=await limitedFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`,{cache:"no-store"});
+ if(!response.ok)throw Error("Histórico indisponível");
+ const data=await response.json();
+ return(data.events||[]).map(e=>{const c=e.competitions?.[0]||{},teams=c.competitors||[],me=teams.find(t=>String(t.team?.id)===String(id)),other=teams.find(t=>String(t.team?.id)!==String(id)),status=c.status?.type||e.status?.type||{};return{date:e.date,opponent:other?.team?.displayName||"Adversário",opponentId:other?.team?.id,home:me?.homeAway==="home",scored:getScore(me?.score),conceded:getScore(other?.score),completed:status.completed===true||status.state==="post"}}).filter(g=>g.completed&&Number.isFinite(g.scored)&&Number.isFinite(g.conceded))
+}
 async function teamAll(path,id){
- const key=path+":"+id,ce=historyCache.get(key);
+ const key="v2|"+path+":"+id,ce=historyCache.get(key);
  if(ce&&Date.now()-ce.t>HIST_TTL)historyCache.delete(key);
  if(!historyCache.has(key)){
   historyCache.set(key,{t:Date.now(),p:(async()=>{
    await ensureStrength(path);
    const c=histStore[key];
    if(c&&Date.now()-c.t<HIST_TTL)return c.l.map(unpackG);
-   const response=await limitedFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/teams/${id}/schedule`,{cache:"no-store"});
-   if(!response.ok)throw Error("Histórico indisponível");
-   const data=await response.json();
-   const list=(data.events||[]).map(e=>{const c=e.competitions?.[0]||{},teams=c.competitors||[],me=teams.find(t=>String(t.team?.id)===String(id)),other=teams.find(t=>String(t.team?.id)!==String(id)),status=c.status?.type||e.status?.type||{};return{date:e.date,opponent:other?.team?.displayName||"Adversário",opponentId:other?.team?.id,home:me?.homeAway==="home",scored:getScore(me?.score),conceded:getScore(other?.score),completed:status.completed===true||status.state==="post"}}).filter(g=>g.completed&&Number.isFinite(g.scored)&&Number.isFinite(g.conceded));
+   let list=null;
+   try{list=await fetchSched(path,id)}catch(e){}
+   if(CUP_PATHS.has(path)){
+    try{
+     const dp=(await domesticMap()).get(String(id));
+     if(dp&&dp!==path){const extra=await fetchSched(dp,id);list=(list||[]).concat(extra)}
+    }catch(e){}
+   }
+   if(list===null)throw Error("Histórico indisponível");
+   const seen=new Set();
+   list=list.filter(x=>{const k=x.date+"|"+x.opponentId;if(seen.has(k))return false;seen.add(k);return true});
    histStore[key]={t:Date.now(),l:list.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,30).map(packG)};saveHistSoon();
    return list
   })().catch(e=>{historyCache.delete(key);throw e})})
@@ -1258,6 +1286,7 @@ document.querySelectorAll("[data-day]").forEach(b=>b.onclick=()=>{day=b.dataset.
 let liveGames=[],liveSums=new Map(),liveLoaded=false,liveBusy=false,lastLiveAt=0,liveUpdated=null,liveFullScan=0;
 const liveLastAlert={};
 let liveNotified=read("radarLiveNotified",{});if(!liveNotified||typeof liveNotified!=="object"||Array.isArray(liveNotified))liveNotified={};
+const LIVE_COMPS=competitions.filter(c=>c.path);
 async function fetchLiveScoreboard(c){
  const r=await limitedFetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${c.path}/scoreboard?limit=100`,{cache:"no-store"});
  if(!r.ok)throw Error("x");const d=await r.json();
