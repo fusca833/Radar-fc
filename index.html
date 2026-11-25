@@ -45,7 +45,7 @@ main{max-width:1000px;margin:auto;padding:0 16px 100px}
 .tap-hint{display:flex;justify-content:space-between;align-items:center;margin-top:13px;padding-top:11px;border-top:1px solid var(--b2);color:var(--tap);font-size:11px}
 .tap-hint strong{color:var(--gn);font-size:11px}
 .dupla-wrap{background:var(--c3);border:1px solid var(--gb2);border-radius:16px;padding:13px;margin-bottom:16px}
-.dupla-heading{display:flex;justify-content:space-between;align-items:center;margin:0 0 12px}
+.dupla-heading{display:flex;justify-content:space-between;align-items:center;margin:0 0 12px;gap:8px}
 .dupla-heading strong{color:var(--gn);font-size:13px}.dupla-heading span{font-size:11px;color:var(--mu)}
 .dupla-games{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .dupla-games .match{background:var(--c4);border-color:var(--g4a)}.dupla-games .team-logo{width:25px;height:25px}
@@ -54,8 +54,9 @@ main{max-width:1000px;margin:auto;padding:0 16px 100px}
 .loading,.empty{text-align:center;padding:28px 12px;color:var(--mu);font-size:13px;line-height:1.5}
 .source{display:inline-block;padding:5px 9px;border-radius:8px;background:var(--c1);color:var(--tx2);font-size:11px;margin-top:8px}
 footer{text-align:center;color:var(--dim);font-size:11px;line-height:1.5;padding:25px 10px}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav);border-top:1px solid var(--b1);display:flex;justify-content:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:10}
-.bottom-nav button{flex:1;max-width:220px;background:transparent;border:0;color:var(--mu);font-size:13px}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav);border-top:1px solid var(--b1);display:flex;justify-content:center;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:10}
+.bottom-nav button{flex:1;max-width:220px;background:transparent;border:0;color:var(--mu);font-size:11px;padding:8px 2px;line-height:1.3}
+.bottom-nav button span{display:block;font-size:18px;margin-bottom:2px}
 .bottom-nav button.active{background:var(--gbtn);color:#fff}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
 .stat{background:var(--c1);padding:15px;border-radius:12px;border:1px solid var(--b1)}
@@ -108,7 +109,7 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 .ai-box{background:var(--c5);border:1px solid var(--b1);border-radius:12px;padding:14px;margin-bottom:12px}
 .ai-box h4{font-size:13px;margin:0 0 10px;color:var(--gn)}.ai-text{font-size:12px;line-height:1.7;color:var(--tx3)}
 .outcome-card{background:var(--c3);border:1px solid var(--b1);border-radius:11px;padding:12px;margin:10px 0}
-.prob-line{margin-top:11px;padding:9px 10px;background:var(--c3);border:1px solid var(--gb2);border-radius:9px;font-size:11px;line-height:1.7;color:var(--tx2)}.prob-line b{color:var(--gn)}
+.prob-line{margin-top:11px;padding:9px 10px;background:var(--c3);border:1px solid var(--gb2);border-radius:9px;font-size:12px;line-height:1.7;color:var(--tx2)}.prob-line b{color:var(--gn)}
 .mode-switch{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 0 12px}
 .mode-switch button{padding:12px 4px;font-size:12px;font-weight:bold}
 .market-data{background:var(--c3);border:1px solid var(--gb2);border-radius:13px;padding:15px;margin-top:12px}
@@ -201,6 +202,21 @@ body.on-radar #dayBar.has{display:block}
  <div id="liveList"><div class="loading">Buscando jogos ao vivo...</div></div>
  <footer>Probabilidades estimadas com base no placar, nas estatísticas e no minuto atuais da partida, usando uma média típica do futebol como referência. É uma estimativa simples, sem garantia de resultado. Para o aviso funcionar, deixe o app aberto.</footer>
 </section>
+<section class="page" id="alav">
+ <div class="hero"><h2>🚀 Alavancagem</h2><p>O app escolhe sozinho os 2 jogos com as maiores probabilidades de green do dia, usando só times com histórico completo. Depois você simula quanto a banca vira reinvestindo a cada acerto.</p></div>
+ <div class="toolbar"><button class="active" data-aday="today">Hoje</button><button data-aday="tomorrow">Amanhã</button></div>
+ <div id="alvBox"><div class="loading">Analisando os jogos e o histórico dos times...</div></div>
+ <div class="section"><h3>🧮 Simulador de alavancagem</h3></div>
+ <div class="panel" id="levPanel">
+  <p class="muted" style="line-height:1.7;margin-top:0">Mostra quanto sua banca vira se você reinvestir tudo a cada acerto, com as odds 1,50 e 1,55, até chegar na meta. Uma única perda zera a sequência e você perde o valor da rodada.</p>
+  <label>Valor inicial (R$)</label><input id="levStart" type="text" inputmode="decimal" placeholder="Ex.: 5">
+  <label>Meta que quer alcançar (R$)</label><input id="levTarget" type="text" inputmode="decimal" placeholder="Ex.: 100">
+  <label>Outra odd para comparar (opcional)</label><input id="levCustom" type="text" inputmode="decimal" placeholder="Ex.: 1,70">
+  <label>Chance de acerto de cada aposta (%)</label><input id="levProb" type="text" inputmode="decimal" placeholder="Ex.: 70">
+  <div id="levOut" style="margin-top:6px"></div>
+ </div>
+ <footer>Probabilidades estimadas pelo histórico dos times. Sem garantia de resultado. Jogue com responsabilidade.</footer>
+</section>
 <section class="page" id="matchPage">
  <div class="detail-back"><button id="backToRadar">← Voltar</button><span class="muted">DETALHES DA PARTIDA</span></div>
  <div id="detailHeader"></div>
@@ -214,7 +230,7 @@ body.on-radar #dayBar.has{display:block}
  <section class="detail-panel" id="tab-ai"></section>
 </section>
 <section class="page" id="controle">
- <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus registros, sua banca, seus limites e sua evolução nas metas.</p></div>
+ <div class="hero"><h2>📊 Meu Controle</h2><p>Acompanhe seus registros, sua banca e sua evolução.</p></div>
 
  <div class="section"><h3>📅 Acertos por dia</h3></div>
  <div class="panel" id="dayHistory"><div class="empty">Ainda não há palpites gravados.</div></div>
@@ -243,7 +259,7 @@ body.on-radar #dayBar.has{display:block}
  </div>
  <div class="panel"><h3>Registrar aposta</h3>
   <label>Descrição</label><input id="bkName" maxlength="80" placeholder="Ex.: Múltipla confiável 23/11">
-  <label>Tipo</label><select id="bkType"><option value="manual">Manual</option><option value="confiavel">Múltipla confiável</option><option value="r75">Múltipla 75%–100%</option><option value="ia">Múltipla IA 95%</option></select>
+  <label>Tipo</label><select id="bkType"><option value="manual">Manual</option><option value="confiavel">Múltipla confiável</option><option value="r75">Múltipla 75%–100%</option><option value="ia">Múltipla IA 95%</option><option value="lev">Alavancagem</option></select>
   <label>Valor apostado (R$)</label><input id="bkStake" type="text" inputmode="decimal" placeholder="Ex.: 20">
   <label>Odd</label><input id="bkOdd" type="text" inputmode="decimal" placeholder="Ex.: 2,10">
   <label>Resultado</label><select id="bkResult"><option value="pending">Em andamento</option><option value="win">Green (ganhou)</option><option value="loss">Red (perdeu)</option></select>
@@ -254,40 +270,9 @@ body.on-radar #dayBar.has{display:block}
  <div class="section"><h3>📊 ROI por tipo</h3></div>
  <div class="panel" id="bkByType"><div class="empty">Sem apostas encerradas ainda.</div></div>
 
- <div class="section"><h3>🚀 Alavancagem</h3></div>
- <div class="panel">
-  <p class="muted" style="line-height:1.7;margin-top:0">Mostra quanto sua banca vira se você reinvestir tudo a cada acerto, com as odds 1,50 e 1,55, até chegar na meta. Uma única perda zera a sequência e você perde o valor da rodada.</p>
-  <label>Valor inicial (R$)</label><input id="levStart" type="text" inputmode="decimal" placeholder="Ex.: 5">
-  <label>Meta que quer alcançar (R$)</label><input id="levTarget" type="text" inputmode="decimal" placeholder="Ex.: 100">
-  <label>Outra odd para comparar (opcional)</label><input id="levCustom" type="text" inputmode="decimal" placeholder="Ex.: 1,70">
-  <label>Chance de acerto de cada aposta (%)</label><input id="levProb" type="text" inputmode="decimal" placeholder="Ex.: 70">
-  <div id="levOut" style="margin-top:6px"></div>
- </div>
-
- <div class="section"><h3>🛡️ Limites e metas</h3></div>
- <div class="panel">
-  <p class="muted" style="line-height:1.7;margin-top:0">Defina quanto você aceita perder e quanto quer ganhar. O app avisa quando você chegar perto e bloqueia a geração de múltiplas quando o limite de perda é atingido. Deixe vazio para desativar. A semana conta os últimos 7 dias.</p>
-  <label>Limite de perda por dia (R$)</label><input id="rkDayLoss" type="text" inputmode="decimal" placeholder="Ex.: 30">
-  <label>Limite de perda por semana (R$)</label><input id="rkWeekLoss" type="text" inputmode="decimal" placeholder="Ex.: 100">
-  <label>Meta de lucro por dia (R$)</label><input id="rkDayGoal" type="text" inputmode="decimal" placeholder="Ex.: 40">
-  <label>Meta de lucro por semana (R$)</label><input id="rkWeekGoal" type="text" inputmode="decimal" placeholder="Ex.: 150">
-  <button class="full" id="rkSave">Salvar limites</button>
-  <div id="riskStatus" style="margin-top:12px"></div>
- </div>
-
  <div class="section"><h3>📈 Evolução</h3></div>
  <div class="panel"><h3>Acertos − erros</h3><div id="chartPred"></div></div>
  <div class="panel" style="margin-top:12px"><h3>Lucro da banca</h3><div id="chartBank"></div></div>
-
- <div class="section"><h3>🎯 Minhas metas</h3></div>
- <div class="panel"><h3>Meta de economia</h3><label>Nome da meta</label><input id="goalName" placeholder="Ex.: Comprar um PC">
-  <label>Valor desejado (R$)</label><input id="goalTarget" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 1000">
-  <label>Quanto já guardou (R$)</label><input id="goalSaved" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Ex.: 150">
-  <button class="full" id="saveGoal">Salvar meta</button>
- </div>
- <div class="panel" style="margin-top:12px"><div class="muted" id="goalLabel">Minha meta</div><h2 id="goalAmount">R$ 0,00 / R$ 0,00</h2>
-  <div class="progress"><div id="goalBar"></div></div><div class="muted" id="goalPercent">0% concluído</div><h3 class="green" id="goalRemaining">Faltam R$ 0,00</h3>
- </div>
 
  <div class="section"><h3>💾 Backup dos dados</h3></div>
  <div class="panel">
@@ -308,7 +293,7 @@ body.on-radar #dayBar.has{display:block}
  <footer>Seus registros ficam salvos neste navegador.</footer>
 </section>
 </main>
-<nav class="bottom-nav" id="bottomNav"><button class="active" data-page="radar">⚽ Radar FC</button><button data-page="live">📡 Ao Vivo</button><button data-page="controle">📊 Meu Controle</button></nav>
+<nav class="bottom-nav" id="bottomNav"><button class="active" data-page="radar"><span>⚽</span>Radar FC</button><button data-page="live"><span>📡</span>Ao Vivo</button><button data-page="alav"><span>🚀</span>Alavancagem</button><button data-page="controle"><span>📊</span>Controle</button></nav>
 <script>
 const competitions=[
  {id:"all",name:"Todas",path:null},{id:"bra",name:"Brasileirão",path:"bra.1"},{id:"bra2",name:"Série B",path:"bra.2"},
@@ -392,14 +377,14 @@ function parseEvent(e,league,path){
 }
 function renderLeagues(){const options=[{id:"dupla",name:"🎯 Múltipla do Dia"},...competitions];$("#leagues").innerHTML=options.map(c=>`<button class="${selected===c.id?"active":""}" data-league="${c.id}">${c.name}</button>`).join("");document.querySelectorAll("[data-league]").forEach(b=>b.onclick=()=>{selected=b.dataset.league;renderLeagues();games=[];load()})}
 /* CORREÇÃO DE FUSO: busca o dia e o dia seguinte e filtra pela data LOCAL (jogos da noite no Brasil entram no dia certo) */
-async function fetchScoreboard(comp){
- const date=dateKey(offsetDay()),next=dateKey(offsetDay()+1),base=`https://site.api.espn.com/apis/site/v2/sports/soccer/${comp.path}/scoreboard`;
+async function fetchScoreboard(comp,off=offsetDay()){
+ const date=dateKey(off),next=dateKey(off+1),base=`https://site.api.espn.com/apis/site/v2/sports/soccer/${comp.path}/scoreboard`;
  const urls=[`${base}?dates=${date}&limit=100`,`${base}?dates=${next}&limit=100`];
  const seen=new Map();let ok=0,lastError=null;
  const res=await Promise.all(urls.map(async u=>{try{const r=await fetch(u,{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);const d=await r.json();if(!Array.isArray(d.events))throw Error("Resposta sem partidas");return d.events}catch(e){lastError=e;return null}}));
  res.forEach(evs=>{if(!evs)return;ok++;evs.forEach(e=>{if(e.date&&dateFromISO(e.date)===date&&!seen.has(String(e.id)))seen.set(String(e.id),e)})});
  if(!ok&&lastError)throw lastError;
- if(!seen.size&&day==="today"){
+ if(!seen.size&&off===0){
   try{const r=await fetch(`${base}?limit=100`,{cache:"no-store"});if(r.ok){const d=await r.json();(d.events||[]).forEach(e=>{if(e.date&&dateFromISO(e.date)===date&&!seen.has(String(e.id)))seen.set(String(e.id),e)})}}catch(e){}
  }
  return[...seen.values()].map(e=>parseEvent(e,comp.name,comp.path))
@@ -597,11 +582,11 @@ function calcProbs(h,a,path){
 function dcText(p,g){return p.dcKey==="1x"?safe(g.home)+" ou empate":p.dcKey==="x2"?safe(g.away)+" ou empate":safe(g.home)+" ou "+safe(g.away)+" (sem empate)"}
 /* melhor palpite do jogo: o mercado mais provável entre chance dupla, mais de 1,5 gols e menos de 3,5 gols (já com o ajuste do aprendizado) */
 function bestLeg(p,g){return legCandidates(p,g).filter(c=>c.m!=="win").sort((x,y)=>y.prob-x.prob)[0]}
+/* CARD DO JOGO: mostra só 1 tip (o melhor palpite do jogo) */
 function probLineHTML(p,g,res,rec){
- const fav=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" favorito · "+Math.round(Math.max(p.pH,p.pA))+"%";
- const pk=rec?`🎯 Palpite: <b>${safe(keyLabel(rec.key,g.home,g.away))} · ${Math.round(rec.prob)}%</b>${rec.raw!==undefined&&Math.abs(rec.raw-rec.prob)>=1?` <span>(modelo ${Math.round(rec.raw)}%)</span>`:""}<br>`:"";
- const badge=res?`<br>${res==="green"?'<b class="green">✅ Palpite acertou</b>':'<b class="red">❌ Palpite errou</b>'} <span>(${safe(g.hs)} x ${safe(g.as)})</span>`:"";
- return`<div class="prob-line">🏆 <b>${fav}</b><br>${pk}🛡️ Chance dupla: <b>${dcText(p,g)} · ${Math.round(p.dcBest)}%</b><br>⚽ +1,5 gols: ${Math.round(p.o15)}% · +2,5: ${Math.round(p.o25)}% · Ambos marcam: ${Math.round(p.btts)}%${badge}</div>`
+ const pk=rec?`🎯 Tip: <b>${safe(keyLabel(rec.key,g.home,g.away))} · ${Math.round(rec.prob)}%</b>`:"";
+ const badge=res?`<br>${res==="green"?'<b class="green">✅ Tip acertou</b>':'<b class="red">❌ Tip errou</b>'} <span>(${safe(g.hs)} x ${safe(g.as)})</span>`:"";
+ return`<div class="prob-line">${pk}${badge}</div>`
 }
 /* o histórico de cada card só carrega quando ele aparece na tela */
 function enhanceCards(box,list){
@@ -693,37 +678,11 @@ let duplaRecords=read("radarDuplaHistory",[]);if(!Array.isArray(duplaRecords))du
 let dailyDuplas=read("radarDuplaDaily",{});if(!dailyDuplas||typeof dailyDuplas!=="object"||Array.isArray(dailyDuplas))dailyDuplas={};
 let duplaArchive=read("radarDuplaArchive",[]);if(!Array.isArray(duplaArchive))duplaArchive=[];
 
-/* LIMITES E METAS (calculados a partir da banca) */
+/* APOSTAS: tempo e lucro de cada aposta */
 function betTs(b){if(b.ts)return b.ts;const m=String(b.date||"").match(/^(\d{2})\/(\d{2})\/(\d{4})/);return m?new Date(+m[3],+m[2]-1,+m[1],12).getTime():0}
 function betProfit(b){return b.result==="win"?b.stake*(b.odd-1):b.result==="loss"?-b.stake:0}
-function riskState(){
- const r=settings.risk||{},now=new Date(),sod=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),wk=sod-6*86400000;
- let day=0,week=0;
- bank.forEach(b=>{const t=betTs(b),p=betProfit(b);if(t>=sod)day+=p;if(t>=wk)week+=p});
- const msgs=[];let blocked=false;
- const loss=(label,val,lim)=>{if(!(lim>0))return;const l=-val;if(l>=lim){blocked=true;msgs.push("🛑 Limite de perda "+label+" atingido ("+money(l)+" de "+money(lim)+"). Faça uma pausa.")}else if(l>=lim*0.8)msgs.push("⚠️ Você já usou "+Math.round(l/lim*100)+"% do limite de perda "+label+".")};
- const goalf=(label,val,g)=>{if(g>0&&val>=g)msgs.push("🎯 Meta de lucro "+label+" batida ("+money(val)+"). Considere parar por aqui.")};
- loss("do dia",day,r.dayLoss);loss("da semana",week,r.weekLoss);goalf("do dia",day,r.dayGoal);goalf("da semana",week,r.weekGoal);
- const settled=bank.filter(b=>b.result!=="pending").slice().sort((a,b)=>betTs(b)-betTs(a)||(b.id||0)-(a.id||0));
- let streak=0;for(const b of settled){if(b.result==="loss")streak++;else break}
- if(streak>=3)msgs.push("🧊 "+streak+" reds seguidos. Faça uma pausa antes da próxima aposta.");
- return{day,week,msgs,blocked,streak,r}
-}
-function riskBannerHTML(){const rs=riskState();return rs.msgs.length?`<div class="warnbox">${rs.msgs.map(safe).join("<br>")}</div>`:""}
-function renderRisk(){
- const el=$("#riskStatus");if(!el)return;
- const rs=riskState(),r=rs.r,out=[];
- const row=(label,val,lim,isLoss)=>{const p=Math.min(100,Math.max(0,val/lim*100)),col=isLoss?(p>=100?"#e5484d":p>=80?"#f5a524":"var(--gbd)"):"var(--gbd)";return`<div style="margin:10px 0"><div class="muted" style="margin:0">${label}: <strong>${money(Math.max(0,val))}</strong> de ${money(lim)} (${Math.round(p)}%)</div><div class="progress" style="margin:6px 0"><div style="width:${p}%;background:${col}"></div></div></div>`};
- if(r.dayLoss>0)out.push(row("Perda hoje",-rs.day,r.dayLoss,true));
- if(r.weekLoss>0)out.push(row("Perda na semana",-rs.week,r.weekLoss,true));
- if(r.dayGoal>0)out.push(row("Lucro hoje",rs.day,r.dayGoal,false));
- if(r.weekGoal>0)out.push(row("Lucro na semana",rs.week,r.weekGoal,false));
- el.innerHTML=(out.length?out.join(""):'<div class="market-note">Defina limites acima para acompanhar o progresso aqui.</div>')+(rs.msgs.length?`<div class="warnbox" style="margin-top:6px">${rs.msgs.map(safe).join("<br>")}</div>`:"")
-}
-function loadRiskInputs(){const r=settings.risk||{};$("#rkDayLoss").value=r.dayLoss||"";$("#rkWeekLoss").value=r.weekLoss||"";$("#rkDayGoal").value=r.dayGoal||"";$("#rkWeekGoal").value=r.weekGoal||""}
-$("#rkSave").onclick=()=>{const g=id=>{const v=pn($(id).value);return Number.isFinite(v)&&v>0?v:0};settings.risk={dayLoss:g("#rkDayLoss"),weekLoss:g("#rkWeekLoss"),dayGoal:g("#rkDayGoal"),weekGoal:g("#rkWeekGoal")};store("radarSettings",settings);renderRisk();toast("🛡️ Limites salvos",2000)};
 
-/* ALAVANCAGEM: reinvestindo tudo a cada acerto, odds 1,50 e 1,55 (e uma opcional) */
+/* SIMULADOR DE ALAVANCAGEM: reinvestindo tudo a cada acerto, odds 1,50 e 1,55 (e uma opcional) */
 function loadLevInputs(){
  const l=settings.lev||{};
  $("#levStart").value=l.start!==undefined?l.start:"5";
@@ -825,7 +784,7 @@ let multiSize=3,multiMode="reliable",multiBusy=false,resolvingMulti=false;
 function multiLvKey(){return multiMode==="reliable"?"reliable":multiMode==="r75"?"r75":"ia95"}
 function multiKey(){return dateKey(offsetDay())+(multiMode==="reliable"?"c":multiMode==="r75"?"r":"")}
 function fmtKey(k){return String(k).slice(6,8)+"/"+String(k).slice(4,6)+"/"+String(k).slice(0,4)}
-function multiTitle(m){return m.level==="reliable"?"Confiável":m.level==="r75"?"75% a 100%":m.level==="ia95"?"IA 95%":"IA · "+(multiLevels[m.level]?.name||"")}
+function multiTitle(m){return m.level==="reliable"?"Confiável":m.level==="r75"?"75% a 100%":m.level==="lev"?"Alavancagem":m.level==="ia95"?"IA 95%":"IA · "+(multiLevels[m.level]?.name||"")}
 function legCandidates(p,g){
  const c=[],dcLabel=p.dcKey==="1x"?g.home+" ou empate":p.dcKey==="x2"?g.away+" ou empate":g.home+" ou "+g.away;
  c.push({m:"dc",key:"dc"+p.dcKey,label:dcLabel,prob:adjP("dc",p.dcBest),raw:p.dcBest});
@@ -868,7 +827,7 @@ async function resolveMultiplas(){
    try{const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/${path}/scoreboard?dates=${ymd}&limit=100`,{cache:"no-store"});if(!r.ok)continue;const d=await r.json();(d.events||[]).forEach(e=>{const c=e.competitions?.[0]||{};if(!getStatus(e,c).completed)return;const t=c.competitors||[],hs=getScore(t.find(x=>x.homeAway==="home")?.score),as=getScore(t.find(x=>x.homeAway==="away")?.score);if(!Number.isFinite(hs)||!Number.isFinite(as))return;groups[k].forEach(l=>{if(String(l.id)===String(e.id)&&l.result==="pending"){l.result=evalLeg(l.key,hs,as);l.score=hs+" x "+as;changed=true}})})}catch(e){}
   }
  }finally{resolvingMulti=false}
- if(changed){saveMultiplas();renderDuplaHistory();if(selected==="dupla")renderMultiResult()}
+ if(changed){saveMultiplas();renderDuplaHistory();if(selected==="dupla")renderMultiResult();if($("#alav").classList.contains("active"))alvRender()}
 }
 function evHTML(m){
  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1),o=Number(m.odd);
@@ -921,7 +880,6 @@ function renderMultiResult(){
 }
 async function swapLeg(i){
  if(multiBusy)return;
- if(riskState().blocked){toast("🛑 Troca bloqueada: limite de perda atingido.",3500);return}
  const key=multiKey(),m=multiplas[key];
  if(!m||!m.legs[i]||m.legs[i].result!=="pending")return;
  multiBusy=true;toast("Procurando outro jogo...",2000);
@@ -935,10 +893,6 @@ async function swapLeg(i){
 }
 function renderMultiControls(){
  const c=$("#multiControls");if(!c)return;
- if(riskState().blocked){
-  c.innerHTML='<div class="warnbox" style="margin:0">🛑 Geração de múltiplas bloqueada: você atingiu o limite de perda definido em Meu Controle. Volte quando o período do limite passar.</div>';
-  return
- }
  if(multiMode==="reliable"){
   c.innerHTML=`<div class="muted" id="multiDesc" style="margin-bottom:10px">${multiLevels.reliable.desc}</div>
   <button class="full" id="multiGen">✅ Gerar múltipla confiável</button>
@@ -955,7 +909,6 @@ function renderMultiControls(){
 }
 async function generateMulti(){
  if(multiBusy)return;
- if(riskState().blocked){toast("🛑 Geração bloqueada: limite de perda atingido.",3500);renderMultiControls();return}
  const msg=$("#multiMsg"),key=multiKey(),existing=multiplas[key],reliable=multiMode==="reliable";
  if(existing&&existing.legs.some(l=>l.result!=="pending")){msg.textContent="Esta múltipla já tem jogos encerrados e não pode ser substituída.";return}
  multiBusy=true;msg.textContent="Analisando os jogos e o histórico dos times...";
@@ -971,12 +924,115 @@ async function generateMulti(){
 function renderMultiBox(){
  const key=dateKey(offsetDay());
  $("#matches").innerHTML=`<div class="dupla-wrap"><div class="dupla-heading"><strong>🎯 MÚLTIPLA DO DIA</strong><span>${fmtKey(key)}</span></div>
- ${riskBannerHTML()}
  <div class="mode-switch"><button data-mmode="reliable" class="${multiMode==="reliable"?"active":""}">✅ Confiável</button><button data-mmode="r75" class="${multiMode==="r75"?"active":""}">📊 75%–100%</button><button data-mmode="ai" class="${multiMode==="ai"?"active":""}">🤖 IA 95%</button></div>
  <div id="multiControls"></div></div><div id="multiResult"></div>`;
  document.querySelectorAll("[data-mmode]").forEach(b=>b.onclick=()=>{multiMode=b.dataset.mmode;document.querySelectorAll("[data-mmode]").forEach(x=>x.classList.toggle("active",x===b));renderMultiControls();renderMultiResult()});
  renderMultiControls();renderMultiResult()
 }
+
+/* ALAVANCAGEM: escolhe sozinha os 2 jogos mais confiáveis do dia.
+   Regras: só jogos que ainda não começaram, só times com 8+ jogos de histórico, só chance dupla / +1,5 / −3,5 gols (sem vitória seca),
+   probabilidade ajustada de 70% ou mais, copas e competições com mau desempenho ficam de fora.
+   Entram os 2 jogos com as MAIORES probabilidades do dia (todas as competições). A escolha fica gravada no dia. */
+const ALV_MIN=70,ALV_SAMPLE=8;
+let alvDay="today",alvBusy=false,alvCache={dk:"",t:0,list:[]};
+const alvOff=()=>alvDay==="tomorrow"?1:0;
+const alvKey=()=>dateKey(alvOff())+"v";
+async function alvLoadGames(force){
+ const dk=dateKey(alvOff());
+ if(!force&&alvCache.dk===dk&&Date.now()-alvCache.t<300000)return alvCache.list;
+ const comps=competitions.filter(c=>c.path),off=alvOff();
+ const rs=await Promise.all(comps.map(c=>fetchScoreboard(c,off).catch(()=>[])));
+ const list=rs.flat();alvCache={dk,t:Date.now(),list};return list
+}
+async function alvBuild(list){
+ const pool=list.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&eligible(g));
+ const ev=await Promise.all(pool.map(async g=>{
+  try{
+   const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);
+   if(h.length<ALV_SAMPLE||a.length<ALV_SAMPLE)return null;
+   const p=calcProbs(h,a,g.path);if(!p)return null;
+   const opts=legCandidates(p,g).filter(c=>c.m!=="win"&&c.prob>=ALV_MIN).sort((x,y)=>y.prob-x.prob);
+   return opts.length?{g,c:opts[0],n:Math.min(h.length,a.length)}:null
+  }catch(e){return null}
+ }));
+ return ev.filter(Boolean).sort((x,y)=>y.c.prob-x.c.prob||y.n-x.n).slice(0,2).map(({g,c})=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:c.key,label:c.label,prob:Math.round(c.prob*10)/10,raw:Math.round(c.raw*10)/10,result:"pending"}))
+}
+function alvHTML(m,key){
+ const comb=m.legs.reduce((x,l)=>x*l.prob/100,1),st=multiStatus(m),odd=comb>0?(1/comb).toFixed(2).replace(".",","):"—",
+ tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'},
+ canRedo=m.legs.every(l=>l.result==="pending");
+ return`<div class="dupla-wrap"><div class="dupla-heading"><strong>🚀 2 JOGOS DA ALAVANCAGEM</strong><span>${fmtKey(key)}</span></div>
+ <div style="margin-bottom:6px">${tag[st]}</div>
+ <div class="dupla-stats" style="grid-template-columns:repeat(2,1fr)"><div class="dupla-stat"><small>PROBABILIDADE COMBINADA</small><strong class="green">${(comb*100).toFixed(0)}%</strong></div><div class="dupla-stat"><small>ODD JUSTA</small><strong>${odd}</strong></div></div>
+ ${m.legs.map(l=>`<div class="dupla-record"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.league)} · ${safe(formatDate(l.date))}</span><br>🎯 ${safe(l.label)} · <strong>${Math.round(l.prob)}%</strong>${l.raw!==undefined&&Math.abs(l.raw-l.prob)>=1?` <span class="muted">(modelo ${Math.round(l.raw)}%)</span>`:""} · odd justa ${(100/l.prob).toFixed(2).replace(".",",")}${l.score?" · placar "+safe(l.score):""} ${tag[l.result]}</div>`).join("")}
+ <button class="full" id="alvCopy" style="margin-top:10px">📋 Copiar os 2 jogos</button>
+ <button class="full" id="alvCalc" style="margin-top:8px">🧮 Usar essa odd e chance no simulador</button>
+ <button class="full" id="alvBank" style="margin-top:8px">💰 Registrar na banca</button>
+ ${canRedo?'<button class="full" id="alvRedo" style="margin-top:8px">🔄 Recalcular</button>':""}
+ <div class="market-note">Os 2 jogos com as maiores probabilidades do dia entre todas as competições, só com times de pelo menos ${ALV_SAMPLE} jogos de histórico e probabilidade mínima de ${ALV_MIN}% em cada um. A escolha fica gravada no dia e o green ou red é conferido sozinho. A "odd justa" é só uma referência pela probabilidade, não é a odd de nenhuma casa. Não é garantia de resultado: uma única perda derruba a dupla.</div></div>`
+}
+function alvEmpty(text){
+ const box=$("#alvBox");
+ box.innerHTML='<div class="empty">'+text+'</div><button class="full" id="alvRetry">🔄 Tentar de novo</button>';
+ $("#alvRetry").onclick=()=>alvEnsure(true)
+}
+function alvRender(){
+ const el=$("#alvBox");if(!el)return;
+ const key=alvKey(),m=multiplas[key];if(!m)return;
+ let ch=false;
+ m.legs.forEach(l=>{
+  if(l.result!=="pending")return;
+  const g=alvCache.list.find(x=>String(x.id)===String(l.id)&&x.completed),hs=g?getScore(g.hs):NaN,as=g?getScore(g.as):NaN;
+  if(g&&Number.isFinite(hs)&&Number.isFinite(as)){l.result=evalLeg(l.key,hs,as);l.score=hs+" x "+as;ch=true}
+ });
+ if(ch){saveMultiplas();renderDuplaHistory()}
+ el.innerHTML=alvHTML(m,key);
+ const c=$("#alvCopy");if(c)c.onclick=()=>copyText(multiText(m,key));
+ const cc=$("#alvCalc");if(cc)cc.onclick=()=>{
+  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1);
+  $("#levCustom").value=comb>0?(1/comb).toFixed(2).replace(".",","):"";
+  $("#levProb").value=Math.round(comb*100);
+  renderLev();
+  $("#levPanel").scrollIntoView({block:"start"});
+  toast("🧮 Odd justa e chance combinada enviadas ao simulador.",3000)
+ };
+ const mb=$("#alvBank");if(mb)mb.onclick=()=>{
+  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1);
+  $("#bkName").value="Alavancagem "+fmtKey(key).slice(0,5);
+  $("#bkOdd").value=m.odd?String(m.odd).replace(".",","):(comb>0?(1/comb).toFixed(2).replace(".",","):"");
+  $("#bkType").value="lev";
+  goPage("controle");window.scrollTo(0,0);
+  setTimeout(()=>{const s=$("#bkStake");s.scrollIntoView({block:"center"});s.focus()},150);
+  toast("Informe o valor apostado e confira a odd da casa.",3500)
+ };
+ const rd=$("#alvRedo");if(rd)rd.onclick=()=>alvEnsure(true)
+}
+async function alvWork(key,force){
+ const box=$("#alvBox");
+ let m=multiplas[key];
+ if(m)alvRender();else box.innerHTML='<div class="loading">Analisando os jogos e o histórico dos times...</div>';
+ try{
+  const list=await alvLoadGames(!!force);
+  m=multiplas[key];
+  if(!m||(force&&m.legs.every(l=>l.result==="pending"))){
+   const legs=await alvBuild(list);
+   if(legs.length>=2){multiplas[key]={level:"lev",legs,created:Date.now()};saveMultiplas();renderDuplaHistory()}
+   else if(!m){if(alvKey()===key)alvEmpty("Nenhum par de jogos chegou a "+ALV_MIN+"% com histórico completo nesta data (já considerando os filtros do app).<br>Tente outra data ou toque em tentar de novo mais tarde.");return}
+   else toast("Nenhuma combinação melhor encontrada agora.",3000)
+  }
+  if(alvKey()===key)alvRender()
+ }catch(e){
+  if(!multiplas[key]&&alvKey()===key)alvEmpty("Não foi possível analisar os jogos agora. Confira a conexão.")
+ }
+}
+async function alvEnsure(force){
+ if(alvBusy)return;
+ alvBusy=true;const key=alvKey();
+ try{await alvWork(key,force)}finally{alvBusy=false}
+ if(alvKey()!==key&&$("#alav").classList.contains("active"))alvEnsure()
+}
+document.querySelectorAll("[data-aday]").forEach(b=>b.onclick=()=>{alvDay=b.dataset.aday;document.querySelectorAll("[data-aday]").forEach(x=>x.classList.toggle("active",x===b));$("#alvBox").innerHTML='<div class="loading">Analisando os jogos e o histórico dos times...</div>';if(multiplas[alvKey()])alvRender();alvEnsure()});
 
 /* CALIBRAÇÃO: compara a probabilidade prevista com o que realmente aconteceu (considera todas as múltiplas já encerradas) */
 function renderCalibration(){
@@ -1011,8 +1067,8 @@ function renderDuplaHistory(){
  const tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
  const multi=keys.map((k,i)=>{const m=multiplas[k],comb=m.legs.reduce((x,l)=>x*l.prob/100,1),date=fmtKey(k);return`<div class="dupla-record"><strong>📅 ${date} · ${safe(multiTitle(m))} · ${(comb*100).toFixed(0)}%</strong> ${tag[st[i]]}${m.legs.map(l=>`<div style="padding:7px 0;border-top:1px solid var(--b2);margin-top:7px"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.label)} · ${Math.round(l.prob)}%${l.score?" · placar "+safe(l.score):""}</span> ${tag[l.result]}</div>`).join("")}</div>`}).join("");
  const rt=arr=>{const gg=arr.filter(k=>multiStatus(multiplas[k])==="green").length,rr=arr.filter(k=>multiStatus(multiplas[k])==="red").length;return rr+gg?Math.round(gg/(gg+rr)*100)+"% ("+gg+" de "+(gg+rr)+")":"sem resultados ainda"};
- const rel=keys.filter(k=>multiplas[k].level==="reliable"),r75=keys.filter(k=>multiplas[k].level==="r75"),ia=keys.filter(k=>multiplas[k].level!=="reliable"&&multiplas[k].level!=="r75");
- const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto das múltiplas deste dia:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>📊 75%–100%: <strong>${rt(r75)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
+ const rel=keys.filter(k=>multiplas[k].level==="reliable"),r75=keys.filter(k=>multiplas[k].level==="r75"),lev=keys.filter(k=>multiplas[k].level==="lev"),ia=keys.filter(k=>!["reliable","r75","lev"].includes(multiplas[k].level));
+ const rate=`<div class="muted" style="margin-bottom:8px;line-height:1.7">Taxa de acerto das múltiplas deste dia:<br>✅ Confiável: <strong>${rt(rel)}</strong><br>📊 75%–100%: <strong>${rt(r75)}</strong><br>🚀 Alavancagem: <strong>${rt(lev)}</strong><br>🤖 IA: <strong>${rt(ia)}</strong></div>`;
  box.innerHTML=rate+multi
 }
 function renderDupla(){
@@ -1192,7 +1248,7 @@ async function load(){
  }catch(e){box.innerHTML='<div class="empty">Erro ao carregar partidas. Tente atualizar novamente.</div>'}finally{loading=false}
 }
 function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===id));document.body.classList.toggle("on-radar",id==="radar");$("#refresh").style.display=id==="radar"?"block":"none";$("#bottomNav").style.display=id==="matchPage"?"none":"flex"}
-function goPage(id){document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===id));showPage(id);if(id==="live"){renderLive();liveTick()}if(id==="controle"){renderBank();renderDayHistory()}}
+function goPage(id){document.querySelectorAll("[data-page]").forEach(x=>x.classList.toggle("active",x.dataset.page===id));showPage(id);if(id==="live"){renderLive();liveTick()}if(id==="controle"){renderBank();renderDayHistory()}if(id==="alav")alvEnsure()}
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>{goPage(b.dataset.page);window.scrollTo(0,0)});
 $("#backToRadar").onclick=()=>goPage(pageBefore||"radar");
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".detail-panel").forEach(x=>x.classList.toggle("active",x.id==="tab-"+b.dataset.tab))});
@@ -1357,10 +1413,9 @@ $("#liveFavBtn").onclick=()=>{settings.liveFavOnly=!settings.liveFavOnly;store("
 /* MEU CONTROLE */
 let predictions=read("radarPredictions",[]);if(!Array.isArray(predictions))predictions=[];
 let bank=read("radarBank",[]);if(!Array.isArray(bank))bank=[];
-let goal=read("radarGoal",{});if(!goal||typeof goal!=="object"||Array.isArray(goal))goal={};
 const resLbl={pending:"⏳ Em andamento",win:"✅ Acerto",loss:"❌ Erro"};
 const betLbl={pending:"⏳ Em andamento",win:"✅ Green",loss:"❌ Red"};
-const typeLbl={manual:"Manual",confiavel:"✅ Confiável",r75:"📊 75%–100%",ia:"🤖 IA 95%"};
+const typeLbl={manual:"Manual",confiavel:"✅ Confiável",r75:"📊 75%–100%",ia:"🤖 IA 95%",lev:"🚀 Alavancagem"};
 function chartSVG(vals){
  if(vals.length<2)return'<div class="empty">Dados insuficientes para o gráfico.</div>';
  const W=300,H=110,p=8,mn=Math.min(0,...vals),mx=Math.max(0,...vals),rg=(mx-mn)||1;
@@ -1413,13 +1468,13 @@ function renderBank(){
  $("#bkOpen").textContent=money(open);
  const roi=settled?profit/settled*100:0;$("#bkRoi").textContent=roi.toFixed(1).replace(".",",")+"%";
  $("#bkList").innerHTML=bank.length?bank.slice().reverse().map(b=>`<div class="record"><div><strong>${safe(b.name)}</strong><br><span class="muted">${safe(b.date)} · ${typeLbl[b.type||"manual"]||""} · ${money(b.stake)} · odd ${String(b.odd).replace(".",",")} · ${betLbl[b.result]||""}${b.result!=="pending"?" · "+money(betProfit(b)):""}</span></div><div class="record-actions"><button data-bk="win" data-id="${b.id}" aria-label="Marcar como green">✅</button><button data-bk="loss" data-id="${b.id}" aria-label="Marcar como red">❌</button><button data-bk="pending" data-id="${b.id}" aria-label="Marcar como em andamento">⏳</button><button data-bk="del" data-id="${b.id}" aria-label="Apagar aposta">🗑</button></div></div>`).join(""):'<div class="empty">Nenhuma aposta registrada.</div>';
- renderBankByType();renderCharts();renderRisk()
+ renderBankByType();renderCharts()
 }
 $("#bkList").onclick=e=>{
  const b=e.target.closest("[data-bk]");if(!b)return;const id=b.dataset.id;
  if(b.dataset.bk==="del")bank=bank.filter(x=>String(x.id)!==id);
  else{const x=bank.find(y=>String(y.id)===id);if(x)x.result=b.dataset.bk}
- store("radarBank",bank);renderBank();const rs=riskState();if(rs.blocked||rs.streak>=3)toast(rs.msgs[0],5000)
+ store("radarBank",bank);renderBank()
 };
 $("#bkAdd").onclick=()=>{
  const name=$("#bkName").value.trim(),stake=pn($("#bkStake").value),odd=pn($("#bkOdd").value);
@@ -1428,27 +1483,12 @@ $("#bkAdd").onclick=()=>{
  if(!(odd>1)){toast("A odd precisa ser maior que 1.",2200);return}
  bank.push({id:Date.now(),name,stake,odd,type:$("#bkType").value||"manual",result:$("#bkResult").value,date:new Date().toLocaleDateString("pt-BR"),ts:Date.now()});
  store("radarBank",bank);["#bkName","#bkStake","#bkOdd"].forEach(s=>$(s).value="");$("#bkType").value="manual";
- renderBank();const rs=riskState();toast(rs.msgs.length?rs.msgs[0]:"Aposta salva",rs.msgs.length?5000:1800)
+ renderBank();toast("Aposta salva",1800)
 };
 $("#bkClear").onclick=()=>{if(bank.length&&confirm("Apagar todas as apostas?")){bank=[];store("radarBank",bank);renderBank()}};
 
-function renderGoal(){
- const t=Number(goal.target)||0,s=Number(goal.saved)||0,p=t>0?Math.min(100,s/t*100):0;
- $("#goalLabel").textContent=goal.name||"Minha meta";
- $("#goalAmount").textContent=money(s)+" / "+money(t);
- $("#goalBar").style.width=p+"%";
- $("#goalPercent").textContent=Math.round(p)+"% concluído";
- $("#goalRemaining").textContent=t>0&&s>=t?"🎉 Meta atingida!":"Faltam "+money(Math.max(0,t-s))
-}
-$("#saveGoal").onclick=()=>{
- const t=pn($("#goalTarget").value),s=pn($("#goalSaved").value);
- goal={name:$("#goalName").value.trim(),target:Number.isFinite(t)&&t>0?t:0,saved:Number.isFinite(s)&&s>0?s:0};
- store("radarGoal",goal);renderGoal();toast("🎯 Meta salva",1800)
-};
-function loadGoalInputs(){$("#goalName").value=goal.name||"";$("#goalTarget").value=goal.target||"";$("#goalSaved").value=goal.saved||""}
-
 /* BACKUP, LEMBRETE E EXPORTAÇÃO CSV */
-const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarTop4","radarPredictions","radarBank","radarGoal"];
+const BK_KEYS=["radarFavs","radarSettings","radarDuplaHistory","radarDuplaDaily","radarDuplaArchive","radarMultiplas","radarDayPicks","radarTop4","radarPredictions","radarBank"];
 function backupText(){const data={};BK_KEYS.forEach(k=>{try{const v=localStorage.getItem(k);if(v!==null)data[k]=JSON.parse(v)}catch(e){}});return JSON.stringify({app:"radarfc",v:1,data})}
 function renderBackupInfo(){
  const el=$("#bkInfo");if(!el)return;
@@ -1458,7 +1498,7 @@ function renderBackupInfo(){
 }
 function markBackup(){settings.lastBackup=Date.now();store("radarSettings",settings);renderBackupInfo()}
 function backupReminder(){
- const hasData=bank.length||predictions.length||Object.keys(multiplas).length||Object.keys(dayPicks).length||goal.target;
+ const hasData=bank.length||predictions.length||Object.keys(multiplas).length||Object.keys(dayPicks).length;
  if(!hasData)return;
  if(!settings.lastBackup){settings.lastBackup=Date.now();store("radarSettings",settings);return}
  if(Date.now()-settings.lastBackup>7*86400000)toast("💾 Faz mais de 7 dias do último backup. Vá em Meu Controle e copie um novo.",8000)
@@ -1536,6 +1576,12 @@ setInterval(()=>{
  const pg=document.querySelector(".page.active")?.id;
  if(pg==="live"||settings.liveAlert)liveTick()
 },20000);
+/* Alavancagem: confere os resultados dos 2 jogos a cada 60 s com a página aberta */
+setInterval(()=>{
+ if(document.hidden||alvBusy)return;
+ const pg=document.querySelector(".page.active")?.id;
+ if(pg==="alav"&&multiplas[alvKey()])alvLoadGames(true).then(alvRender).catch(()=>{})
+},60000);
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden)return;
  const pg=document.querySelector(".page.active")?.id;
@@ -1550,13 +1596,10 @@ makeIcon();
 renderLeagues();
 renderLiveFilters();
 showPage("radar");
-loadRiskInputs();
-loadGoalInputs();
 loadLevInputs();
 renderLev();
 renderPredictions();
 renderBank();
-renderGoal();
 renderDayHistory();
 renderBackupInfo();
 renderLive();
