@@ -20,6 +20,7 @@ header{max-width:1000px;margin:auto;padding:20px 16px;display:flex;justify-conte
 h1{margin:0;font-size:23px}h2,h3,h4{margin-top:0}
 .sub,.muted{font-size:11px;color:var(--mu);margin-top:4px}
 button{background:var(--c1);color:var(--tx);border:1px solid var(--b1);border-radius:10px;padding:11px 14px;cursor:pointer;touch-action:manipulation;font-family:inherit}
+button:disabled{opacity:.6;cursor:default}
 button.active{background:var(--gbtn);border-color:var(--gbd);color:#fff}
 main{max-width:1000px;margin:auto;padding:0 16px 100px}
 .page{display:none}.page.active{display:block}
@@ -530,10 +531,10 @@ function renderDetailHeader(g){
 }
 async function openMatch(g){
  const curPage=document.querySelector(".page.active");if(curPage&&curPage.id!=="matchPage")pageBefore=curPage.id;
- currentMatch=g;currentHistHome=[];currentHistAway=[];currentLiveSummary=null;currentStandings=null;currentH2H=[];showPage("matchPage");window.scrollTo(0,0);
+ currentMatch=g;currentHistHome=[];currentHistAway=[];currentLiveSummary=null;currentStandings=null;currentH2H=[];simCache=null;showPage("matchPage");window.scrollTo(0,0);
  document.querySelectorAll("[data-tab]").forEach(b=>b.classList.toggle("active",b.dataset.tab==="details"));document.querySelectorAll(".detail-panel").forEach(p=>p.classList.toggle("active",p.id==="tab-details"));
  const date=formatDate(g.date);renderDetailHeader(g);
- $("#tab-details").innerHTML=`<div class="panel"><h3>📋 Informações da partida</h3><div class="info-row"><span>Competição</span><strong>${safe(g.league)}</strong></div><div class="info-row"><span>Mandante</span><strong>${safe(g.home)}</strong></div><div class="info-row"><span>Visitante</span><strong>${safe(g.away)}</strong></div><div class="info-row"><span>Data e horário</span><strong>${safe(date)}</strong></div><div class="info-row"><span>Status</span><strong>${safe(g.state)}</strong></div><div class="info-row"><span>Fonte</span><strong>${safe(g.source||"ESPN")}</strong></div></div><div id="rosterBox"></div><div class="panel"><h3>ℹ️ Sobre os dados</h3><p class="muted" style="line-height:1.7">As informações são carregadas conforme a disponibilidade dos provedores esportivos. Partidas futuras podem não ter estatísticas ao vivo.</p></div>`;
+ $("#tab-details").innerHTML=`<div id="pickBox"><div class="panel"><h3>🎯 Palpite do jogo</h3><div class="loading">Calculando palpite...</div></div></div><div class="panel"><h3>📋 Informações da partida</h3><div class="info-row"><span>Competição</span><strong>${safe(g.league)}</strong></div><div class="info-row"><span>Mandante</span><strong>${safe(g.home)}</strong></div><div class="info-row"><span>Visitante</span><strong>${safe(g.away)}</strong></div><div class="info-row"><span>Data e horário</span><strong>${safe(date)}</strong></div><div class="info-row"><span>Status</span><strong>${safe(g.state)}</strong></div><div class="info-row"><span>Fonte</span><strong>${safe(g.source||"ESPN")}</strong></div></div><div id="rosterBox"></div><div class="panel"><h3>ℹ️ Sobre os dados</h3><p class="muted" style="line-height:1.7">As informações são carregadas conforme a disponibilidade dos provedores esportivos. Partidas futuras podem não ter estatísticas ao vivo.</p></div>`;
  $("#tab-tips").innerHTML='<div class="panel"><div class="loading">Calculando frequências históricas...</div></div>';$("#tab-stats").innerHTML='<div class="panel"><div class="loading">Carregando estatísticas...</div></div>';$("#tab-table").innerHTML='<div class="panel"><div class="loading">Carregando classificação...</div></div>';$("#tab-ai").innerHTML='<div class="panel"><div class="loading">Preparando análise automática...</div></div>';
  const tasks=[];
  if(g.homeId&&g.awayId&&g.path)tasks.push(Promise.all([teamAll(g.path,g.homeId),teamAll(g.path,g.awayId)]).then(v=>{currentHistHome=v[0].slice(0,10);currentHistAway=v[1].slice(0,10);currentH2H=v[0].filter(x=>String(x.opponentId)===String(g.awayId))}).catch(()=>{}));
@@ -597,11 +598,11 @@ function calcProbs(h,a,path){
 function dcText(p,g){return p.dcKey==="1x"?safe(g.home)+" ou empate":p.dcKey==="x2"?safe(g.away)+" ou empate":safe(g.home)+" ou "+safe(g.away)+" (sem empate)"}
 /* melhor palpite do jogo: o mercado mais provável entre chance dupla, mais de 1,5 gols e menos de 3,5 gols (já com o ajuste do aprendizado) */
 function bestLeg(p,g){return legCandidates(p,g).filter(c=>c.m!=="win").sort((x,y)=>y.prob-x.prob)[0]}
+/* CARD: mostra SÓ o palpite do jogo (um único palpite), mais o selo de acerto/erro quando o jogo termina */
 function probLineHTML(p,g,res,rec){
- const fav=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" favorito · "+Math.round(Math.max(p.pH,p.pA))+"%";
- const pk=rec?`🎯 Palpite: <b>${safe(keyLabel(rec.key,g.home,g.away))} · ${Math.round(rec.prob)}%</b>${rec.raw!==undefined&&Math.abs(rec.raw-rec.prob)>=1?` <span>(modelo ${Math.round(rec.raw)}%)</span>`:""}<br>`:"";
+ const pk=rec?`🎯 Palpite: <b>${safe(keyLabel(rec.key,g.home,g.away))} · ${Math.round(rec.prob)}%</b>`:"";
  const badge=res?`<br>${res==="green"?'<b class="green">✅ Palpite acertou</b>':'<b class="red">❌ Palpite errou</b>'} <span>(${safe(g.hs)} x ${safe(g.as)})</span>`:"";
- return`<div class="prob-line">🏆 <b>${fav}</b><br>${pk}🛡️ Chance dupla: <b>${dcText(p,g)} · ${Math.round(p.dcBest)}%</b><br>⚽ +1,5 gols: ${Math.round(p.o15)}% · +2,5: ${Math.round(p.o25)}% · Ambos marcam: ${Math.round(p.btts)}%${badge}</div>`
+ return`<div class="prob-line">${pk}${badge}</div>`
 }
 /* o histórico de cada card só carrega quando ele aparece na tela */
 function enhanceCards(box,list){
@@ -622,21 +623,100 @@ function enhanceCards(box,list){
  cards.forEach(c=>io.observe(c))
 }
 
+/* PALPITE NA TELA PRINCIPAL DO JOGO (aba Detalhes): o mesmo palpite único do card */
+function pickPanelHTML(g,rec){
+ if(!rec)return`<div class="panel"><h3>🎯 Palpite do jogo</h3><p class="muted" style="line-height:1.7;margin:0">O palpite aparece quando os dois times tiverem pelo menos ${MIN_SAMPLE} jogos concluídos disponíveis.</p></div>`;
+ const pr=Math.round(rec.prob),odd=rec.prob>0?(100/rec.prob).toFixed(2).replace(".",","):"—";
+ const lvl=pr>=80?'<span class="green">🔥 Palpite forte (80% ou mais)</span>':pr>=65?'<span class="green">✅ Palpite bom (65% a 79%)</span>':'<span class="red">⚠️ Palpite arriscado (abaixo de 65%)</span>';
+ let res="";
+ if(g.completed){const hs=getScore(g.hs),as=getScore(g.as);if(Number.isFinite(hs)&&Number.isFinite(as)){const r=evalLeg(rec.key,hs,as);res=`<div style="margin-top:10px">${r==="green"?'<b class="green">✅ Palpite acertou</b>':'<b class="red">❌ Palpite errou</b>'} <span class="muted">(${safe(g.hs)} x ${safe(g.as)})</span></div>`}}
+ return`<div class="panel" style="border-color:var(--gbd)"><h3>🎯 Palpite do jogo</h3>
+ <div style="font-size:17px;font-weight:bold" class="green">${safe(keyLabel(rec.key,g.home,g.away))}</div>
+ <div class="dupla-stats" style="grid-template-columns:repeat(2,1fr)"><div class="dupla-stat"><small>PROBABILIDADE</small><strong class="green">${pr}%</strong></div><div class="dupla-stat"><small>ODD JUSTA</small><strong>${odd}</strong></div></div>
+ <div style="font-size:12px">${lvl}</div>${res}
+ <div class="market-note">É o mercado mais provável do jogo (chance dupla, mais de 1,5 ou menos de 3,5 gols), gravado antes da partida e nunca alterado. Palpites de 80% ou mais são os mais fortes do dia. A "odd justa" é só uma referência pela probabilidade. Sem garantia de resultado. Para ver mais detalhes, abra a aba IA e rode o simulador.</div></div>`
+}
+
+/* SIMULADOR IA (Monte Carlo): sorteia 20.000 partidas usando os gols esperados do modelo, com incerteza sobre a força dos times.
+   Ao vivo, simula só os minutos que faltam, somando ao placar atual. */
+let simCache=null;
+function randPois(l){if(!(l>0))return 0;const L=Math.exp(-l);let k=0,pr=1;do{k++;pr*=Math.random()}while(pr>L&&k<40);return k-1}
+function randNorm(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function simulateMatch(g,p,N){
+ let lH=p.lH,lA=p.lA,h0=0,a0=0,live=false,min=0;
+ if(g.live){
+  live=true;min=liveMinute(g);const f=Math.max(1,93-min)/90;lH*=f;lA*=f;
+  const hs=getScore(g.hs),as=getScore(g.as);h0=Number.isFinite(hs)?hs:0;a0=Number.isFinite(as)?as:0
+ }
+ let w=0,d=0,l=0,o15=0,o25=0,u35=0,bt=0,sh=0,sa=0;const sc={};
+ for(let n=0;n<N;n++){
+  const gh=randPois(lH*Math.exp(randNorm()*0.15-0.01125)),ga=randPois(lA*Math.exp(randNorm()*0.15-0.01125));
+  const H=h0+gh,A=a0+ga,t=H+A;
+  if(H>A)w++;else if(H===A)d++;else l++;
+  if(t>=2)o15++;if(t>=3)o25++;if(t<=3)u35++;if(H>0&&A>0)bt++;
+  sh+=H;sa+=A;const k=H+" x "+A;sc[k]=(sc[k]||0)+1
+ }
+ const P=x=>x/N*100;
+ const top=Object.keys(sc).sort((a,b)=>sc[b]-sc[a]).slice(0,5).map(k=>({k,p:P(sc[k])}));
+ return{live,min,h0,a0,N,w:P(w),d:P(d),l:P(l),o15:P(o15),o25:P(o25),u35:P(u35),btts:P(bt),eh:sh/N,ea:sa/N,top}
+}
+function simProb(key,s){return({dc1x:s.w+s.d,dcx2:s.l+s.d,dc12:s.w+s.l,o15:s.o15,u35:s.u35,winH:s.w,winA:s.l})[key]}
+const mItem=(label,val,best)=>`<div class="market-item" style="${best?"border:1px solid var(--gbd)":""}"><small>${safe(label)}</small><b class="${best?"green":""}">${Math.round(val)}%</b></div>`;
+function simHTML(g,s,rec){
+ const f1=v=>Math.round(v),f2=v=>v.toFixed(1).replace(".",","),maxR=Math.max(s.w,s.d,s.l);
+ const res=[[g.home+" vence",s.w],["empate",s.d],[g.away+" vence",s.l]].sort((a,b)=>b[1]-a[1]);
+ const cands=[
+  {l:g.home+" vence",v:s.w},{l:g.away+" vence",v:s.l},{l:g.home+" ou empate",v:s.w+s.d},{l:g.away+" ou empate",v:s.l+s.d},{l:g.home+" ou "+g.away,v:s.w+s.l},
+  {l:"Mais de 1,5 gols",v:s.o15},{l:"Mais de 2,5 gols",v:s.o25},{l:"Menos de 3,5 gols",v:s.u35},{l:"Ambos marcam",v:s.btts}
+ ].sort((a,b)=>b.v-a.v).slice(0,3);
+ const out=[];
+ out.push("Resultado mais provável: "+res[0][0]+" ("+f1(res[0][1])+"%)"+(res[0][1]<45?". Jogo bem aberto, sem favorito claro.":"."));
+ out.push("Placar mais provável: "+s.top[0].k+" ("+f2(s.top[0].p)+"%).");
+ out.push("Gols esperados no fim: "+g.home+" "+s.eh.toFixed(2).replace(".",",")+" · "+g.away+" "+s.ea.toFixed(2).replace(".",",")+".");
+ out.push("Leituras mais prováveis: "+cands.map(c=>c.l+" ("+f1(c.v)+"%)").join(" · ")+".");
+ if(s.live)out.push("Com o jogo rolando, a simulação já considera o placar atual ("+s.h0+" x "+s.a0+") e só sorteia os minutos que faltam.");
+ else if(rec){
+  const sp=simProb(rec.key,s);
+  if(Number.isFinite(sp)){const df=sp-rec.prob;out.push("Palpite do app: "+keyLabel(rec.key,g.home,g.away)+" ("+f1(rec.prob)+"%). A simulação dá "+f1(sp)+"%: "+(Math.abs(df)<=6?"confirma o palpite.":df>0?"está mais otimista que o app.":"está mais cautelosa que o app, atenção.")) }
+ }
+ const hora=new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+ const nota=s.live?"Simulação dos minutos restantes (jogo aos "+s.min+"').":g.completed?"Jogo encerrado: simulação feita como se fosse antes do apito.":"Simulação do jogo inteiro, antes do apito.";
+ return`<div class="market-team"><strong>🏆 Resultado final</strong><div class="market-grid">${mItem(g.home,s.w,s.w===maxR)}${mItem("Empate",s.d,s.d===maxR)}${mItem(g.away,s.l,s.l===maxR)}</div></div>
+ <div class="market-team"><strong>🎯 Placares mais prováveis</strong>${s.top.map(t=>`<div class="info-row"><span>${safe(g.home)} ${safe(t.k)} ${safe(g.away)}</span><strong>${f2(t.p)}%</strong></div>`).join("")}</div>
+ <div class="market-team"><strong>⚽ Mercados (verde = 80% ou mais)</strong><div class="market-grid">${mItem("Mais de 1,5",s.o15,s.o15>=80)}${mItem("Mais de 2,5",s.o25,s.o25>=80)}${mItem("Menos de 3,5",s.u35,s.u35>=80)}${mItem("Ambos marcam",s.btts,s.btts>=80)}${mItem("1X · casa ou empate",s.w+s.d,s.w+s.d>=80)}${mItem("X2 · fora ou empate",s.l+s.d,s.l+s.d>=80)}</div></div>
+ <div class="ai-box" style="margin-top:12px"><h4>🤖 VEREDITO DA IA</h4><div class="ai-text">${out.map(x=>"<p>"+safe(x)+"</p>").join("")}</div></div>
+ <div class="market-note">Rodada às ${hora} · ${s.N.toLocaleString("pt-BR")} partidas simuladas. ${safe(nota)} Usa os gols esperados do modelo (histórico + Poisson) com variação aleatória na força dos times. É uma estimativa, não garantia de resultado.</div>`
+}
+function runSimUI(g,p,rec){
+ const out=$("#simOut"),btn=$("#simBtn");if(!out||!btn)return;
+ btn.disabled=true;btn.textContent="🎲 Simulando 20.000 partidas...";
+ setTimeout(()=>{
+  try{
+   const s=simulateMatch(g,p,20000);
+   simCache={id:g.id,html:simHTML(g,s,rec)};
+   out.innerHTML=simCache.html
+  }catch(e){out.innerHTML='<div class="empty">Não foi possível simular agora.</div>'}
+  btn.disabled=false;btn.textContent="🎲 Simular de novo"
+ },60)
+}
+
 /* ABAS DO JOGO */
 function renderDetailTabs(){
  const g=currentMatch,h=currentHistHome,a=currentHistAway;
  const item=(label,val,best)=>`<div class="market-item" style="${best?"border:1px solid var(--gbd)":""}"><small>${label}</small><b class="${best?"green":""}">${Math.round(val)}%</b></div>`;
  const cutT=g.date?new Date(g.date).getTime():NaN,cut=l=>Number.isFinite(cutT)?l.filter(x=>new Date(x.date).getTime()<cutT):l;
  const p=calcProbs(cut(h),cut(a),g.path);
+ const rec=p?recordPick(g,p):null;
+ const pb=$("#pickBox");if(pb)pb.innerHTML=pickPanelHTML(g,rec);
  let marketHTML;
  if(p){
   const favText=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" tem mais chances de vencer";
-  const maxR=Math.max(p.pH,p.pD,p.pA),bp=bestLeg(p,g);
+  const maxR=Math.max(p.pH,p.pD,p.pA);
   marketHTML=`
   <div class="market-data">
    <h3>🎯 Mercado de Probabilidades</h3>
    <div class="market-team"><strong>🏆 Mais chances de ganhar</strong><div style="font-size:14px;font-weight:bold" class="green">${favText}</div>
-    <div class="market-note" style="margin-top:6px">⭐ Melhor palpite: <strong>${safe(keyLabel(bp.key,g.home,g.away))}</strong> (${Math.round(bp.prob)}%${Math.abs(bp.raw-bp.prob)>=1?" · modelo "+Math.round(bp.raw)+"%":""})</div>
+    <div class="market-note" style="margin-top:6px">⭐ Palpite do jogo: <strong>${safe(keyLabel(rec.key,g.home,g.away))}</strong> (${Math.round(rec.prob)}%${rec.raw!==undefined&&Math.abs(rec.raw-rec.prob)>=1?" · modelo "+Math.round(rec.raw)+"%":""})</div>
     <div class="market-note" style="margin-top:4px">Melhor chance dupla: <strong>${dcText(p,g)}</strong> (${Math.round(p.dcBest)}%)</div>
     <div class="market-note" style="margin-top:4px">Gols esperados: ${safe(g.home)} ${p.lH.toFixed(2).replace(".",",")} · ${safe(g.away)} ${p.lA.toFixed(2).replace(".",",")}</div></div>
    <div class="market-team"><strong>Resultado final (1X2)</strong><div class="market-grid">
@@ -650,7 +730,7 @@ function renderDetailTabs(){
     ${item("Mais de 2,5",p.o25,p.o25>=50)}${item("Menos de 2,5",100-p.o25,p.o25<50)}</div></div>
    <div class="market-team"><strong>Ambos marcam</strong><div class="market-grid" style="grid-template-columns:repeat(2,1fr)">
     ${item("Sim",p.btts,p.btts>=50)}${item("Não",100-p.btts,p.btts<50)}</div></div>
-   <div class="market-note">Estimativa que combina o retrospecto dos últimos jogos de cada time (${cut(h).length} e ${cut(a).length} jogos) com um modelo de Poisson de gols esperados, dando mais peso aos jogos recentes, ao mesmo mando (casa/fora) e à força dos adversários enfrentados. Nos mercados de gols e chance dupla a conta é conservadora (pesa mais o menor dos dois métodos) e os valores são puxados 15% em direção à média da liga para evitar exageros. O "melhor palpite" ainda recebe o ajuste do aprendizado do app (comparação entre o previsto e o real dos seus palpites encerrados). Não considera escalações nem lesões. Não é garantia de resultado.</div>
+   <div class="market-note">Estimativa que combina o retrospecto dos últimos jogos de cada time (${cut(h).length} e ${cut(a).length} jogos) com um modelo de Poisson de gols esperados, dando mais peso aos jogos recentes, ao mesmo mando (casa/fora) e à força dos adversários enfrentados. Nos mercados de gols e chance dupla a conta é conservadora (pesa mais o menor dos dois métodos) e os valores são puxados 15% em direção à média da liga para evitar exageros. O "palpite do jogo" é o mesmo do card e recebe o ajuste do aprendizado do app (comparação entre o previsto e o real dos seus palpites encerrados). Não considera escalações nem lesões. Não é garantia de resultado.</div>
   </div>`;
  }else{
   marketHTML=`<div class="market-data"><h3>🎯 Mercado de Probabilidades</h3><div class="market-note">As probabilidades serão exibidas quando os dois times tiverem pelo menos ${MIN_SAMPLE} jogos concluídos disponíveis.</div></div>`;
@@ -673,8 +753,18 @@ function renderDetailTabs(){
  $("#tab-table").innerHTML=standingsHTML(currentStandings,g)+h2hHTML(g);
  const insights=aiAnalysis(g,h,a,currentLiveSummary);
  $("#tab-ai").innerHTML=`
+  <div class="ai-box"><h4>🎲 SIMULADOR IA · 20.000 PARTIDAS</h4>
+   <div class="ai-text">Sorteia 20.000 versões deste jogo a partir dos gols esperados de cada time e mostra as chances de resultado, os placares mais prováveis e os mercados de gols. ${g.live?"Como o jogo está rolando, simula só os minutos que faltam a partir do placar atual.":""}</div>
+   ${p?'<button class="full" id="simBtn" style="margin-top:10px">🎲 Rodar simulação</button>':'<div class="market-note">O simulador precisa de pelo menos '+MIN_SAMPLE+' jogos concluídos de cada time.</div>'}
+   <div id="simOut" style="margin-top:6px"></div>
+  </div>
   <div class="ai-box"><h4>🤖 RADAR IA · ANÁLISE AUTOMÁTICA</h4><div class="ai-text">${insights.map(x=>`<p>${safe(x)}</p>`).join("")}</div></div>
   <div class="panel"><h3>Como interpretar</h3><p class="muted" style="line-height:1.7">A análise resume resultados e médias anteriores. Ela não é uma previsão garantida, não substitui informações oficiais e pode ficar limitada quando há poucos dados disponíveis.</p></div>`;
+ const sb=$("#simBtn");
+ if(sb&&p){
+  sb.onclick=()=>runSimUI(g,p,rec);
+  if(simCache&&simCache.id===g.id){$("#simOut").innerHTML=simCache.html;sb.textContent="🎲 Simular de novo"}
+ }
 }
 
 function matchHTML(g,extra=""){return`<article class="match ${g.live?"live-match":""} ${extra}" data-id="${safe(g.id)}" role="button" tabindex="0"><div class="match-top"><span>${safe(g.league)}</span><span class="${g.live?"status-live":""}">${g.live?'<span class="live-dot"></span>':""}${safe(g.state)}</span></div><div class="teams">${teamHTML(g.home,g.homeLogo)}<div class="score">${safe(g.hs)}</div>${teamHTML(g.away,g.awayLogo)}<div class="score">${safe(g.as)}</div></div><div class="meta">${safe(formatDate(g.date))}</div><div class="tap-hint"><span>Toque para abrir a partida</span><strong>VER DETALHES →</strong></div></article>`}
@@ -1255,7 +1345,7 @@ function liveModel(g,sum){
  markets.push(gm);
  if(corners!==null)markets.push(mk("esc","🚩 Escanteios",corners,10/90,[1,2,3]));else missing.push("escanteios");
  if(cards!==null)markets.push(mk("car","🟨 Cartões",cards,4.2/90,[1,2,3]));else missing.push("cartões");
- if(sot!==null)markets.push(mk("sot","🎯 Chutes no alvo",sot,8/90,[1,2,3]));else missing.push("chutes no alvo");
+ if(sot!==null)markets.push(mk("sot","🎯 Chutes no alvo",sot,8/90, if(sot!==null)markets.push(mk("sot","🎯 Chutes no alvo",sot,8/90,[1,2,3]));else missing.push("chutes no alvo");
  let top=0;markets.forEach(x=>x.items.forEach(i=>{if(i.p>top)top=i.p}));
  return{min,rem,goals,markets,missing,top}
 }
