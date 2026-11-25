@@ -219,6 +219,14 @@ body.on-radar #dayBar.has{display:block}
  <div class="section"><h3>📅 Acertos por dia</h3></div>
  <div class="panel" id="dayHistory"><div class="empty">Ainda não há palpites gravados.</div></div>
 
+ <div class="section"><h3>🧠 Aprendizado do app</h3></div>
+ <div class="panel">
+  <p class="muted" style="line-height:1.7;margin-top:0">O app compara o que previu com o que realmente aconteceu. Com 20 ou mais palpites encerrados num mercado, ele desconta o excesso de otimismo da probabilidade. Competições com 15 ou mais palpites e acerto real abaixo de 65% (e bem abaixo do previsto) saem sozinhas das múltiplas e do Top 4.</p>
+  <button class="full" id="smartBtn">🧠 Filtro inteligente: ON</button>
+  <button class="full" id="cupBtn" style="margin-top:8px">🏆 Evitar copas e mata-mata: ON</button>
+  <div id="learnBox" style="margin-top:12px"></div>
+ </div>
+
  <div class="panel" style="margin-top:12px"><h3>Adicionar registro</h3><label>Descrição do registro</label><input id="prediction" maxlength="80" placeholder="Ex.: Análise do jogo Palmeiras">
   <label>Resultado inicial</label><select id="result"><option value="pending">Em andamento</option><option value="win">Acerto</option><option value="loss">Erro</option></select>
   <button class="full" id="addPrediction">Salvar registro</button>
@@ -587,11 +595,11 @@ function calcProbs(h,a,path){
  return{pH,pD,pA,d1x,dx2,d12,dcBest,dcKey,o25,o15,u35,btts,lH,lA}
 }
 function dcText(p,g){return p.dcKey==="1x"?safe(g.home)+" ou empate":p.dcKey==="x2"?safe(g.away)+" ou empate":safe(g.home)+" ou "+safe(g.away)+" (sem empate)"}
-/* melhor palpite do jogo: o mercado mais provável entre chance dupla, mais de 1,5 gols e menos de 3,5 gols */
+/* melhor palpite do jogo: o mercado mais provável entre chance dupla, mais de 1,5 gols e menos de 3,5 gols (já com o ajuste do aprendizado) */
 function bestLeg(p,g){return legCandidates(p,g).filter(c=>c.m!=="win").sort((x,y)=>y.prob-x.prob)[0]}
 function probLineHTML(p,g,res,rec){
  const fav=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" favorito · "+Math.round(Math.max(p.pH,p.pA))+"%";
- const pk=rec?`🎯 Palpite: <b>${safe(keyLabel(rec.key,g.home,g.away))} · ${Math.round(rec.prob)}%</b><br>`:"";
+ const pk=rec?`🎯 Palpite: <b>${safe(keyLabel(rec.key,g.home,g.away))} · ${Math.round(rec.prob)}%</b>${rec.raw!==undefined&&Math.abs(rec.raw-rec.prob)>=1?` <span>(modelo ${Math.round(rec.raw)}%)</span>`:""}<br>`:"";
  const badge=res?`<br>${res==="green"?'<b class="green">✅ Palpite acertou</b>':'<b class="red">❌ Palpite errou</b>'} <span>(${safe(g.hs)} x ${safe(g.as)})</span>`:"";
  return`<div class="prob-line">🏆 <b>${fav}</b><br>${pk}🛡️ Chance dupla: <b>${dcText(p,g)} · ${Math.round(p.dcBest)}%</b><br>⚽ +1,5 gols: ${Math.round(p.o15)}% · +2,5: ${Math.round(p.o25)}% · Ambos marcam: ${Math.round(p.btts)}%${badge}</div>`
 }
@@ -628,7 +636,7 @@ function renderDetailTabs(){
   <div class="market-data">
    <h3>🎯 Mercado de Probabilidades</h3>
    <div class="market-team"><strong>🏆 Mais chances de ganhar</strong><div style="font-size:14px;font-weight:bold" class="green">${favText}</div>
-    <div class="market-note" style="margin-top:6px">⭐ Melhor palpite: <strong>${safe(keyLabel(bp.key,g.home,g.away))}</strong> (${Math.round(bp.prob)}%)</div>
+    <div class="market-note" style="margin-top:6px">⭐ Melhor palpite: <strong>${safe(keyLabel(bp.key,g.home,g.away))}</strong> (${Math.round(bp.prob)}%${Math.abs(bp.raw-bp.prob)>=1?" · modelo "+Math.round(bp.raw)+"%":""})</div>
     <div class="market-note" style="margin-top:4px">Melhor chance dupla: <strong>${dcText(p,g)}</strong> (${Math.round(p.dcBest)}%)</div>
     <div class="market-note" style="margin-top:4px">Gols esperados: ${safe(g.home)} ${p.lH.toFixed(2).replace(".",",")} · ${safe(g.away)} ${p.lA.toFixed(2).replace(".",",")}</div></div>
    <div class="market-team"><strong>Resultado final (1X2)</strong><div class="market-grid">
@@ -642,7 +650,7 @@ function renderDetailTabs(){
     ${item("Mais de 2,5",p.o25,p.o25>=50)}${item("Menos de 2,5",100-p.o25,p.o25<50)}</div></div>
    <div class="market-team"><strong>Ambos marcam</strong><div class="market-grid" style="grid-template-columns:repeat(2,1fr)">
     ${item("Sim",p.btts,p.btts>=50)}${item("Não",100-p.btts,p.btts<50)}</div></div>
-   <div class="market-note">Estimativa que combina o retrospecto dos últimos jogos de cada time (${cut(h).length} e ${cut(a).length} jogos) com um modelo de Poisson de gols esperados, dando mais peso aos jogos recentes, ao mesmo mando (casa/fora) e à força dos adversários enfrentados. Nos mercados de gols e chance dupla a conta é conservadora (pesa mais o menor dos dois métodos) e os valores são puxados 15% em direção à média da liga para evitar exageros. Não considera escalações nem lesões. Não é garantia de resultado.</div>
+   <div class="market-note">Estimativa que combina o retrospecto dos últimos jogos de cada time (${cut(h).length} e ${cut(a).length} jogos) com um modelo de Poisson de gols esperados, dando mais peso aos jogos recentes, ao mesmo mando (casa/fora) e à força dos adversários enfrentados. Nos mercados de gols e chance dupla a conta é conservadora (pesa mais o menor dos dois métodos) e os valores são puxados 15% em direção à média da liga para evitar exageros. O "melhor palpite" ainda recebe o ajuste do aprendizado do app (comparação entre o previsto e o real dos seus palpites encerrados). Não considera escalações nem lesões. Não é garantia de resultado.</div>
   </div>`;
  }else{
   marketHTML=`<div class="market-data"><h3>🎯 Mercado de Probabilidades</h3><div class="market-note">As probabilidades serão exibidas quando os dois times tiverem pelo menos ${MIN_SAMPLE} jogos concluídos disponíveis.</div></div>`;
@@ -750,6 +758,57 @@ function renderLev(){
 }
 ["#levStart","#levTarget","#levCustom","#levProb"].forEach(s=>$(s).oninput=renderLev);
 
+/* PALPITES GRAVADOS (declarados aqui porque o aprendizado e as múltiplas dependem deles) */
+let dayPicks=read("radarDayPicks",{});if(!dayPicks||typeof dayPicks!=="object"||Array.isArray(dayPicks))dayPicks={};
+let picksTimer=null,picksVer=0;
+function saveDayPicksNow(){picksVer++;store("radarDayPicks",dayPicks)}
+function savePicksSoon(){picksVer++;clearTimeout(picksTimer);picksTimer=setTimeout(saveDayPicksNow,400)}
+(function(){const lim=dateKey(-45);let ch=false;Object.keys(dayPicks).forEach(id=>{const r=dayPicks[id],dk=r&&r.dk;if(!dk||dk<lim){delete dayPicks[id];ch=true}});if(ch)saveDayPicksNow()})();
+
+/* APRENDIZADO DO APP
+   Compara a probabilidade BRUTA do modelo (raw) com o resultado real, por mercado e por competição.
+   - Mercado com 20+ palpites encerrados: a probabilidade é corrigida pela diferença (entre -15 e +3 pontos).
+   - Competição com 15+ palpites, acerto real < 65% e mais de 5 pontos abaixo do previsto: sai das múltiplas e do Top 4.
+   - Copas e mata-mata: opcionalmente ficam fora das múltiplas e do Top 4. */
+const CUP_PATHS=new Set(["bra.copa_do_brazil","conmebol.libertadores","conmebol.sudamericana","uefa.champions","uefa.europa","uefa.europa.conf","uefa.wchampions","eng.fa","esp.copa_del_rey","ita.coppa_italia","ger.dfb_pokal"]);
+const LEARN_N=20,BLOCK_N=15,BLOCK_REAL=65;
+const smartOn=()=>settings.smart!==false;
+const cupsOff=()=>settings.avoidCups!==false;
+function mktOf(k){k=String(k||"");return k.startsWith("dc")?"dc":k==="o15"?"o15":k==="u35"?"u35":k.startsWith("win")?"win":"x"}
+let learnCache=null;
+function learnStats(){
+ if(learnCache&&learnCache.ver===picksVer)return learnCache;
+ const mk={},cp={};
+ Object.values(dayPicks).forEach(r=>{
+  if(r.result!=="green"&&r.result!=="red")return;
+  const raw=Number(r.raw!==undefined?r.raw:r.prob)||0,hit=r.result==="green"?1:0,m=mktOf(r.key);
+  const a=mk[m]||(mk[m]={n:0,h:0,p:0});a.n++;a.h+=hit;a.p+=raw;
+  if(r.path){const b=cp[r.path]||(cp[r.path]={n:0,h:0,p:0});b.n++;b.h+=hit;b.p+=raw}
+ });
+ const fin=o=>{o.real=o.h/o.n*100;o.pred=o.p/o.n;o.diff=o.real-o.pred};
+ Object.values(mk).forEach(fin);Object.values(cp).forEach(fin);
+ learnCache={ver:picksVer,mk,cp};return learnCache
+}
+function mktOffset(m){if(!smartOn())return 0;const o=learnStats().mk[m];if(!o||o.n<LEARN_N)return 0;return Math.max(-15,Math.min(3,o.diff))}
+function pathBlocked(path){if(!smartOn()||!path)return false;const o=learnStats().cp[path];return!!(o&&o.n>=BLOCK_N&&o.real<BLOCK_REAL&&o.diff<-5)}
+function eligible(g){return!pathBlocked(g.path)&&!(cupsOff()&&CUP_PATHS.has(g.path))}
+function adjP(m,v){return Math.max(0,Math.min(99.5,v+mktOffset(m)))}
+function renderLearn(){
+ const sb=$("#smartBtn");if(!sb)return;
+ sb.textContent="🧠 Filtro inteligente: "+(smartOn()?"ON":"OFF");sb.classList.toggle("active",smartOn());
+ const cb=$("#cupBtn");cb.textContent="🏆 Evitar copas e mata-mata: "+(cupsOff()?"ON":"OFF");cb.classList.toggle("active",cupsOff());
+ const box=$("#learnBox");if(!box)return;
+ const st=learnStats(),f0=v=>Math.round(v),sg=v=>(v>0?"+":"")+f0(v);
+ const names={dc:"Chance dupla",o15:"+1,5 gols",u35:"−3,5 gols",win:"Vitória do favorito"};
+ const mrows=Object.keys(names).filter(k=>st.mk[k]).map(k=>{const o=st.mk[k],off=mktOffset(k);return`<tr><td>${names[k]}</td><td>${o.n}</td><td>${f0(o.pred)}%</td><td class="${o.diff>=0?"green":"red"}">${f0(o.real)}%</td><td>${o.n<LEARN_N?"coletando":off?sg(off)+" pts":"sem ajuste"}</td></tr>`}).join("");
+ const nameOf=p=>(competitions.find(c=>c.path===p)||{}).name||p;
+ const crows=Object.keys(st.cp).filter(p=>st.cp[p].n>=5).sort((a,b)=>st.cp[b].n-st.cp[a].n).slice(0,15).map(p=>{const o=st.cp[p],bl=pathBlocked(p);return`<tr><td>${safe(nameOf(p))}</td><td>${o.n}</td><td>${f0(o.pred)}%</td><td class="${o.diff>=0?"green":"red"}">${f0(o.real)}%</td><td>${bl?"🚫 bloqueada":o.n<BLOCK_N?"coletando":"✅ ok"}</td></tr>`}).join("");
+ if(!mrows&&!crows){box.innerHTML='<div class="empty">Ainda não há palpites encerrados. O aprendizado começa depois dos primeiros resultados e só age com 20 ou mais por mercado.</div>';return}
+ box.innerHTML=(mrows?`<div class="frequency-title">Por mercado</div><div class="tbl-wrap"><table class="tbl c"><tr><th>Mercado</th><th>Palpites</th><th>Previsto</th><th>Real</th><th>Ajuste</th></tr>${mrows}</table></div>`:"")+(crows?`<div class="frequency-title">Por competição</div><div class="tbl-wrap"><table class="tbl c"><tr><th>Competição</th><th>Palpites</th><th>Previsto</th><th>Real</th><th>Status</th></tr>${crows}</table></div>`:"")+`<div class="market-note">"Previsto" é a probabilidade bruta do modelo e "Real" é quanto acertou de fato. O ajuste é aplicado nos palpites novos, nas múltiplas e no Top 4. Com poucos dados, os números variam muito.</div>`
+}
+$("#smartBtn").onclick=()=>{settings.smart=!smartOn();store("radarSettings",settings);renderLearn();toast(smartOn()?"🧠 Filtro inteligente ligado":"Filtro inteligente desligado",2200)};
+$("#cupBtn").onclick=()=>{settings.avoidCups=!cupsOff();store("radarSettings",settings);renderLearn();toast(cupsOff()?"🏆 Copas e mata-mata ficam fora das múltiplas e do Top 4":"Copas liberadas nas múltiplas e no Top 4",3000)};
+
 /* MÚLTIPLA DO DIA */
 let multiplas=read("radarMultiplas",{});if(!multiplas||typeof multiplas!=="object"||Array.isArray(multiplas))multiplas={};
 function saveMultiplas(){store("radarMultiplas",multiplas)}
@@ -757,8 +816,8 @@ const multiLevels={
  safe:{name:"Segura",min:80,markets:["dc","o15","u35"],desc:"Palpites com 80% ou mais de probabilidade (chance dupla e gols)."},
  mid:{name:"Moderada",min:65,markets:["dc","o15","u35","win"],desc:"Palpites com 65% ou mais, incluindo favoritos para vencer."},
  bold:{name:"Ousada",min:50,markets:["win"],desc:"Apenas vitórias dos favoritos (a partir de 50%). Odd maior, risco maior."},
- reliable:{name:"Confiável",min:75,markets:["dc","o15","u35"],desc:"Gerada automaticamente: 2 jogos com 75% ou mais cada, escolhidos para a odd justa ficar perto de 1,50 (chance dupla, mais de 1,5 e menos de 3,5 gols), usando só times com pelo menos 8 jogos de histórico."},
- r75:{name:"75% a 100%",min:75,markets:["dc","o15","u35","win"],minSample:6,desc:"Você escolhe a quantidade de jogos. Entram só palpites de 75% até 100% de probabilidade: chance dupla, mais de 1,5 gols, menos de 3,5 gols e vitória de favorito. Os jogos mais prováveis do dia vêm primeiro."},
+ reliable:{name:"Confiável",min:75,markets:["dc","o15","u35"],desc:"Gerada automaticamente: 2 jogos com 75% ou mais cada, escolhidos para a odd justa ficar perto de 1,50 (chance dupla, mais de 1,5 e menos de 3,5 gols), usando só times com pelo menos 8 jogos de histórico. Copas e competições com mau desempenho ficam de fora."},
+ r75:{name:"75% a 100%",min:75,markets:["dc","o15","u35","win"],minSample:6,desc:"Você escolhe a quantidade de jogos (1 jogo = simples). Entram só palpites de 75% até 100%: chance dupla, mais de 1,5 gols, menos de 3,5 gols e vitória de favorito. Os mais prováveis do dia vêm primeiro. Menos jogos significa mais chance de green."},
  ia95:{name:"95%",min:95,markets:["dc","o15","u35"],minSample:8,desc:"Só palpites com 95% ou mais (chance dupla, mais de 1,5 ou menos de 3,5 gols), com times de pelo menos 8 jogos de histórico. É muito raro: em muitos dias pode não haver jogos suficientes."}
 };
 const reliableCfg={level:"reliable",markets:["dc","o15","u35"],min:75,size:2,minSample:8,targetOdd:1.5};
@@ -769,17 +828,17 @@ function fmtKey(k){return String(k).slice(6,8)+"/"+String(k).slice(4,6)+"/"+Stri
 function multiTitle(m){return m.level==="reliable"?"Confiável":m.level==="r75"?"75% a 100%":m.level==="ia95"?"IA 95%":"IA · "+(multiLevels[m.level]?.name||"")}
 function legCandidates(p,g){
  const c=[],dcLabel=p.dcKey==="1x"?g.home+" ou empate":p.dcKey==="x2"?g.away+" ou empate":g.home+" ou "+g.away;
- c.push({m:"dc",key:"dc"+p.dcKey,label:dcLabel,prob:p.dcBest});
- c.push({m:"o15",key:"o15",label:"Mais de 1,5 gols",prob:p.o15});
- c.push({m:"u35",key:"u35",label:"Menos de 3,5 gols",prob:p.u35});
- if(Math.abs(p.pH-p.pA)>=5)c.push({m:"win",key:p.pH>p.pA?"winH":"winA",label:(p.pH>p.pA?g.home:g.away)+" vence",prob:Math.max(p.pH,p.pA)});
+ c.push({m:"dc",key:"dc"+p.dcKey,label:dcLabel,prob:adjP("dc",p.dcBest),raw:p.dcBest});
+ c.push({m:"o15",key:"o15",label:"Mais de 1,5 gols",prob:adjP("o15",p.o15),raw:p.o15});
+ c.push({m:"u35",key:"u35",label:"Menos de 3,5 gols",prob:adjP("u35",p.u35),raw:p.u35});
+ if(Math.abs(p.pH-p.pA)>=5){const w=Math.max(p.pH,p.pA);c.push({m:"win",key:p.pH>p.pA?"winH":"winA",label:(p.pH>p.pA?g.home:g.away)+" vence",prob:adjP("win",w),raw:w})}
  return c
 }
 async function buildMulti(cfg,exclude=[]){
- const pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!exclude.includes(String(g.id)));
+ const pool=games.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!exclude.includes(String(g.id))&&eligible(g));
  const evaluated=await Promise.all(pool.map(async g=>{try{const[h,a]=await Promise.all([teamHistory(g.path,g.homeId),teamHistory(g.path,g.awayId)]);if(h.length<cfg.minSample||a.length<cfg.minSample)return null;const p=calcProbs(h,a,g.path);if(!p)return null;const opts=legCandidates(p,g).filter(c=>cfg.markets.includes(c.m)&&c.prob>=cfg.min).sort((x,y)=>y.prob-x.prob);return opts.length?{g,opts}:null}catch(e){return null}}));
  const ev=evaluated.filter(Boolean);
- const leg=(g,c)=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:c.key,label:c.label,prob:Math.round(c.prob*10)/10,result:"pending"});
+ const leg=(g,c)=>({id:g.id,path:g.path,league:g.league,home:g.home,away:g.away,date:g.date,key:c.key,label:c.label,prob:Math.round(c.prob*10)/10,raw:Math.round(c.raw*10)/10,result:"pending"});
  const T=cfg.targetOdd;
  if(T&&cfg.size===2){
   let best=null;
@@ -819,7 +878,7 @@ function evHTML(m){
 }
 function multiText(m,key){
  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1),odd=comb>0?(1/comb).toFixed(2).replace(".",","):"—";
- const lines=["🎯 MÚLTIPLA "+multiTitle(m).toUpperCase()+" · "+fmtKey(key),""];
+ const lines=["🎯 "+(m.legs.length>1?"MÚLTIPLA ":"SIMPLES ")+multiTitle(m).toUpperCase()+" · "+fmtKey(key),""];
  m.legs.forEach((l,i)=>lines.push((i+1)+") "+l.home+" x "+l.away+"\n   ➜ "+l.label+" ("+Math.round(l.prob)+"%)"));
  lines.push("","Probabilidade combinada: "+(comb*100).toFixed(0)+"%","Odd justa: "+odd);
  if(m.odd)lines.push("Odd da casa: "+String(m.odd).replace(".",","));
@@ -835,22 +894,22 @@ function copyText(t){
 function multiHTML(m){
  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1),st=multiStatus(m),odd=comb>0?(1/comb).toFixed(2).replace(".",","):"—",
  tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
- return`<div class="panel" style="margin-top:12px"><h3>🎯 Múltipla ${safe(multiTitle(m))} · ${m.legs.length} jogos ${tag[st]}</h3>
+ return`<div class="panel" style="margin-top:12px"><h3>🎯 ${m.legs.length>1?"Múltipla":"Simples"} ${safe(multiTitle(m))} · ${m.legs.length} jogo${m.legs.length>1?"s":""} ${tag[st]}</h3>
  <div class="dupla-stats" style="grid-template-columns:repeat(2,1fr)"><div class="dupla-stat"><small>PROBABILIDADE COMBINADA</small><strong class="green">${(comb*100).toFixed(0)}%</strong></div><div class="dupla-stat"><small>ODD JUSTA</small><strong>${odd}</strong></div></div>
- ${m.legs.map((l,i)=>`<div class="dupla-record"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.league)} · ${safe(formatDate(l.date))}</span><br>🎯 ${safe(l.label)} · <strong>${Math.round(l.prob)}%</strong> · odd justa ${(100/l.prob).toFixed(2).replace(".",",")}${l.score?" · placar "+safe(l.score):""} ${tag[l.result]}${l.result==="pending"?`<br><button class="legbtn" data-swap="${i}">🔄 Trocar jogo</button>`:""}</div>`).join("")}
+ ${m.legs.map((l,i)=>`<div class="dupla-record"><strong>${safe(l.home)} x ${safe(l.away)}</strong><br><span class="muted">${safe(l.league)} · ${safe(formatDate(l.date))}</span><br>🎯 ${safe(l.label)} · <strong>${Math.round(l.prob)}%</strong>${l.raw!==undefined&&Math.abs(l.raw-l.prob)>=1?` <span class="muted">(modelo ${Math.round(l.raw)}%)</span>`:""} · odd justa ${(100/l.prob).toFixed(2).replace(".",",")}${l.score?" · placar "+safe(l.score):""} ${tag[l.result]}${l.result==="pending"?`<br><button class="legbtn" data-swap="${i}">🔄 Trocar jogo</button>`:""}</div>`).join("")}
  <div style="background:var(--c3);border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px"><label>💵 Odd da casa (opcional)</label><input id="multiOdd" type="text" inputmode="decimal" placeholder="Ex.: 3,20" value="${m.odd?String(m.odd).replace(".",","):""}"><div id="multiEV" class="market-note" style="margin-top:0">${evHTML(m)}</div></div>
- <button class="full" id="multiCopy" style="margin-top:10px">📋 Copiar múltipla</button>
+ <button class="full" id="multiCopy" style="margin-top:10px">📋 Copiar ${m.legs.length>1?"múltipla":"simples"}</button>
  <button class="full" id="multiBank" style="margin-top:8px">💰 Registrar na banca</button>
- <div class="market-note">Probabilidades estimadas pelo retrospecto dos últimos jogos de cada time combinado com um modelo de Poisson, com ajuste pela força dos adversários e encolhimento em direção à média da liga. A "odd justa" é só uma referência calculada pela probabilidade, não é a odd de nenhuma casa de apostas. Quanto mais jogos na múltipla, menor a chance de acertar todos. Não é garantia de resultado.</div></div>`
+ <div class="market-note">Probabilidades estimadas pelo retrospecto dos últimos jogos de cada time combinado com um modelo de Poisson, com ajuste pela força dos adversários, encolhimento em direção à média da liga e correção pelo aprendizado do app. A "odd justa" é só uma referência calculada pela probabilidade, não é a odd de nenhuma casa de apostas. Quanto mais jogos na múltipla, menor a chance de acertar todos. Não é garantia de resultado.</div></div>`
 }
 function renderMultiResult(){
  const el=$("#multiResult");if(!el)return;const key=multiKey(),m=multiplas[key];if(m)resolveFromGames(m);
- const emptyMsg=multiMode==="reliable"?'<div class="empty">Nenhuma múltipla confiável gerada para esta data.<br>Toque em "Gerar múltipla confiável".</div>':multiMode==="r75"?'<div class="empty">Nenhuma múltipla 75%–100% gerada para esta data.<br>Escolha a quantidade e toque em "Gerar múltipla 75%–100%".</div>':'<div class="empty">Nenhuma múltipla IA 95% gerada para esta data.<br>Toque em "Gerar múltipla IA 95%".</div>';
+ const emptyMsg=multiMode==="reliable"?'<div class="empty">Nenhuma múltipla confiável gerada para esta data.<br>Toque em "Gerar múltipla confiável".</div>':multiMode==="r75"?'<div class="empty">Nenhuma múltipla 75%–100% gerada para esta data.<br>Escolha a quantidade e toque em "Gerar 75%–100%".</div>':'<div class="empty">Nenhuma múltipla IA 95% gerada para esta data.<br>Toque em "Gerar IA 95%".</div>';
  el.innerHTML=m?multiHTML(m):emptyMsg;
  if(!m)return;
  const c=$("#multiCopy");if(c)c.onclick=()=>copyText(multiText(m,key));
  const mb=$("#multiBank");if(mb)mb.onclick=()=>{
-  $("#bkName").value="Múltipla "+multiTitle(m)+" "+fmtKey(key).slice(0,5);
+  $("#bkName").value=(m.legs.length>1?"Múltipla ":"Simples ")+multiTitle(m)+" "+fmtKey(key).slice(0,5);
   $("#bkOdd").value=m.odd?String(m.odd).replace(".",","):"";
   $("#bkType").value=m.level==="reliable"?"confiavel":m.level==="r75"?"r75":"ia";
   goPage("controle");window.scrollTo(0,0);
@@ -868,7 +927,8 @@ async function swapLeg(i){
  multiBusy=true;toast("Procurando outro jogo...",2000);
  try{
   const lv=multiLevels[m.level]||multiLevels.r75,cfg0=m.level==="reliable"?reliableCfg:{level:m.level,markets:lv.markets,min:lv.min,minSample:lv.minSample||MIN_SAMPLE};
-  const res=await buildMulti({...cfg0,size:1,otherProb:(m.legs.find((x,j)=>j!==i)||{}).prob},m.legs.map(l=>String(l.id)));
+  const other=m.legs.find((x,j)=>j!==i);
+  const res=await buildMulti({...cfg0,size:1,otherProb:other?other.prob:0},m.legs.map(l=>String(l.id)));
   if(!res.length){toast("Nenhum outro jogo disponível com essa probabilidade.",3500);return}
   m.legs[i]=res[0];saveMultiplas();renderMultiResult();renderDuplaHistory();toast("🔄 Jogo trocado!",2000)
  }catch(e){toast("Não foi possível trocar agora.",3000)}finally{multiBusy=false}
@@ -886,8 +946,8 @@ function renderMultiControls(){
  }else{
   const lv=multiLevels[multiLvKey()];
   c.innerHTML=`<div class="muted" id="multiDesc" style="margin-bottom:10px">${lv.desc}</div>
-  <label>Quantidade de jogos</label><select id="multiSize">${[2,3,4,5].map(n=>`<option value="${n}" ${multiSize===n?"selected":""}>${n} jogos</option>`).join("")}</select>
-  <button class="full" id="multiGen">${multiMode==="r75"?"📊 Gerar múltipla 75%–100%":"🤖 Gerar múltipla IA 95%"}</button>
+  <label>Quantidade de jogos</label><select id="multiSize">${[1,2,3,4,5].map(n=>`<option value="${n}" ${multiSize===n?"selected":""}>${n===1?"1 jogo (simples)":n+" jogos"}</option>`).join("")}</select>
+  <button class="full" id="multiGen">${multiMode==="r75"?"📊 Gerar 75%–100%":"🤖 Gerar IA 95%"}</button>
   <div class="muted" id="multiMsg" style="margin-top:8px"></div>`;
   $("#multiSize").onchange=e=>{multiSize=Number(e.target.value)};
  }
@@ -902,9 +962,9 @@ async function generateMulti(){
  try{
   const lvKey=multiLvKey(),lv=multiLevels[lvKey],cfg=reliable?reliableCfg:{level:lvKey,markets:lv.markets,min:lv.min,size:multiSize,minSample:lv.minSample||MIN_SAMPLE};
   const legs=await buildMulti(cfg),m2=$("#multiMsg");if(!m2)return;
-  if(legs.length<2){m2.textContent=reliable?"Poucos jogos confiáveis nesta data (probabilidade de 75% ou mais e histórico completo). Tente outra data ou use outra opção.":"Poucos jogos com "+lv.min+"% ou mais nesta data (mínimo de 2). Tente outra data"+(multiMode==="ia95"?" ou use a opção 75%–100%.":" ou menos jogos.");return}
+  if(!legs.length||(reliable&&legs.length<2)){m2.textContent=reliable?"Poucos jogos confiáveis nesta data (probabilidade de 75% ou mais, histórico completo e fora dos filtros do app). Tente outra data ou use outra opção.":"Nenhum jogo com "+lv.min+"% ou mais nesta data (já considerando os filtros do app). Tente outra data"+(multiMode==="ia95"?" ou use a opção 75%–100%.":".");return}
   multiplas[key]={level:cfg.level,legs,created:Date.now()};saveMultiplas();
-  m2.textContent=reliable?"Múltipla confiável gerada!":"Múltipla gerada!"+(legs.length<multiSize?" (só "+legs.length+" jogo(s) atingiram "+lv.min+"%)":"");
+  m2.textContent=reliable?"Múltipla confiável gerada!":(legs.length>1?"Múltipla gerada!":"Simples gerada!")+(legs.length<multiSize?" (só "+legs.length+" jogo(s) atingiram "+lv.min+"%)":"");
   renderMultiResult();renderDuplaHistory()
  }catch(e){const m2=$("#multiMsg");if(m2)m2.textContent="Não foi possível gerar agora. Tente novamente."}finally{multiBusy=false}
 }
@@ -966,8 +1026,9 @@ function visibleGames(){
  return list.map((g,i)=>({g,i})).sort((a,b)=>rank(a.g)-rank(b.g)||a.i-b.i).map(x=>x.g)
 }
 
-/* TOP 4 · 80%+ : até 4 jogos do dia com o melhor palpite (80% ou mais).
-   A lista é gravada por dia e fica fixa: jogo escolhido não sai. Se faltar vaga, outro jogo 80%+ que ainda não começou pode completar (máximo 4). */
+/* TOP 4 · 80%+ : até 4 jogos do dia com o melhor palpite (80% ou mais, já com o ajuste do aprendizado).
+   A lista é gravada por dia e fica fixa: jogo escolhido não sai. Se faltar vaga, outro jogo 80%+ que ainda não começou pode completar (máximo 4).
+   Copas e competições bloqueadas pelo aprendizado não entram. */
 const TOP4_MIN=80,TOP4_MAX=4;
 let top4Store=read("radarTop4",{});if(!top4Store||typeof top4Store!=="object"||Array.isArray(top4Store))top4Store={};
 (function(){const lim=dateKey(-45);let ch=false;Object.keys(top4Store).forEach(k=>{if(k<lim){delete top4Store[k];ch=true}});if(ch)store("radarTop4",top4Store)})();
@@ -977,7 +1038,7 @@ function top4Ids(){
   const dk=dateKey(offsetDay()),list=games.slice(),full=selected==="all"||selected==="dupla";
   let ids=Array.isArray(top4Store[dk])?top4Store[dk].map(String):[];
   if(full&&ids.length<TOP4_MAX){
-   const pool=list.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!ids.includes(String(g.id)));
+   const pool=list.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&!ids.includes(String(g.id))&&eligible(g));
    if(pool.length){
     const ev=await Promise.all(pool.map(async g=>{const rec=await gamePick(g);return rec&&rec.prob>=TOP4_MIN?{id:String(g.id),prob:rec.prob}:null}));
     const add=ev.filter(Boolean).sort((x,y)=>y.prob-x.prob).slice(0,TOP4_MAX-ids.length);
@@ -997,7 +1058,7 @@ async function renderTop4(){
  const found=ids.map(id=>{const g=games.find(x=>String(x.id)===String(id));return g?{g,rec:dayPicks[String(g.id)]}:null}).filter(Boolean).sort((a,b)=>Number(b.rec?.prob||0)-Number(a.rec?.prob||0));
  $("#count").textContent=found.length+" de "+TOP4_MAX+" jogo(s)";
  if(!found.length){box.innerHTML='<div class="empty">Nenhum jogo com palpite de '+TOP4_MIN+'% ou mais nesta data'+(selected==="all"?".":".<br>Escolha a aba \"Todas\" para o app procurar em todas as competições.")+'<br>Toque em "🔥 Top 4 · 80%+" de novo para voltar a ver todos os jogos.</div>';return}
- box.innerHTML='<div class="matches">'+found.map(({g,rec})=>'<div><div class="pick-tag">🎯 '+(rec?safe(keyLabel(rec.key,g.home,g.away))+' · '+Math.round(rec.prob)+'%':'Melhor palpite')+'</div>'+matchHTML(g)+'</div>').join("")+'</div><div class="market-note">Lista fixa do dia: os jogos escolhidos não saem. Se sobrar vaga, outro jogo com '+TOP4_MIN+'% ou mais que ainda não começou pode entrar, até o máximo de '+TOP4_MAX+'. O palpite é o mercado mais provável do jogo (chance dupla, mais de 1,5 ou menos de 3,5 gols).</div>';
+ box.innerHTML='<div class="matches">'+found.map(({g,rec})=>'<div><div class="pick-tag">🎯 '+(rec?safe(keyLabel(rec.key,g.home,g.away))+' · '+Math.round(rec.prob)+'%':'Melhor palpite')+'</div>'+matchHTML(g)+'</div>').join("")+'</div><div class="market-note">Lista fixa do dia: os jogos escolhidos não saem. Se sobrar vaga, outro jogo com '+TOP4_MIN+'% ou mais que ainda não começou pode entrar, até o máximo de '+TOP4_MAX+'. O palpite é o mercado mais provável do jogo (chance dupla, mais de 1,5 ou menos de 3,5 gols). Copas e competições com mau desempenho no seu histórico ficam de fora.</div>';
  bindMatchCards(box,found.map(x=>x.g))
 }
 function renderGames(failed=0){
@@ -1014,16 +1075,12 @@ function renderGames(failed=0){
  box.innerHTML=(failed?'<div class="empty">Algumas competições não responderam. Os jogos disponíveis estão abaixo.</div>':"")+`<div class="matches">${list.map(g=>matchHTML(g)).join("")}</div>`;bindMatchCards(box,games)
 }
 
-/* PALPITES GRAVADOS (um palpite por jogo: o mercado mais provável — chance dupla, +1,5 ou -3,5 gols —, gravado antes do jogo e nunca alterado) */
-let dayPicks=read("radarDayPicks",{});if(!dayPicks||typeof dayPicks!=="object"||Array.isArray(dayPicks))dayPicks={};
-let picksTimer=null;
-function saveDayPicksNow(){store("radarDayPicks",dayPicks)}
-function savePicksSoon(){clearTimeout(picksTimer);picksTimer=setTimeout(saveDayPicksNow,400)}
-(function(){const lim=dateKey(-45);let ch=false;Object.keys(dayPicks).forEach(id=>{const r=dayPicks[id],dk=r&&r.dk;if(!dk||dk<lim){delete dayPicks[id];ch=true}});if(ch)saveDayPicksNow()})();
+/* PALPITES GRAVADOS (um palpite por jogo: o mercado mais provável — chance dupla, +1,5 ou -3,5 gols —, gravado antes do jogo e nunca alterado.
+   Guarda "prob" (com ajuste do aprendizado) e "raw" (probabilidade bruta do modelo, usada para aprender)) */
 function recordPick(g,p){
  const id=String(g.id);if(dayPicks[id])return dayPicks[id];
  const c=bestLeg(p,g);
- const rec={key:c.key,prob:Math.round(c.prob*10)/10,home:g.home,away:g.away,league:g.league,path:g.path,date:g.date,dk:dateFromISO(g.date),result:"pending"};
+ const rec={key:c.key,prob:Math.round(c.prob*10)/10,raw:Math.round(c.raw*10)/10,home:g.home,away:g.away,league:g.league,path:g.path,date:g.date,dk:dateFromISO(g.date),result:"pending"};
  dayPicks[id]=rec;savePicksSoon();return rec
 }
 async function gamePick(g){
@@ -1063,6 +1120,7 @@ async function updateDayBar(){
 /* HISTÓRICO DIÁRIO DE ACERTOS (aba Meu Controle) */
 function renderDayHistory(){
  const box=$("#dayHistory");if(!box)return;
+ renderLearn();
  const by={},todayK=dateKey();
  Object.values(dayPicks).forEach(r=>{if(!r.dk)return;const o=by[r.dk]||(by[r.dk]={g:0,r:0,p:0});if(r.result==="green")o.g++;else if(r.result==="red")o.r++;else o.p++});
  const keys=Object.keys(by).filter(k=>k<=todayK).sort().reverse();
@@ -1345,7 +1403,7 @@ function renderBankByType(){
  const keys=Object.keys(agg);
  if(!keys.length){box.innerHTML='<div class="empty">Sem apostas encerradas ainda.</div>';return}
  const rows=keys.map(t=>{const o=agg[t],roi=o.st?o.pr/o.st*100:0;return`<tr><td>${typeLbl[t]||safe(t)}</td><td>${o.n}</td><td class="green">${o.w}</td><td class="red">${o.l}</td><td class="${o.pr>=0?"green":"red"}">${money(o.pr)}</td><td class="${roi>=0?"green":"red"}">${roi.toFixed(1).replace(".",",")}%</td></tr>`}).join("");
- box.innerHTML=`<div class="tbl-wrap"><table class="tbl c"><tr><th>Tipo</th><th>Apostas</th><th>Green</th><th>Red</th><th>Lucro</th><th>ROI</th></tr>${rows}</table></div><div class="market-note">Considera só apostas encerradas. Com poucas apostas o ROI varia muito: não tire conclusões antes de umas 30 por tipo.</div>`
+ box.innerHTML=`<div class="tbl-wrap"><table class="tbl c"><tr><th>Tipo</th><th>Apostas</th><th>Green</th><th>Red</th><th>Lucro</th><th>ROI</th></tr>${rows}</table></div><div class="market-note">Considera só apostas encerradas. Com poucas apostas o ROI varia muito: não tire conclusões antes de umas 30 por tipo. Muitos greens não significam lucro: o que conta é o ROI.</div>`
 }
 function renderBank(){
  let staked=0,profit=0,open=0,settled=0;
@@ -1445,7 +1503,7 @@ $("#csvBank").onclick=()=>{
 $("#csvPicks").onclick=()=>{
  const arr=Object.values(dayPicks).filter(r=>r.dk).sort((a,b)=>b.dk.localeCompare(a.dk));
  if(!arr.length){toast("Não há palpites para exportar.",2500);return}
- exportCSV("radarfc-palpites.csv",["Dia","Jogo","Competição","Palpite","Probabilidade","Resultado","Placar"],arr.map(r=>[fmtKey(r.dk),r.home+" x "+r.away,r.league||"",keyLabel(r.key,r.home,r.away),Number(r.prob)||0,r.result==="green"?"Green":r.result==="red"?"Red":"Em aberto",r.score||""]))
+ exportCSV("radarfc-palpites.csv",["Dia","Jogo","Competição","Palpite","Probabilidade","Probabilidade do modelo","Resultado","Placar"],arr.map(r=>[fmtKey(r.dk),r.home+" x "+r.away,r.league||"",keyLabel(r.key,r.home,r.away),Number(r.prob)||0,Number(r.raw!==undefined?r.raw:r.prob)||0,r.result==="green"?"Green":r.result==="red"?"Red":"Em aberto",r.score||""]))
 };
 
 /* ÍCONE DO IPHONE (gerado na hora, sem arquivo externo) */
