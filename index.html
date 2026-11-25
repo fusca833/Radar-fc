@@ -77,6 +77,7 @@ label{font-size:12px;color:var(--tx2)}.full{width:100%;margin-top:5px}
 .dupla-stat small{display:block;color:var(--mu);font-size:11px}.dupla-stat strong{display:block;font-size:22px;margin-top:5px}
 .dupla-record{padding:12px 0;border-bottom:1px solid var(--b2);font-size:12px;line-height:1.6}.dupla-record:last-child{border:0}
 .legbtn{padding:6px 10px;font-size:11px;margin-top:6px}
+.shbtn{padding:7px 11px;font-size:11px;margin-top:8px}
 .detail-back{display:flex;align-items:center;gap:10px;margin:5px 0 15px}.detail-back button{padding:9px 13px}
 .detail-hero{background:linear-gradient(135deg,var(--d1a),var(--d1b));border:1px solid var(--b1);border-radius:16px;padding:18px;margin-bottom:14px}
 .detail-league{font-size:11px;color:var(--mu);text-align:center;margin-bottom:15px}
@@ -322,7 +323,7 @@ function toggleFav(name){const i=favs.indexOf(name);if(i>=0)favs.splice(i,1);els
 const isFav=g=>favs.includes(g.home)||favs.includes(g.away);
 
 /* CACHE DO HISTÓRICO (localStorage, 3 horas) */
-const HIST_TTL=3*3600000,MIN_SAMPLE=5;
+const HIST_TTL=3*3600000,MIN_SAMPLE=5,HIST_N=15,VENUE_MIN=4,VENUE_W=0.6;
 let histStore=read("radarHistCache",{});if(!histStore||typeof histStore!=="object"||Array.isArray(histStore))histStore={};
 (function(){
  const now=Date.now();
@@ -465,9 +466,9 @@ async function teamAll(path,id){
  }
  const list=await historyCache.get(key).p;return list.slice().sort((a,b)=>new Date(b.date)-new Date(a.date))
 }
-async function teamHistory(path,id){return(await teamAll(path,id)).slice(0,10)}
+async function teamHistory(path,id){return(await teamAll(path,id)).slice(0,HIST_N)}
 /* histórico só com jogos ANTERIORES à partida (evita usar o próprio resultado no palpite) */
-async function histBefore(path,id,g){const list=await teamAll(path,id),t=g&&g.date?new Date(g.date).getTime():NaN;return(Number.isFinite(t)?list.filter(x=>new Date(x.date).getTime()<t):list).slice(0,10)}
+async function histBefore(path,id,g){const list=await teamAll(path,id),t=g&&g.date?new Date(g.date).getTime():NaN;return(Number.isFinite(t)?list.filter(x=>new Date(x.date).getTime()<t):list).slice(0,HIST_N)}
 function getForm(list){const wins=list.filter(g=>g.scored>g.conceded).length,draws=list.filter(g=>g.scored===g.conceded).length,losses=list.filter(g=>g.scored<g.conceded).length,goalsFor=list.reduce((s,g)=>s+g.scored,0),goalsAgainst=list.reduce((s,g)=>s+g.conceded,0);return{wins,draws,losses,points:wins*3+draws,goalDiff:goalsFor-goalsAgainst,goalsFor,goalsAgainst}}
 function resultLabel(g){if(g.scored>g.conceded)return["VITÓRIA","green"];if(g.scored===g.conceded)return["EMPATE","draw"];return["DERROTA","red"]}
 function pct(n,total){return total?Math.round(n/total*100):0}
@@ -549,7 +550,7 @@ async function openMatch(g){
  $("#tab-details").innerHTML=`<div class="panel"><h3>📋 Informações da partida</h3><div class="info-row"><span>Competição</span><strong>${safe(g.league)}</strong></div><div class="info-row"><span>Mandante</span><strong>${safe(g.home)}</strong></div><div class="info-row"><span>Visitante</span><strong>${safe(g.away)}</strong></div><div class="info-row"><span>Data e horário</span><strong>${safe(date)}</strong></div><div class="info-row"><span>Status</span><strong>${safe(g.state)}</strong></div><div class="info-row"><span>Fonte</span><strong>${safe(g.source||"ESPN")}</strong></div></div><div id="rosterBox"></div><div class="panel"><h3>ℹ️ Sobre os dados</h3><p class="muted" style="line-height:1.7">As informações são carregadas conforme a disponibilidade dos provedores esportivos. Partidas futuras podem não ter estatísticas ao vivo.</p></div>`;
  $("#tab-tips").innerHTML='<div class="panel"><div class="loading">Calculando frequências históricas...</div></div>';$("#tab-stats").innerHTML='<div class="panel"><div class="loading">Carregando estatísticas...</div></div>';$("#tab-table").innerHTML='<div class="panel"><div class="loading">Carregando classificação...</div></div>';$("#tab-ai").innerHTML='<div class="panel"><div class="loading">Preparando análise automática...</div></div>';
  const tasks=[];
- if(g.homeId&&g.awayId&&g.path)tasks.push(Promise.all([teamAll(g.path,g.homeId),teamAll(g.path,g.awayId)]).then(v=>{currentHistHome=v[0].slice(0,10);currentHistAway=v[1].slice(0,10);currentH2H=v[0].filter(x=>String(x.opponentId)===String(g.awayId))}).catch(()=>{}));
+ if(g.homeId&&g.awayId&&g.path)tasks.push(Promise.all([teamAll(g.path,g.homeId),teamAll(g.path,g.awayId)]).then(v=>{currentHistHome=v[0].slice(0,HIST_N);currentHistAway=v[1].slice(0,HIST_N);currentH2H=v[0].filter(x=>String(x.opponentId)===String(g.awayId))}).catch(()=>{}));
  if(g.path&&g.source!=="SportScore"){tasks.push(fetchLiveSummary(g).then(v=>currentLiveSummary=v).catch(()=>{}));tasks.push(fetchStandings(g).then(v=>currentStandings=v).catch(()=>{}))}
  await Promise.all(tasks);if(currentMatch?.id!==g.id)return;renderDetailTabs()
 }
@@ -563,21 +564,23 @@ async function refreshOpenMatch(){
 
 /* PROBABILIDADES
    Modelo em três camadas:
-   1) retrospecto ponderado (jogos recentes valem mais; jogos no mesmo mando valem 1,5x)
+   1) retrospecto ponderado: até 15 jogos, jogos recentes valem mais; o mando é pesado SEPARADAMENTE
+      (o time da casa é avaliado nos jogos em casa e o visitante nos jogos fora, quando há ao menos 4 jogos no mando;
+      60% do peso vai para o mando e 40% para todos os jogos)
    2) Poisson: gols esperados de cada time (ajustados pela força do adversário) e matriz de placares
    3) mistura das duas e encolhimento de 15% em direção à média da liga.
    Nos mercados de gols, ambos marcam e chance dupla, a mistura é CONSERVADORA: dá peso extra ao menor dos dois métodos
    (só passa de 75% quando o histórico e o Poisson concordam). */
 const LEAGUE_BASE={pH:44,pD:26,pA:30,o15:77,o25:52,u35:79,btts:52};
 function wfrac(list,fn,venueHome){
- let s=0,t=0;
- list.forEach((x,i)=>{const w=Math.pow(0.9,i)*(x.home===venueHome?1.5:1);t+=w;if(fn(x))s+=w});
- return t?s/t*100:0
+ const calc=L=>{let s=0,t=0;L.forEach((x,i)=>{const w=Math.pow(0.9,i);t+=w;if(fn(x))s+=w});return t?s/t*100:0};
+ const all=calc(list),ven=list.filter(x=>x.home===venueHome);
+ return ven.length>=VENUE_MIN?VENUE_W*calc(ven)+(1-VENUE_W)*all:all
 }
 function wavg(list,fn,venueHome){
- let s=0,t=0;
- list.forEach((x,i)=>{const w=Math.pow(0.9,i)*(x.home===venueHome?1.5:1);t+=w;s+=w*fn(x)});
- return t?s/t:0
+ const calc=L=>{let s=0,t=0;L.forEach((x,i)=>{const w=Math.pow(0.9,i);t+=w;s+=w*fn(x)});return t?s/t:0};
+ const all=calc(list),ven=list.filter(x=>x.home===venueHome);
+ return ven.length>=VENUE_MIN?VENUE_W*calc(ven)+(1-VENUE_W)*all:all
 }
 function adjGoals(x,path){const m=strengthMaps.get(path)||EMPTY_MAP,s=m.get(String(x.opponentId))||1,r=Math.sqrt(s);return{sc:x.scored*r,co:x.conceded/r}}
 function pois(l){const a=[Math.exp(-l)];for(let i=1;i<=8;i++)a.push(a[i-1]*l/i);return a}
@@ -610,11 +613,12 @@ function calcProbs(h,a,path){
 function dcText(p,g){return p.dcKey==="1x"?safe(g.home)+" ou empate":p.dcKey==="x2"?safe(g.away)+" ou empate":safe(g.home)+" ou "+safe(g.away)+" (sem empate)"}
 /* melhor palpite do jogo: o mercado mais provável entre chance dupla, mais de 1,5 gols e menos de 3,5 gols (já com o ajuste do aprendizado) */
 function bestLeg(p,g){return legCandidates(p,g).filter(c=>c.m!=="win").sort((x,y)=>y.prob-x.prob)[0]}
-/* CARD DO JOGO: mostra só 1 tip (o melhor palpite do jogo) */
+/* CARD DO JOGO: mostra só 1 tip (o melhor palpite do jogo) + botão de compartilhar como imagem */
 function probLineHTML(p,g,res,rec){
  const pk=rec?`🎯 Tip: <b>${safe(keyLabel(rec.key,g.home,g.away))} · ${Math.round(rec.prob)}%</b>`:"";
  const badge=res?`<br>${res==="green"?'<b class="green">✅ Tip acertou</b>':'<b class="red">❌ Tip errou</b>'} <span>(${safe(g.hs)} x ${safe(g.as)})</span>`:"";
- return`<div class="prob-line">${pk}${badge}</div>`
+ const sh=rec?`<br><button class="shbtn" data-shtip="${safe(String(g.id))}" aria-label="Compartilhar tip como imagem">📤 Compartilhar tip</button>`:"";
+ return`<div class="prob-line">${pk}${badge}${sh}</div>`
 }
 /* o histórico de cada card só carrega quando ele aparece na tela */
 function enhanceCards(box,list){
@@ -637,21 +641,24 @@ function enhanceCards(box,list){
 
 /* ABAS DO JOGO */
 function renderDetailTabs(){
- const g=currentMatch,h=currentHistHome,a=currentHistAway;
+ const g=currentMatch,hAll=currentHistHome,aAll=currentHistAway,h=hAll.slice(0,10),a=aAll.slice(0,10);
  const item=(label,val,best)=>`<div class="market-item" style="${best?"border:1px solid var(--gbd)":""}"><small>${label}</small><b class="${best?"green":""}">${Math.round(val)}%</b></div>`;
  const cutT=g.date?new Date(g.date).getTime():NaN,cut=l=>Number.isFinite(cutT)?l.filter(x=>new Date(x.date).getTime()<cutT):l;
- const p=calcProbs(cut(h),cut(a),g.path);
- let marketHTML;
+ const p=calcProbs(cut(hAll),cut(aAll),g.path);
+ let marketHTML,shareInfo=null;
  if(p){
   const favText=Math.abs(p.pH-p.pA)<5?"Jogo equilibrado":safe(p.pH>p.pA?g.home:g.away)+" tem mais chances de vencer";
   const maxR=Math.max(p.pH,p.pD,p.pA),bp=bestLeg(p,g);
+  let rs=null;if(g.completed){const hs=getScore(g.hs),as=getScore(g.as);if(Number.isFinite(hs)&&Number.isFinite(as))rs=evalLeg(bp.key,hs,as)}
+  shareInfo={home:g.home,away:g.away,league:g.league,date:g.date,label:keyLabel(bp.key,g.home,g.away),prob:bp.prob,result:rs,score:rs?g.hs+" x "+g.as:""};
   marketHTML=`
   <div class="market-data">
    <h3>🎯 Mercado de Probabilidades</h3>
    <div class="market-team"><strong>🏆 Mais chances de ganhar</strong><div style="font-size:14px;font-weight:bold" class="green">${favText}</div>
     <div class="market-note" style="margin-top:6px">⭐ Melhor palpite: <strong>${safe(keyLabel(bp.key,g.home,g.away))}</strong> (${Math.round(bp.prob)}%${Math.abs(bp.raw-bp.prob)>=1?" · modelo "+Math.round(bp.raw)+"%":""})</div>
     <div class="market-note" style="margin-top:4px">Melhor chance dupla: <strong>${dcText(p,g)}</strong> (${Math.round(p.dcBest)}%)</div>
-    <div class="market-note" style="margin-top:4px">Gols esperados: ${safe(g.home)} ${p.lH.toFixed(2).replace(".",",")} · ${safe(g.away)} ${p.lA.toFixed(2).replace(".",",")}</div></div>
+    <div class="market-note" style="margin-top:4px">Gols esperados: ${safe(g.home)} ${p.lH.toFixed(2).replace(".",",")} · ${safe(g.away)} ${p.lA.toFixed(2).replace(".",",")}</div>
+    <button class="full shbtn" id="shareBestTip">📤 Compartilhar melhor palpite como imagem</button></div>
    <div class="market-team"><strong>Resultado final (1X2)</strong><div class="market-grid">
     ${item(safe(g.home),p.pH,p.pH===maxR)}${item("Empate",p.pD,p.pD===maxR)}${item(safe(g.away),p.pA,p.pA===maxR)}</div></div>
    <div class="market-team"><strong>Chance dupla</strong><div class="market-grid">
@@ -663,12 +670,13 @@ function renderDetailTabs(){
     ${item("Mais de 2,5",p.o25,p.o25>=50)}${item("Menos de 2,5",100-p.o25,p.o25<50)}</div></div>
    <div class="market-team"><strong>Ambos marcam</strong><div class="market-grid" style="grid-template-columns:repeat(2,1fr)">
     ${item("Sim",p.btts,p.btts>=50)}${item("Não",100-p.btts,p.btts<50)}</div></div>
-   <div class="market-note">Estimativa que combina o retrospecto dos últimos jogos de cada time (${cut(h).length} e ${cut(a).length} jogos) com um modelo de Poisson de gols esperados, dando mais peso aos jogos recentes, ao mesmo mando (casa/fora) e à força dos adversários enfrentados. Nos mercados de gols e chance dupla a conta é conservadora (pesa mais o menor dos dois métodos) e os valores são puxados 15% em direção à média da liga para evitar exageros. O "melhor palpite" ainda recebe o ajuste do aprendizado do app (comparação entre o previsto e o real dos seus palpites encerrados). Não considera escalações nem lesões. Não é garantia de resultado.</div>
+   <div class="market-note">Estimativa que combina o retrospecto dos últimos jogos de cada time (${cut(hAll).length} e ${cut(aAll).length} jogos, até ${HIST_N} de cada) com um modelo de Poisson de gols esperados, dando mais peso aos jogos recentes, avaliando o mandante nos jogos em casa e o visitante nos jogos fora (quando há jogos suficientes) e considerando a força dos adversários enfrentados. Nos mercados de gols e chance dupla a conta é conservadora (pesa mais o menor dos dois métodos) e os valores são puxados 15% em direção à média da liga para evitar exageros. O "melhor palpite" ainda recebe o ajuste do aprendizado do app (comparação entre o previsto e o real dos seus palpites encerrados). Não considera escalações nem lesões. Não é garantia de resultado.</div>
   </div>`;
  }else{
   marketHTML=`<div class="market-data"><h3>🎯 Mercado de Probabilidades</h3><div class="market-note">As probabilidades serão exibidas quando os dois times tiverem pelo menos ${MIN_SAMPLE} jogos concluídos disponíveis.</div></div>`;
  }
  $("#tab-tips").innerHTML=`<div class="panel"><h3>📈 Tips · mercado de probabilidades</h3>${marketHTML}</div>`;
+ const sbtn=$("#shareBestTip");if(sbtn&&shareInfo)sbtn.onclick=()=>shareTipImage(shareInfo);
  const rb=$("#rosterBox");if(rb)rb.innerHTML=rostersHTML(currentLiveSummary);
  $("#tab-stats").innerHTML=`
   <div class="panel">
@@ -694,7 +702,12 @@ function matchHTML(g,extra=""){return`<article class="match ${g.live?"live-match
 function bindMatchCards(box,list){
  box.querySelectorAll(".match").forEach(card=>{
   const open=()=>{const g=list.find(x=>String(x.id)===card.dataset.id);if(g)openMatch(g)};
-  card.addEventListener("click",e=>{if(e.target.closest(".star"))return;open()});
+  card.addEventListener("click",e=>{
+   if(e.target.closest(".star"))return;
+   const sb=e.target.closest("[data-shtip]");
+   if(sb){e.stopPropagation();shareCardTip(sb.dataset.shtip);return}
+   open()
+  });
   card.addEventListener("keydown",e=>{if(e.target!==card)return;if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}});
   card.querySelectorAll(".star").forEach(s=>s.addEventListener("click",e=>{e.stopPropagation();toggleFav(s.dataset.fav);renderGames(lastFailed)}))
  });
@@ -796,6 +809,27 @@ function renderLearn(){
 $("#smartBtn").onclick=()=>{settings.smart=!smartOn();store("radarSettings",settings);renderLearn();toast(smartOn()?"🧠 Filtro inteligente ligado":"Filtro inteligente desligado",2200)};
 $("#cupBtn").onclick=()=>{settings.avoidCups=!cupsOff();store("radarSettings",settings);renderLearn();toast(cupsOff()?"🏆 Copas e mata-mata ficam fora das múltiplas e do Top 4":"Copas liberadas nas múltiplas e no Top 4",3000)};
 
+/* BRIER SCORE: mede se as probabilidades realmente separam palpites bons de ruins.
+   Brier = média de (probabilidade − resultado)². Referência = prever sempre a taxa de acerto geral. */
+function brierInfo(arr){
+ const n=arr.length;if(!n)return null;
+ const hit=arr.filter(a=>a.hit).length,base=hit/n;
+ const bs=arr.reduce((s,a)=>s+Math.pow(a.p-(a.hit?1:0),2),0)/n,ref=base*(1-base);
+ return{n,bs,ref,skill:ref>0?(1-bs/ref)*100:null}
+}
+function brierHTML(b){
+ if(!b)return"";
+ const f=v=>v.toFixed(3).replace(".",",");
+ let txt;
+ if(b.n<30)txt="Só "+b.n+" palpite(s) encerrado(s): o Brier só é confiável com 30 ou mais.";
+ else if(b.skill===null)txt="Todos os palpites tiveram o mesmo resultado, não dá para comparar.";
+ else if(b.skill>5)txt="O app separa bem os palpites mais fortes dos mais fracos (ganho de "+Math.round(b.skill)+"% sobre a referência).";
+ else if(b.skill>=-5)txt="O app está praticamente igual a prever sempre a mesma chance: os percentuais mostrados quase não ajudam a distinguir um palpite bom de um ruim.";
+ else txt="O app está pior que prever sempre a mesma chance: as probabilidades estão atrapalhando.";
+ const g=b.skill===null?"—":(b.skill>0?"+":"")+Math.round(b.skill)+"%";
+ return`<div class="frequency-title">🎯 Brier score (quanto menor, melhor)</div><div class="dupla-stats"><div class="dupla-stat"><small>APP</small><strong>${f(b.bs)}</strong></div><div class="dupla-stat"><small>REFERÊNCIA</small><strong>${f(b.ref)}</strong></div><div class="dupla-stat"><small>GANHO</small><strong class="${b.skill!==null&&b.skill<0?"red":"green"}">${g}</strong></div></div><div class="market-note" style="font-size:12px">${txt}</div><div class="market-note">Brier = média de (probabilidade − resultado)². A referência é prever sempre a taxa de acerto geral. Ganho positivo significa que o modelo agrega algo além disso.</div>`
+}
+
 /* MÚLTIPLA DO DIA */
 let multiplas=read("radarMultiplas",{});if(!multiplas||typeof multiplas!=="object"||Array.isArray(multiplas))multiplas={};
 function saveMultiplas(){store("radarMultiplas",multiplas)}
@@ -878,6 +912,56 @@ function copyText(t){
  if(ok){toast("📋 Copiado!",2000);return Promise.resolve(true)}
  return(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t).then(()=>true):Promise.reject()).then(()=>{toast("📋 Copiado!",2000);return true}).catch(()=>{toast("Não foi possível copiar.",3000);return false})
 }
+
+/* COMPARTILHAR TIP COMO IMAGEM (gera um PNG na hora e abre o compartilhar do celular; se não der, baixa a imagem) */
+function wrapLines(ctx,text,maxW){
+ const words=String(text||"").split(" "),lines=[];let cur="";
+ words.forEach(w=>{const t=cur?cur+" "+w:w;if(cur&&ctx.measureText(t).width>maxW){lines.push(cur);cur=w}else cur=t});
+ if(cur)lines.push(cur);return lines.length?lines:[""]
+}
+function rrect(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath()}
+function dataURLtoBlob(u){const p=u.split(","),mime=(p[0].match(/:(.*?);/)||[])[1]||"image/png",bin=atob(p[1]),arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime})}
+function shareTipImage(o){
+ try{
+  const W=1080,F='-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif',m=document.createElement("canvas").getContext("2d");
+  m.font="bold 58px "+F;
+  const hl=wrapLines(m,o.home,880).slice(0,2),al=wrapLines(m,o.away,880).slice(0,2);
+  m.font="bold 60px "+F;
+  const tl=wrapLines(m,o.label,860).slice(0,3),dt=o.date?formatDate(o.date):"";
+  const cardTop=200,yLeague=cardTop+68,y1=yLeague+88,homeY=hl.map((_,i)=>y1+i*68),yX=homeY[homeY.length-1]+66,y2=yX+78,awayY=al.map((_,i)=>y2+i*68),yDate=awayY[awayY.length-1]+74,cardBottom=yDate+48;
+  const tipTop=cardBottom+44,yTag=tipTop+70,tipY=tl.map((_,i)=>yTag+78+i*72),yPct=tipY[tipY.length-1]+176,ySub=yPct+56,yRes=ySub+72,tipBottom=(o.result?yRes:ySub)+48,yFoot=tipBottom+84,H=yFoot+128;
+  const c=document.createElement("canvas");c.width=W;c.height=H;
+  const x=c.getContext("2d");if(!x){toast("Não foi possível gerar a imagem.",3000);return}
+  const gr=x.createLinearGradient(0,0,0,H);gr.addColorStop(0,"#0d1d2e");gr.addColorStop(1,"#08111f");x.fillStyle=gr;x.fillRect(0,0,W,H);
+  x.textAlign="center";x.textBaseline="alphabetic";
+  x.fillStyle="#65e3a7";x.font="bold 58px "+F;x.fillText("⚽ RADAR FC",W/2,100);
+  x.fillStyle="#91a5bc";x.font="28px "+F;x.fillText("TIP DO JOGO",W/2,148);
+  rrect(x,60,cardTop,960,cardBottom-cardTop,36);x.fillStyle="#14263b";x.fill();x.strokeStyle="#29415c";x.lineWidth=3;x.stroke();
+  x.fillStyle="#91a5bc";x.font="32px "+F;x.fillText(o.league||"",W/2,yLeague,860);
+  x.fillStyle="#f2f6fc";x.font="bold 58px "+F;hl.forEach((t,i)=>x.fillText(t,W/2,homeY[i],900));
+  x.fillStyle="#91a5bc";x.font="bold 40px "+F;x.fillText("x",W/2,yX);
+  x.fillStyle="#f2f6fc";x.font="bold 58px "+F;al.forEach((t,i)=>x.fillText(t,W/2,awayY[i],900));
+  x.fillStyle="#91a5bc";x.font="30px "+F;x.fillText(dt,W/2,yDate,860);
+  rrect(x,60,tipTop,960,tipBottom-tipTop,36);x.fillStyle="#0d1d2e";x.fill();x.strokeStyle="#42d392";x.lineWidth=4;x.stroke();
+  x.fillStyle="#65e3a7";x.font="bold 36px "+F;x.fillText("🎯 TIP",W/2,yTag);
+  x.fillStyle="#f2f6fc";x.font="bold 60px "+F;tl.forEach((t,i)=>x.fillText(t,W/2,tipY[i],900));
+  x.fillStyle="#65e3a7";x.font="bold 150px "+F;x.fillText(Math.round(Number(o.prob)||0)+"%",W/2,yPct);
+  x.fillStyle="#91a5bc";x.font="28px "+F;x.fillText("probabilidade estimada pelo histórico",W/2,ySub,880);
+  if(o.result){x.fillStyle=o.result==="green"?"#65e3a7":"#ff9292";x.font="bold 44px "+F;x.fillText((o.result==="green"?"✅ GREEN":"❌ RED")+(o.score?" · "+o.score:""),W/2,yRes,880)}
+  x.fillStyle="#74879d";x.font="26px "+F;x.fillText("Estimativa baseada no histórico dos times. Sem garantia de resultado.",W/2,yFoot,980);x.fillText("Jogue com responsabilidade.",W/2,yFoot+40,980);
+  const blob=dataURLtoBlob(c.toDataURL("image/png")),name="radarfc-tip.png";
+  let file=null;try{file=new File([blob],name,{type:"image/png"})}catch(e){}
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:"Tip · Radar FC"}).catch(()=>{});return}
+  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);toast("🖼 Imagem gerada e salva",2500)
+ }catch(e){toast("Não foi possível gerar a imagem.",3000)}
+}
+function shareCardTip(id){
+ const rec=dayPicks[String(id)];
+ if(!rec){toast("O palpite deste jogo ainda não foi calculado.",2500);return}
+ shareTipImage({home:rec.home,away:rec.away,league:rec.league,date:rec.date,label:keyLabel(rec.key,rec.home,rec.away),prob:rec.prob,result:rec.result==="green"||rec.result==="red"?rec.result:null,score:rec.score||""})
+}
+
 function multiHTML(m){
  const comb=m.legs.reduce((x,l)=>x*l.prob/100,1),st=multiStatus(m),odd=comb>0?(1/comb).toFixed(2).replace(".",","):"—",
  tag={green:'<span class="green">✅ GREEN</span>',red:'<span class="red">❌ RED</span>',pending:'<span class="muted">⏳ Em aberto</span>'};
@@ -972,6 +1056,21 @@ async function alvLoadGames(force){
  const comps=competitions.filter(c=>c.path),off=alvOff();
  const rs=await Promise.all(comps.map(c=>fetchScoreboard(c,off).catch(()=>[])));
  const list=rs.flat();alvCache={dk,t:Date.now(),list};return list
+}
+/* atualização leve: consulta só as ligas dos jogos que ainda estão em aberto na Alavancagem */
+async function alvRefreshLegs(){
+ const m=multiplas[alvKey()];if(!m)return;
+ const pend=m.legs.filter(l=>l.result==="pending"&&l.path);
+ if(!pend.length)return;
+ const off=alvOff(),paths=[...new Set(pend.map(l=>l.path))],comps=competitions.filter(c=>c.path&&paths.includes(c.path));
+ if(!comps.length)return;
+ const rs=await Promise.all(comps.map(c=>fetchScoreboard(c,off).catch(()=>[])));
+ const fresh=rs.flat();
+ if(fresh.length){
+  const ids=new Set(fresh.map(g=>String(g.id)));
+  alvCache.list=(alvCache.list||[]).filter(g=>!ids.has(String(g.id))).concat(fresh)
+ }
+ alvRender()
 }
 async function alvBuild(list){
  const pool=list.filter(g=>g.homeId&&g.awayId&&g.path&&!g.completed&&!g.live&&eligible(g));
@@ -1077,10 +1176,11 @@ function renderCalibration(){
  else if(diff<=-5)verdict=`O app está sendo otimista: acertou ${f0(Math.abs(diff))} pontos percentuais abaixo do que prometeu. Trate as probabilidades mostradas como mais altas do que a realidade.`;
  else if(diff>=5)verdict=`O app está sendo conservador: acertou ${f0(diff)} pontos percentuais acima do que prometeu.`;
  else verdict="As probabilidades estão bem próximas do resultado real até agora.";
+ const br=brierHTML(brierInfo(legs.map(l=>({p:Number(l.prob||0)/100,hit:l.result==="green"}))));
  box.innerHTML=`<div class="dupla-stats"><div class="dupla-stat"><small>PREVISTO (MÉDIA)</small><strong>${f0(avgP)}%</strong></div><div class="dupla-stat"><small>ACERTO REAL</small><strong class="${diff>=0?"green":"red"}">${f0(real)}%</strong></div><div class="dupla-stat"><small>DIFERENÇA</small><strong class="${diff>=0?"green":"red"}">${sg(diff)}</strong></div></div>
  <div class="tbl-wrap"><table class="tbl c"><tr><th>Faixa</th><th>Palpites</th><th>Previsto</th><th>Real</th><th>Dif.</th></tr>${rows}</table></div>
  <div class="market-note" style="font-size:12px">${safe(verdict)}</div>
- <div class="market-note">Cada palpite conta separado, não a múltipla inteira. A calibração soma todos os dias já encerrados. Se o "Real" fica bem abaixo do "Previsto", as probabilidades estão infladas.</div>`
+ <div class="market-note">Cada palpite conta separado, não a múltipla inteira. A calibração soma todos os dias já encerrados. Se o "Real" fica bem abaixo do "Previsto", as probabilidades estão infladas.</div>${br}`
 }
 /* HISTÓRICO DAS MÚLTIPLAS: mostra só o dia selecionado (Hoje, Amanhã ou Ontem). Ao trocar de dia, troca sozinho. */
 function renderDuplaHistory(){
@@ -1216,7 +1316,8 @@ function renderDayHistory(){
  const summary=n?`<div class="dupla-stats"><div class="dupla-stat"><small>SEMANA</small><strong class="${wg>=wr?"green":"red"}">${wg+wr?p0(wg/(wg+wr)*100):"—"}</strong></div><div class="dupla-stat"><small>GERAL (${n})</small><strong class="${diff>=0?"green":"red"}">${p0(real)}</strong></div><div class="dupla-stat"><small>PREVISTO</small><strong>${p0(avgP)}</strong></div></div>`:"";
  const rows=keys.slice(0,14).map(k=>{const o=by[k],tot=o.g+o.r+o.p,rate=o.g+o.r?Math.round(o.g/(o.g+o.r)*100)+"%":"—";return`<tr><td>${fmtKey(k).slice(0,5)}</td><td class="${o.g>=o.r?"green":"red"}"><strong>${o.g}/${tot}</strong></td><td class="red">${o.r}</td><td>${o.p}</td><td>${rate}</td></tr>`}).join("");
  const note=n<30?`Só ${n} palpite(s) encerrado(s) até agora. Espere pelo menos 30 para tirar conclusões.`:diff<=-5?"O app está acertando menos do que prevê: trate as probabilidades como mais altas do que a realidade.":diff>=5?"O app está acertando mais do que prevê.":"Previsto e real estão próximos.";
- box.innerHTML=`${summary}<div class="tbl-wrap"><table class="tbl c"><tr><th>Dia</th><th>Acertos</th><th>Red</th><th>Aberto</th><th>Taxa</th></tr>${rows}</table></div><div class="market-note" style="font-size:12px">${safe(note)}</div><div class="market-note">Cada jogo conta um palpite: o mercado mais provável (chance dupla, +1,5 ou −3,5 gols), gravado pelo app e nunca alterado depois. Os palpites só passam a ser gravados a partir da versão com esta função. Os resultados dos dias anteriores são conferidos automaticamente.</div>`
+ const br=n?brierHTML(brierInfo(done.map(r=>({p:Number(r.prob||0)/100,hit:r.result==="green"})))):"";
+ box.innerHTML=`${summary}<div class="tbl-wrap"><table class="tbl c"><tr><th>Dia</th><th>Acertos</th><th>Red</th><th>Aberto</th><th>Taxa</th></tr>${rows}</table></div><div class="market-note" style="font-size:12px">${safe(note)}</div><div class="market-note">Cada jogo conta um palpite: o mercado mais provável (chance dupla, +1,5 ou −3,5 gols), gravado pelo app e nunca alterado depois. Os palpites só passam a ser gravados a partir da versão com esta função. Os resultados dos dias anteriores são conferidos automaticamente.</div>${br}`
 }
 
 /* CONFERE PALPITES ANTIGOS (dias em que o app não ficou aberto) */
@@ -1605,11 +1706,11 @@ setInterval(()=>{
  const pg=document.querySelector(".page.active")?.id;
  if(pg==="live"||settings.liveAlert)liveTick()
 },20000);
-/* Alavancagem: confere os resultados dos 2 jogos a cada 60 s com a página aberta */
+/* Alavancagem: a cada 60 s confere só as ligas dos jogos ainda em aberto (e para de consultar quando os 2 já acabaram) */
 setInterval(()=>{
  if(document.hidden||alvBusy)return;
  const pg=document.querySelector(".page.active")?.id;
- if(pg==="alav"&&multiplas[alvKey()])alvLoadGames(true).then(alvRender).catch(()=>{})
+ if(pg==="alav"&&multiplas[alvKey()])alvRefreshLegs().catch(()=>{})
 },60000);
 document.addEventListener("visibilitychange",()=>{
  if(document.hidden)return;
