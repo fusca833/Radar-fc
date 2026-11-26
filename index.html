@@ -1738,5 +1738,331 @@ backupReminder();
 setTimeout(()=>{resolveMultiplas();resolveDayPicks(true)},4000);
 if(settings.liveAlert)setTimeout(()=>liveTick(true),6000);
 </script>
+
+<!-- ============ MELHORIAS VISUAIS E DE EXPERIÊNCIA ============ -->
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sv=()=>store("radarSettings",settings);
+
+/* ===== FONTE + ESTILOS ===== */
+const fl=document.createElement("link");fl.rel="stylesheet";fl.href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap";document.head.appendChild(fl);
+const st=document.createElement("style");st.textContent=`
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,Arial,sans-serif}
+.score,.detail-result,.live-score,.market-item b,.metric strong,.tbl td,.dayscore,.stat strong,.dupla-stat strong{font-variant-numeric:tabular-nums}
+h1{display:flex;align-items:center;gap:9px;letter-spacing:.5px;font-weight:800}
+h1 .g{color:var(--gn)}
+.page.active,.detail-panel.active{animation:pgin .28s ease}
+@keyframes pgin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sk{background:linear-gradient(90deg,var(--c1),var(--b2),var(--c1));background-size:200% 100%;animation:skm 1.2s linear infinite;border-radius:8px}
+@keyframes skm{to{background-position:-200% 0}}
+.skcard{background:var(--c2);border:1px solid var(--b2);border-radius:15px;padding:15px}
+.flash{animation:fl 1.6s ease;display:inline-block}
+@keyframes fl{0%,40%{color:#f5c542;transform:scale(1.35)}100%{transform:none}}
+@keyframes grow{from{width:0!important}}
+.x12{display:flex;height:14px;border-radius:9px;overflow:hidden;margin:10px 0 6px;background:var(--b2)}
+.x12 i{display:block;height:100%;animation:grow .9s ease-out}
+.x12lab{display:flex;justify-content:space-between;gap:6px;font-size:11px;color:var(--tx2);margin-bottom:10px}
+.pbar{height:4px;background:var(--b2);border-radius:4px;overflow:hidden;margin-top:6px}
+.pbar i{display:block;height:100%;background:var(--gbd);animation:grow .9s ease-out}
+.dots{display:flex;gap:6px;margin:6px 0 12px;align-items:center;flex-wrap:wrap}
+.dot{width:16px;height:16px;border-radius:50%}
+.dot.v{background:#42d392}.dot.e{background:#f5c542}.dot.d{background:#ff6b6b}
+.seal{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--mu);margin:8px 0 0 8px}
+.seal b{width:8px;height:8px;border-radius:50%;background:#42d392}
+.seal.y b{background:#f5c542}.seal.r b{background:#ff5965}
+#toTop{position:fixed;right:14px;bottom:calc(76px + env(safe-area-inset-bottom));width:44px;height:44px;border-radius:50%;padding:0;font-size:18px;display:none;z-index:9;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+#ptr{position:fixed;top:0;left:0;right:0;text-align:center;font-size:12px;color:var(--mu);height:0;overflow:hidden;z-index:40;background:var(--c1);transition:height .2s}
+.ov{position:fixed;inset:0;background:rgba(4,9,16,.88);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.ovbox{background:var(--c2);border:1px solid var(--b1);border-radius:18px;padding:24px;max-width:420px;width:100%;max-height:85vh;overflow:auto;text-align:center;color:var(--tx)}
+.ovbox .big{font-size:46px}.ovbox h2{margin:12px 0 8px;font-size:20px}.ovbox p{font-size:13px;line-height:1.7;color:var(--tx2);text-align:left}
+.ovdots{display:flex;gap:6px;justify-content:center;margin:16px 0}
+.ovdots span{width:8px;height:8px;border-radius:50%;background:var(--b1)}.ovdots span.on{background:var(--gbd)}
+.ovrow{display:flex;gap:8px}.ovrow button{flex:1}
+.legal{text-align:center;font-size:11px;line-height:1.8;color:var(--dim);padding:18px 10px 6px;border-top:1px solid var(--b2);margin-top:24px}
+.legal a{color:var(--mu);text-decoration:underline;cursor:pointer}
+.empty .ico{font-size:34px;display:block;margin-bottom:8px}
+.empty button{margin-top:12px}
+#radar .toolbar input{width:auto;margin:0;padding:10px;font-size:14px}
+.lg{margin-bottom:14px}
+.lgh{display:flex;align-items:center;gap:9px;background:var(--c1);border:1px solid var(--b1);border-radius:12px;padding:10px 12px;margin-bottom:10px;cursor:pointer;user-select:none}
+.lgf{font-size:20px}.lgn{font-weight:700;font-size:13px;flex:1;min-width:0;overflow-wrap:anywhere}
+.lgc{font-size:11px;color:var(--mu)}.lgv{color:var(--mu);transition:transform .2s}
+.lgs{background:transparent;border:0;padding:2px 5px;font-size:18px;color:var(--mu)}
+.lgs.on{color:#f5c542}
+.lg.shut .matches{display:none}.lg.shut .lgv{transform:rotate(-90deg)}
+.tl{position:relative;margin:8px 0 0 10px;padding-left:18px;border-left:2px solid var(--b1)}
+.tl div{position:relative;font-size:12px;line-height:1.5;padding:6px 0;color:var(--tx2)}
+.tl div:before{content:"";position:absolute;left:-24px;top:11px;width:10px;height:10px;border-radius:50%;background:var(--c2);border:2px solid var(--gbd)}
+.tl b{color:var(--tx);margin-right:6px}
+.cbar{margin:12px 0}.cbar small{display:block;color:var(--mu);font-size:11px;margin-bottom:4px}
+.bw{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:11px}
+.bw span{width:70px;color:var(--mu)}.bw em{font-style:normal;width:36px;text-align:right;font-variant-numeric:tabular-nums}
+.bw div{flex:1;height:9px;background:var(--b2);border-radius:6px;overflow:hidden}
+.bw i{display:block;height:100%;animation:grow .9s ease-out}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--mu);margin-top:8px}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.txt{font-size:12px;line-height:1.8;color:var(--tx2)}.txt h4{margin:14px 0 4px;color:var(--tx);font-size:13px}.txt ol,.txt ul{padding-left:18px;margin:6px 0}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+`;document.head.appendChild(st);
+
+/* ===== LOGO + FAVICON + ÍCONE DO IPHONE ===== */
+const LOGO='<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#65e3a7"/><circle cx="16" cy="16" r="9" fill="none" stroke="#08111f" stroke-width="2"/><circle cx="16" cy="16" r="3.5" fill="#08111f"/><path d="M16 16 26 8" stroke="#08111f" stroke-width="2.2" stroke-linecap="round"/></svg>';
+$("h1").innerHTML=LOGO+'<span>RADAR <span class="g">FC</span></span>';
+const fav=document.createElement("link");fav.rel="icon";fav.type="image/svg+xml";
+fav.href="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#08111f"/><circle cx="16" cy="16" r="12" fill="#65e3a7"/><circle cx="16" cy="16" r="7.5" fill="none" stroke="#08111f" stroke-width="2"/><circle cx="16" cy="16" r="3" fill="#08111f"/><path d="M16 16 25 9" stroke="#08111f" stroke-width="2" stroke-linecap="round"/></svg>');
+document.head.appendChild(fav);
+try{const c=document.createElement("canvas");c.width=c.height=180;const x=c.getContext("2d");x.fillStyle="#08111f";x.fillRect(0,0,180,180);x.fillStyle="#65e3a7";x.beginPath();x.arc(90,90,70,0,7);x.fill();x.strokeStyle="#08111f";x.lineWidth=11;x.beginPath();x.arc(90,90,45,0,7);x.stroke();x.fillStyle="#08111f";x.beginPath();x.arc(90,90,17,0,7);x.fill();x.lineCap="round";x.lineWidth=12;x.beginPath();x.moveTo(90,90);x.lineTo(146,45);x.stroke();$("#touchIcon").href=c.toDataURL("image/png")}catch(e){}
+
+/* ===== SKELETON, PISCAR PLACAR, ESTADOS VAZIOS ===== */
+const SK='<div class="matches">'+Array(6).fill('<div class="skcard"><div class="sk" style="height:12px;width:40%;margin-bottom:16px"></div><div class="sk" style="height:22px;margin-bottom:10px"></div><div class="sk" style="height:22px;width:85%;margin-bottom:16px"></div><div class="sk" style="height:10px;width:55%"></div></div>').join("")+'</div>';
+const seen=new Map(),mt=$("#matches");
+new MutationObserver(()=>{
+ const f=mt.firstElementChild;
+ if(f&&f.classList.contains("loading")&&/Buscando|Carregando|Analisando/.test(f.textContent)){mt.innerHTML=SK;return}
+ mt.querySelectorAll(".match").forEach(c=>{
+  const id=c.dataset.id,sc=[...c.querySelectorAll(".score")],t=sc.map(x=>x.textContent).join("-"),o=seen.get(id);
+  if(o!==undefined&&o!==t)sc.forEach(s=>s.classList.add("flash"));
+  seen.set(id,t)
+ });
+ mt.querySelectorAll(".empty").forEach(e=>{
+  if(e.querySelector(".ico"))return;
+  const tx=e.textContent,err=/Erro|conex|indispon|Falha|Não foi poss/i.test(tx),none=/Nenhuma partida/.test(tx);
+  e.insertAdjacentHTML("afterbegin",'<span class="ico">'+(err?"📡":none?"📅":"🔎")+"</span>");
+  if(err)e.insertAdjacentHTML("beforeend",'<br><button data-act="retry">↻ Tentar de novo</button>');
+  else if(none)e.insertAdjacentHTML("beforeend",'<br><button data-act="tomorrow">Ver amanhã</button>')
+ })
+}).observe(mt,{childList:true,subtree:true});
+mt.addEventListener("click",e=>{
+ const a=e.target.closest("[data-act]");if(!a)return;
+ if(a.dataset.act==="retry")$("#refresh").click();
+ if(a.dataset.act==="tomorrow"){const b=document.querySelector('[data-day="tomorrow"]');if(b)b.click()}
+});
+
+/* ===== CALENDÁRIO (qualquer data) ===== */
+const tb=$("#radar .toolbar"),cal=document.createElement("input");
+cal.type="date";cal.id="calPick";cal.setAttribute("aria-label","Escolher data");tb.appendChild(cal);
+let customOffset=null;
+const o0=offsetDay;offsetDay=function(){return customOffset!==null?customOffset:o0()};
+tb.addEventListener("click",e=>{if(e.target.closest("[data-day]")){customOffset=null;cal.value=""}},true);
+cal.onchange=()=>{
+ if(!cal.value)return;
+ const p=cal.value.split("-").map(Number),t=new Date(p[0],p[1]-1,p[2]),n=new Date(),t0=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+ const off=Math.round((t-t0)/86400000);
+ customOffset=off;day=off===0?"today":off===1?"tomorrow":"yesterday";
+ document.querySelectorAll("[data-day]").forEach(b=>b.classList.remove("active"));
+ games=[];load()
+};
+new MutationObserver(()=>{
+ if(customOffset===null)return;
+ const t=$("#dayBar .daytit");
+ if(t&&/· (ONTEM|HOJE|AMANHÃ) ·/.test(t.textContent)){const d=new Date();d.setDate(d.getDate()+customOffset);t.textContent=t.textContent.replace(/· (ONTEM|HOJE|AMANHÃ) ·/,"· "+d.toLocaleDateString("pt-BR")+" ·")}
+}).observe($("#dayBar"),{childList:true,subtree:true});
+
+/* ===== AGRUPAR POR COMPETIÇÃO (cabeçalho recolhível + bandeira) ===== */
+const FLAG={bra:"🇧🇷",eng:"🇬🇧",esp:"🇪🇸",ita:"🇮🇹",ger:"🇩🇪",fra:"🇫🇷",por:"🇵🇹",ned:"🇳🇱",usa:"🇺🇸",tur:"🇹🇷",ksa:"🇸🇦",arg:"🇦🇷",mex:"🇲🇽",sco:"🇬🇧",bel:"🇧🇪",uefa:"🇪🇺",conmebol:"🌎"};
+const flagOf=p=>FLAG[String(p||"").split(".")[0]]||"🌍";
+if(!Array.isArray(settings.favLeagues))settings.favLeagues=[];
+if(!settings.shut||typeof settings.shut!=="object")settings.shut={};
+function groupCards(){
+ if(top4Only||selected==="dupla")return;
+ const wrap=mt.querySelector(":scope > .matches");if(!wrap)return;
+ const cards=[...wrap.children].filter(c=>c.classList.contains("match"));if(!cards.length)return;
+ const byId=new Map(games.map(g=>[String(g.id),g])),groups=new Map();
+ cards.forEach(c=>{
+  const g=byId.get(c.dataset.id);if(!g)return;
+  const k=g.path||g.league;
+  if(!groups.has(k))groups.set(k,{k,name:g.league,path:g.path,cards:[],live:0});
+  const o=groups.get(k);o.cards.push(c);if(g.live)o.live++
+ });
+ if(groups.size<2)return;
+ const arr=[...groups.values()].sort((a,b)=>(settings.favLeagues.includes(a.k)?0:1)-(settings.favLeagues.includes(b.k)?0:1));
+ const frag=document.createDocumentFragment();
+ arr.forEach(o=>{
+  const sec=document.createElement("section");sec.className="lg"+(settings.shut[o.k]?" shut":"");sec.dataset.k=o.k;
+  const on=settings.favLeagues.includes(o.k);
+  sec.innerHTML='<div class="lgh" role="button" tabindex="0"><span class="lgf">'+flagOf(o.path)+'</span><span class="lgn">'+esc(o.name)+'</span><span class="lgc">'+o.cards.length+(o.live?" · 🔴 "+o.live:"")+'</span><button class="lgs '+(on?"on":"")+'" data-ls="'+esc(o.k)+'" aria-label="Liga favorita">'+(on?"★":"☆")+'</button><span class="lgv">▾</span></div><div class="matches"></div>';
+  const body=sec.querySelector(".matches");o.cards.forEach(c=>body.appendChild(c));
+  frag.appendChild(sec)
+ });
+ wrap.replaceWith(frag)
+}
+const rg0=renderGames;
+renderGames=function(f){rg0(f);try{groupCards()}catch(e){}};
+mt.addEventListener("click",e=>{
+ const s=e.target.closest("[data-ls]");
+ if(s){const k=s.dataset.ls,i=settings.favLeagues.indexOf(k);if(i>=0)settings.favLeagues.splice(i,1);else settings.favLeagues.push(k);sv();renderGames(lastFailed);return}
+ const h=e.target.closest(".lgh");
+ if(h){const sec=h.parentElement,k=sec.dataset.k;sec.classList.toggle("shut");if(sec.classList.contains("shut"))settings.shut[k]=1;else delete settings.shut[k];sv()}
+});
+mt.addEventListener("keydown",e=>{const h=e.target.closest&&e.target.closest(".lgh");if(h&&e.target===h&&(e.key==="Enter"||e.key===" ")){e.preventDefault();h.click()}});
+
+/* ===== DETALHE DO JOGO: barra 1X2, bolinhas, radar, linha do tempo ===== */
+function radarHTML(g,H,A){
+ const stt=(L,vh)=>{const n=L.length,gf=L.reduce((s,x)=>s+x.scored,0)/n,ga=L.reduce((s,x)=>s+x.conceded,0)/n,r=L.slice(0,5),f=getForm(r),v=L.filter(x=>x.home===vh),vl=v.length>=2?v:L,fv=getForm(vl);return[Math.min(100,gf/2.5*100),Math.max(0,100-ga/2.5*100),f.points/(3*r.length)*100,fv.points/(3*vl.length)*100,pct(L.filter(x=>x.scored>0).length,n)]};
+ const a1=stt(H,true),a2=stt(A,false),labs=["Ataque","Defesa","Forma","Mando","Marcou"],cx=150,cy=118,R=80;
+ const pt=(i,v)=>{const a=i*2*Math.PI/5-Math.PI/2,r=R*v/100;return[(cx+r*Math.cos(a)).toFixed(1),(cy+r*Math.sin(a)).toFixed(1)]};
+ const poly=(s,c)=>'<polygon points="'+s.map((v,i)=>pt(i,v).join(",")).join(" ")+'" fill="'+c+'" fill-opacity=".25" stroke="'+c+'" stroke-width="2"/>';
+ const rings=[25,50,75,100].map(k=>'<polygon points="'+labs.map((_,i)=>pt(i,k).join(",")).join(" ")+'" fill="none" stroke="var(--b2)"/>').join("");
+ const axes=labs.map((_,i)=>'<line x1="'+cx+'" y1="'+cy+'" x2="'+pt(i,100)[0]+'" y2="'+pt(i,100)[1]+'" stroke="var(--b2)"/>').join("");
+ const tx=labs.map((l,i)=>{const p=pt(i,124);return'<text x="'+p[0]+'" y="'+p[1]+'" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="var(--mu)">'+l+"</text>"}).join("");
+ return'<div class="panel"><h3>🕸 Radar · ataque x defesa</h3><svg viewBox="0 0 300 236" style="width:100%;height:auto" role="img" aria-label="Radar comparando os times">'+rings+axes+poly(a1,"#42d392")+poly(a2,"#5aa9ff")+tx+'</svg><div class="legend"><span><b style="background:#42d392"></b>'+esc(g.home)+'</span><span><b style="background:#5aa9ff"></b>'+esc(g.away)+'</span></div><div class="market-note">Ataque = gols marcados por jogo. Defesa = poucos gols sofridos. Forma = aproveitamento nos últimos 5. Mando = aproveitamento em casa (mandante) ou fora (visitante). Marcou = % de jogos em que fez gol. Tudo calculado só com jogos anteriores à partida.</div></div>'
+}
+function timelineHTML(sum){
+ const src=sum.keyEvents||sum.plays||sum.commentary||[];if(!Array.isArray(src))return"";
+ const out=[];
+ src.forEach(e=>{
+  const ev=e.play||e,t=String(ev.type?.text||ev.type?.type||e.type?.text||"").toLowerCase();
+  let ic="";
+  if(ev.scoringPlay||e.scoringPlay||(/goal/.test(t)&&!/disallow|no goal/.test(t)))ic="⚽";
+  else if(/yellow/.test(t))ic="🟨";
+  else if(/red card|straight red/.test(t))ic="🟥";
+  else if(/substitution/.test(t))ic="🔁";
+  if(!ic)return;
+  const min=ev.clock?.displayValue||e.clock?.displayValue||e.time?.displayValue||"",tx=ev.text||ev.shortText||e.text||e.shortText||(ev.team?.displayName||"");
+  out.push('<div><b>'+esc(min)+'</b>'+ic+" "+esc(tx)+"</div>")
+ });
+ return'<div class="panel"><h3>⏱ Linha do tempo</h3>'+(out.length?'<div class="tl">'+out.join("")+"</div>":'<div class="muted">Ainda sem gols, cartões ou substituições registrados.</div>')+"</div>"
+}
+function enhanceDetail(){
+ const g=currentMatch;if(!g)return;
+ const cutT=g.date?new Date(g.date).getTime():NaN,cut=l=>Number.isFinite(cutT)?l.filter(x=>new Date(x.date).getTime()<cutT):l;
+ const H=cut(currentHistHome),A=cut(currentHistAway),p=calcProbs(H,A,g.path),md=$("#tab-tips .market-data");
+ if(p&&md&&!md.querySelector(".x12")){
+  const t=p.pH+p.pD+p.pA||1,a=p.pH/t*100,b=p.pD/t*100,c=100-a-b;
+  md.querySelector("h3").insertAdjacentHTML("afterend",'<div class="x12"><i style="width:'+a+'%;background:#42d392"></i><i style="width:'+b+'%;background:#f5c542"></i><i style="width:'+c+'%;background:#5aa9ff"></i></div><div class="x12lab"><span>'+esc(g.home)+" "+Math.round(a)+"%</span><span>Empate "+Math.round(b)+"%</span><span>"+esc(g.away)+" "+Math.round(c)+"%</span></div>")
+ }
+ if(md)md.querySelectorAll(".market-item").forEach(it=>{
+  if(it.querySelector(".pbar"))return;
+  const b=it.querySelector("b"),v=parseInt(b&&b.textContent);
+  if(Number.isFinite(v))it.insertAdjacentHTML("beforeend",'<div class="pbar"><i style="width:'+v+'%"></i></div>')
+ });
+ const ts=$("#tab-stats");if(!ts||ts.querySelector(".enh"))return;
+ const dots=(n,l)=>l.length?'<strong style="font-size:12px">'+esc(n)+'</strong><div class="dots">'+l.slice(0,10).reverse().map(x=>'<span class="dot '+(x.scored>x.conceded?"v":x.scored===x.conceded?"e":"d")+'"></span>').join("")+'<span class="muted">← antigo · recente →</span></div>':"";
+ let html="";
+ if(currentLiveSummary)html+=timelineHTML(currentLiveSummary);
+ if(currentHistHome.length||currentHistAway.length)html+='<div class="panel"><h3>🟢🟡🔴 Forma recente</h3>'+dots(g.home,currentHistHome)+dots(g.away,currentHistAway)+"</div>";
+ if(H.length>=3&&A.length>=3)html+=radarHTML(g,H,A);
+ if(html)ts.insertAdjacentHTML("afterbegin",'<div class="enh">'+html+"</div>")
+}
+const rdt0=renderDetailTabs;
+renderDetailTabs=function(){rdt0();try{enhanceDetail()}catch(e){}};
+
+/* ===== SELO DE DADOS ===== */
+const seal=document.createElement("span");seal.className="seal";$("#sourceLabel").after(seal);
+setInterval(()=>{
+ const s=Math.max(0,Math.round((Date.now()-lastLoadAt)/1000)),bad=/indispon/i.test($("#sourceLabel").textContent);
+ seal.className="seal "+(bad||s>300?"r":s>90?"y":"");
+ seal.innerHTML="<b></b>"+(bad?"Fonte indisponível":"Atualizado há "+(s<60?s+" s":Math.floor(s/60)+" min"))
+},1000);
+
+/* ===== VOLTAR AO TOPO + PULL-TO-REFRESH ===== */
+const tt=document.createElement("button");tt.id="toTop";tt.textContent="↑";tt.setAttribute("aria-label","Voltar ao topo");
+tt.onclick=()=>window.scrollTo({top:0,behavior:"smooth"});document.body.appendChild(tt);
+addEventListener("scroll",()=>{tt.style.display=scrollY>600?"block":"none"},{passive:true});
+const ptr=document.createElement("div");ptr.id="ptr";document.body.appendChild(ptr);
+let y0=null,dy=0;
+addEventListener("touchstart",e=>{y0=(scrollY<=0&&$("#radar").classList.contains("active"))?e.touches[0].clientY:null;dy=0},{passive:true});
+addEventListener("touchmove",e=>{
+ if(y0===null)return;dy=e.touches[0].clientY-y0;
+ if(dy>10){const h=Math.min(dy/2,50);ptr.style.height=h+"px";ptr.style.lineHeight=h+"px";ptr.textContent=dy>110?"Solte para atualizar":"Puxe para atualizar"}
+},{passive:true});
+addEventListener("touchend",()=>{
+ if(y0===null)return;
+ if(dy>110&&!loading){ptr.textContent="Atualizando...";$("#refresh").click();setTimeout(()=>{ptr.style.height="0"},700)}else ptr.style.height="0";
+ y0=null;dy=0
+});
+
+/* ===== NOVAS PÁGINAS: MEUS TIMES, COMO FUNCIONA, LEGAL ===== */
+const mainEl=$("main");
+function addPage(id,html){const s=document.createElement("section");s.className="page";s.id=id;s.innerHTML=html;mainEl.insertBefore(s,$("#controle").nextSibling);return s}
+addPage("times",'<div class="hero"><h2>⭐ Meus times e ligas</h2><p>Times favoritos recebem aviso de gol e aparecem primeiro. Ligas favoritas ficam no topo da lista de jogos.</p></div><div class="panel"><h3>Adicionar time</h3><input id="tmSearch" type="search" placeholder="🔍 Buscar entre os jogos carregados..." autocomplete="off"><div id="tmRes"></div></div><div class="section"><h3>Times favoritos</h3></div><div class="panel" id="tmFav"></div><div class="section"><h3>Ligas favoritas</h3></div><div class="panel" id="tmLg"></div>');
+addPage("how",'<div class="hero"><h2>🔍 Como funciona</h2><p>Transparência: veja como as probabilidades são calculadas e o quanto elas acertaram de verdade.</p></div><div id="howBody"></div>');
+addPage("legal",'<div class="hero"><h2>📄 Privacidade, termos e jogo responsável</h2><p>Leia antes de usar.</p></div>'+
+'<div class="panel txt" id="lgResp"><h3>🔞 Jogo responsável</h3><p>O Radar FC é uma ferramenta informativa e <strong>não é casa de apostas</strong>. Não aceita apostas nem intermedia pagamentos. O uso é indicado só para maiores de 18 anos.</p><ul><li>Apostar envolve risco real de perda. Nunca aposte dinheiro de que precisa.</li><li>Defina um limite e pare quando atingi-lo. Não tente recuperar perdas.</li><li>Se o jogo estiver causando problemas, procure ajuda profissional.</li></ul><p><a href="https://www.gov.br/fazenda/pt-br" target="_blank" rel="noopener" style="color:var(--gn)">Ministério da Fazenda (gov.br): informações sobre apostas e jogo responsável →</a></p></div>'+
+'<div class="panel txt" id="lgPriv"><h3>🔒 Política de privacidade</h3><h4>Dados que ficam no seu aparelho</h4><p>Favoritos, palpites, banca, apostas registradas e configurações ficam salvos <strong>apenas no seu navegador</strong> (armazenamento local). Não há cadastro nem conta, e esses dados não são enviados a nenhum servidor nosso. Se você limpar os dados do navegador, eles são apagados: use o backup em Meu Controle.</p><h4>Serviços de terceiros</h4><p>Para funcionar, o app consulta a ESPN e a SportScore (placares e estatísticas) e o Google Fonts (tipografia). Ao fazer isso, esses serviços recebem seu endereço IP e dados técnicos do navegador, conforme as políticas deles.</p><h4>Sem venda de dados</h4><p>Não vendemos nem compartilhamos seus dados pessoais. Você pode apagar tudo a qualquer momento limpando os dados do site no navegador.</p></div>'+
+'<div class="panel txt" id="lgTerms"><h3>📜 Termos de uso</h3><ul><li>As informações, probabilidades e tips são estimativas estatísticas, <strong>sem garantia de resultado</strong>.</li><li>Os dados vêm de fontes de terceiros e podem atrasar, conter erros ou ficar indisponíveis.</li><li>Você é o único responsável pelas decisões que tomar com base no app, inclusive financeiras.</li><li>O app é oferecido "como está", sem garantia de funcionamento contínuo.</li><li>Nomes e escudos de times pertencem aos seus respectivos donos.</li><li>O uso é destinado a maiores de 18 anos.</li></ul><p class="muted">Modelo de texto genérico. Se for publicar de forma comercial, revise com um profissional jurídico.</p></div>');
+
+/* navegação: botão novo na barra e botão de info no topo */
+const nav=$("#bottomNav");
+nav.insertAdjacentHTML("beforeend",'<button data-page="times"><span>⭐</span>Times</button>');
+nav.lastElementChild.onclick=()=>{goPage("times");scrollTo(0,0)};
+const info=document.createElement("button");info.id="infoBtn";info.textContent="ℹ️";info.setAttribute("aria-label","Como funciona");
+$("#themeBtn").parentElement.prepend(info);info.onclick=()=>{goPage("how");scrollTo(0,0)};
+const gp0=goPage;
+goPage=function(id){gp0(id);if(id==="times")renderTeams();if(id==="how")renderHow()};
+
+/* Meus times */
+function resultsTeams(){
+ const q=norm($("#tmSearch").value.trim()),box=$("#tmRes");
+ if(!q){box.innerHTML="";return}
+ const names=new Set();games.concat(typeof liveGames!=="undefined"?liveGames:[]).forEach(g=>{names.add(g.home);names.add(g.away)});
+ const list=[...names].filter(n=>norm(n).includes(q)&&!favs.includes(n)).slice(0,8);
+ box.innerHTML=list.length?list.map(n=>'<div class="record"><strong>'+esc(n)+'</strong><button data-add="'+esc(n)+'">☆ Favoritar</button></div>').join(""):'<div class="muted">Nenhum time encontrado nos jogos carregados. Mude o dia na tela principal para buscar outros.</div>'
+}
+function renderTeams(){
+ const f=$("#tmFav"),l=$("#tmLg");if(!f)return;
+ const all=games.concat(typeof liveGames!=="undefined"?liveGames:[]);
+ f.innerHTML=favs.length?favs.map(n=>{
+  const g=all.find(x=>x.home===n||x.away===n);
+  const sub=g?(g.home+" "+g.hs+" x "+g.as+" "+g.away+" · "+g.state):"Sem jogo nos dados carregados";
+  return'<div class="record"><div><strong>★ '+esc(n)+'</strong><br><span class="muted">'+esc(sub)+'</span></div><button data-rm="'+esc(n)+'" aria-label="Remover">🗑</button></div>'
+ }).join(""):'<div class="empty"><span class="ico">⭐</span>Você ainda não tem times favoritos.<br>Toque na ☆ ao lado do time em qualquer jogo, ou busque acima.</div>';
+ const fl=settings.favLeagues;
+ l.innerHTML=fl.length?fl.map(k=>{const c=competitions.find(x=>x.path===k);return'<div class="record"><strong>'+flagOf(k)+" "+esc(c?c.name:k)+'</strong><button data-rl="'+esc(k)+'" aria-label="Remover">🗑</button></div>'}).join(""):'<div class="empty"><span class="ico">🏆</span>Nenhuma liga favorita.<br>Toque na ☆ no cabeçalho de uma competição na tela principal.</div>'
+}
+$("#times").addEventListener("click",e=>{
+ const a=e.target.closest("[data-add]"),r=e.target.closest("[data-rm]"),rl=e.target.closest("[data-rl]");
+ if(a){if(!favs.includes(a.dataset.add))toggleFav(a.dataset.add);renderTeams();resultsTeams()}
+ if(r){if(favs.includes(r.dataset.rm))toggleFav(r.dataset.rm);renderTeams()}
+ if(rl){const i=settings.favLeagues.indexOf(rl.dataset.rl);if(i>=0)settings.favLeagues.splice(i,1);sv();renderTeams()}
+});
+$("#tmSearch").addEventListener("input",resultsTeams);
+
+/* Como funciona + histórico real */
+function renderHow(){
+ const done=Object.values(dayPicks).filter(r=>r.result==="green"||r.result==="red"),n=done.length;
+ let chart;
+ if(!n)chart='<div class="empty"><span class="ico">📊</span>Ainda não há palpites encerrados.<br>O gráfico aparece depois dos primeiros resultados.</div>';
+ else{
+  const hit=done.filter(r=>r.result==="green").length,avgP=done.reduce((s,r)=>s+Number(r.prob||0),0)/n,real=hit/n*100,diff=real-avgP;
+  const bks=[[0,60,"até 59%"],[60,70,"60–69%"],[70,80,"70–79%"],[80,90,"80–89%"],[90,101,"90%+"]];
+  const rows=bks.map(b=>{
+   const L=done.filter(r=>Number(r.prob)>=b[0]&&Number(r.prob)<b[1]);if(!L.length)return"";
+   const p=L.reduce((s,r)=>s+Number(r.prob||0),0)/L.length,rr=L.filter(r=>r.result==="green").length/L.length*100;
+   return'<div class="cbar"><small>'+b[2]+" · "+L.length+' palpite(s)</small><div class="bw"><span>Previsto</span><div><i style="width:'+p+'%;background:#5aa9ff"></i></div><em>'+Math.round(p)+'%</em></div><div class="bw"><span>Real</span><div><i style="width:'+rr+'%;background:'+(rr>=p?"#42d392":"#ff6b6b")+'"></i></div><em>'+Math.round(rr)+"%</em></div></div>"
+  }).join("");
+  const msg=n<30?"Só "+n+" palpite(s) encerrado(s): ainda é pouco para tirar conclusões (espere 30 ou mais).":diff<=-5?"O app está acertando menos do que prevê. Trate os percentuais como mais altos que a realidade.":diff>=5?"O app está acertando mais do que prevê.":"Previsto e real estão próximos.";
+  chart='<div class="dupla-stats"><div class="dupla-stat"><small>PREVISTO</small><strong>'+Math.round(avgP)+'%</strong></div><div class="dupla-stat"><small>ACERTO REAL</small><strong class="'+(diff>=0?"green":"red")+'">'+Math.round(real)+'%</strong></div><div class="dupla-stat"><small>PALPITES</small><strong>'+n+"</strong></div></div>"+rows+'<div class="legend"><span><b style="background:#5aa9ff"></b>Previsto</span><span><b style="background:#42d392"></b>Real</span></div><div class="market-note" style="font-size:12px">'+esc(msg)+"</div>"+brierHTML(brierInfo(done.map(r=>({p:Number(r.prob||0)/100,hit:r.result==="green"}))))
+ }
+ $("#howBody").innerHTML='<div class="panel txt"><h3>🧠 O modelo em 4 passos</h3><ol><li><strong>Histórico:</strong> pega até 15 jogos recentes de cada time. Jogos mais novos pesam mais, e o mandante é avaliado em casa e o visitante fora.</li><li><strong>Gols esperados:</strong> um modelo de Poisson estima quantos gols cada time deve fazer, ajustando pela força dos adversários enfrentados.</li><li><strong>Mistura:</strong> junta o retrospecto com o Poisson e puxa 15% em direção à média da liga, para evitar exageros.</li><li><strong>Aprendizado:</strong> compara o previsto com o real dos palpites encerrados e desconta o excesso de otimismo.</li></ol></div><div class="panel"><h3>📐 Histórico real: previsto x real</h3>'+chart+'</div><div class="panel txt"><h3>⚠️ Limites</h3><ul><li>Não considera escalações, lesões, clima nem motivação.</li><li>Estimativa não é garantia: mesmo 80% falha em 1 de cada 5 vezes.</li><li>Parte dos palpites pode ter sido calculada depois do jogo (jogos já encerrados abertos no app). Por isso o ideal é conferir só os palpites gravados antes das partidas.</li></ul><button class="full" id="redoOnb">🎓 Rever tutorial</button></div>';
+ $("#redoOnb").onclick=()=>{onboard(true)}
+}
+
+/* rodapé legal em todas as páginas */
+mainEl.insertAdjacentHTML("beforeend",'<div class="legal" id="legalBar">🔞 Maiores de 18 anos. Informativo, não é casa de apostas. Apostar envolve risco: jogue com responsabilidade.<br><a data-go="legal">Jogo responsável</a> · <a data-go="legal">Privacidade</a> · <a data-go="legal">Termos</a> · <a data-go="how">Como funciona</a></div>');
+$("#legalBar").addEventListener("click",e=>{const a=e.target.closest("[data-go]");if(a){goPage(a.dataset.go);scrollTo(0,0)}});
+
+/* ===== ONBOARDING (3 telas) ===== */
+function onboard(force){
+ if(!force&&settings.onboarded)return;
+ const sl=[
+  {i:"🎯",t:"O que é uma Tip",p:"Tip é o palpite que o app considera mais provável em cada jogo, como \"time A ou empate\", \"mais de 1,5 gols\" ou \"menos de 3,5 gols\". Ela aparece no card do jogo e é gravada antes da partida para o acerto ser conferido depois."},
+  {i:"📊",t:"O que é probabilidade",p:"O percentual é uma estimativa feita com o histórico recente dos times. 80% quer dizer que, em 10 palpites assim, cerca de 8 devem acertar. Não é certeza: em \"Como funciona\" você vê o quanto o app realmente acertou."},
+  {i:"🧩",t:"O que é uma múltipla",p:"Múltipla junta vários palpites em uma aposta só, e todos precisam dar certo. Quanto mais jogos, maior a odd, mas menor a chance de green. Uma única perda derruba tudo. Jogue com responsabilidade."}
+ ];
+ let i=0;const ov=document.createElement("div");ov.className="ov";document.body.appendChild(ov);
+ const close=()=>{ov.remove();settings.onboarded=true;sv()};
+ const draw=()=>{const s=sl[i],last=i===sl.length-1;
+  ov.innerHTML='<div class="ovbox" role="dialog" aria-modal="true"><div class="big">'+s.i+"</div><h2>"+s.t+"</h2><p>"+s.p+'</p><div class="ovdots">'+sl.map((_,k)=>'<span class="'+(k===i?"on":"")+'"></span>').join("")+'</div><div class="ovrow">'+(last?"":'<button id="ovSkip">Pular</button>')+'<button class="active" id="ovNext">'+(last?"Começar":"Próximo")+"</button></div></div>";
+  $("#ovNext").onclick=()=>{if(last)close();else{i++;draw()}};
+  const sk=$("#ovSkip");if(sk)sk.onclick=close
+ };
+ draw()
+}
+setTimeout(()=>onboard(false),700);
+})();
+</script>
 </body>
 </html>
